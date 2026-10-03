@@ -67,9 +67,29 @@ Lights use ECS `world.lights.set(entity, properties)` with directional/point/spo
 
 GPU LOD consumes authored compatible mesh groups registered with `renderer.lodGroups`, referenced by `world.meshes.setLOD(entity, group)`. Thresholds use physical projected size and hysteresis. Opt-in `renderer.temporal.enabled` reuses visibility only for exact stable snapshots; camera, viewport, geometry, material and deformation changes invalidate it. Newly added objects receive a conservative visible frame. LOD geometry is excluded from the initial occluder prepass to preserve conservative visibility.
 
-`app.assetLoader` exposes observable loading records through Unloaded/Loading/Decoded/Uploading/Ready/Failed states. Concurrent loads share decode/upload work; repeated instantiation shares numeric GPU assets. Payloads of at least 1 MiB decode in a persistent worker with transferable buffers; small payloads use the main thread. Upload tasks yield between primitives. A single large primitive still packs on the main thread.
+`app.assetLoader` exposes observable loading records through Unloaded/Loading/Decoded/Uploading/Ready/Failed/Cancelled/Unloading states. Concurrent loads share decode/upload work; repeated instantiation shares numeric GPU assets. Payloads of at least 1 MiB decode in a persistent worker with transferable buffers; small payloads use the main thread. Upload tasks yield between primitives. A single large primitive still packs on the main thread.
 
-`renderer.streaming.bindLOD(group, level, key, loadPrimitive)` and `bindMaterial(materialID, key, loadAsset)` retain resident fallbacks while loading. Streamed texture assets contain one material and replace its texture slots while preserving scalar factors. Call `releaseLOD`/`releaseMaterial` to restore fallbacks, then asynchronously `await renderer.streaming.evictUnused(minimumAge)` outside the frame loop. Eviction waits for submitted work and rechecks references; shared morph arena blocks remain allocated until renderer disposal. Texture slot changes restore UV/normal metadata and invalidate shadow/temporal caches.
+Asset uploads are transactional: failures or cancellation reclaim earlier meshes, material slots, texture leases, and morph delta ranges. `await app.unloadAsset(url)` removes **all instances created by `app.loadAsset(url)`**, refreshes the render snapshot, waits for submitted GPU work, and releases the cached decoded/GPU asset. Shared textures remain alive for other assets. External entities, hierarchy attachments, LOD groups, streaming fallbacks, or material bindings can veto unloading; detach those consumers first. Unloading an unknown URL is harmless; loading the same URL during unloading rejects.
+
+```ts
+const url = "/regression/skinned.glb";
+await app.loadAsset(url);
+await app.unloadAsset(url);
+
+await app.assetLoader.setCacheBudget({
+  maxRecords: 32,
+  maxDecodedBytes: 64 * 1024 * 1024,
+});
+await app.assetLoader.trimCache();
+```
+
+The default cache budget is 64 records and 128 MiB of decoded backing buffers, counted once per asset even when views alias. LRU eviction releases unused whole assets. Application instances retain their asset; live/pending assets and the latest load are protected and can exceed the budget. Budget bytes exclude GPU memory and JavaScript metadata. When using `app.assetLoader.load` directly, call `retain(url)` before loading and invoke its returned release function after detaching your consumers. Manually destroying application entities does not release their cache lease; call `unloadAsset(url)` afterward.
+
+`app.cancelAssetLoad(url)` cancels the shared in-flight operation for that URL; all callers receive an `AbortError`. Handle the loading promise's rejection. Fetches receive an abort signal, cancelled worker jobs ignore late replies, and upload cancellation rolls back after the current asynchronous boundary. Synchronous decoding/primitive packing cannot be interrupted midway. `await app.dispose()` cancels pending loads and completes cleanup before disposing the renderer/device.
+
+Scene entity IDs remain monotonic and consume the configured world capacity even after unloading. Animation/morph/skeleton registry IDs may be compacted during unloading; retrieve current IDs through ECS stores rather than retaining array indices. Surviving controller objects, morph views and palette offsets remain valid. Details and measurements: [asset lifecycle report](benchmarks/ASSET_LIFECYCLE_REPORT.md).
+
+`renderer.streaming.bindLOD(group, level, key, loadPrimitive)` and `bindMaterial(materialID, key, loadAsset)` retain resident fallbacks while loading. Streamed texture assets contain one material and replace its texture slots while preserving scalar factors. Call `releaseLOD`/`releaseMaterial` to restore fallbacks, then asynchronously `await renderer.streaming.evictUnused(minimumAge)` outside the frame loop. Eviction waits for submitted work and rechecks references; freed shared morph arena ranges become reusable without relocating live assets. Texture slot changes restore UV/normal metadata and invalidate shadow/temporal caches.
 
 Native KTX2 compressed textures support adapter-gated BC, ETC2/EAC and ASTC formats, role-correct linear/sRGB sampling and authored mip chains. Unsupported formats, malformed blocks, cubemaps/arrays, Basis Universal and supercompression fail explicitly. Ordinary decoded images still receive generated GPU mipmaps.
 

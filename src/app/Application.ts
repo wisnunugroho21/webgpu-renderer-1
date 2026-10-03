@@ -1,4 +1,6 @@
-import { uploadAsset } from "../assets/uploadAsset";
+import { AssetInstances } from "../assets/AssetInstances";
+import { transferableBuffers } from "../assets/workers/transfer";
+import { uploadAsset, releaseUploadedAsset } from "../assets/uploadAsset";
 import { AssetDecoder } from "../assets/workers/AssetDecoder";
 import { AssetLoader } from "../assets/AssetLoader";
 import { GLTFLoader } from "../assets/gltf/GLTFLoader";
@@ -35,14 +37,46 @@ export class Application {
   readonly extractor = new RenderExtractor();
   readonly materials = new MaterialManager();
   readonly profiler = new CPUProfiler();
+  readonly assetInstances: AssetInstances;
+  private disposing = false;
   readonly assetLoader = new AssetLoader<
     JSONDocument,
     RuntimeAsset,
     UploadedAsset
   >(
-    (url) => this.gltf.fetch(url),
-    (data) => this.assetDecoder.decode(data),
-    (asset) => this.uploadAsset(asset),
+    (url, signal) => this.gltf.fetch(url, signal),
+    (data, signal) => this.assetDecoder.decode(data, signal),
+    (asset, signal) => this.uploadAsset(asset, signal),
+    undefined,
+    {
+      decodedBytes: (asset) =>
+        transferableBuffers(asset).reduce(
+          (bytes, buffer) => bytes + buffer.byteLength,
+          0,
+        ),
+      beforeUnload: (uploaded, asset, url) => {
+        if (!this.disposing) this.assertCanUnloadAsset(url, uploaded);
+        this.assetInstances.detach(url, asset);
+        this.refreshAssetSnapshot();
+      },
+      release: (uploaded) =>
+        releaseUploadedAsset(
+          uploaded,
+          this.renderer.meshes,
+          this.materials,
+          this.renderer.textures,
+          () => this.gpu.queue.onSubmittedWorkDone(),
+        ),
+      canEvict: (record) => {
+        if (!record.uploaded) return true;
+        try {
+          this.assertCanUnloadAsset(record.url, record.uploaded);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    },
   );
   private readonly gltf = new GLTFLoader();
   readonly assetDecoder = new AssetDecoder(this.gltf);
@@ -60,6 +94,11 @@ export class Application {
     renderCapacity = entityCapacity,
   ) {
     this.world = new World(entityCapacity);
+    this.assetInstances = new AssetInstances(
+      this.world,
+      this.animations,
+      this.skeletons,
+    );
     this.transformSystem = new TransformSystem(entityCapacity);
     this.renderWorld = new RenderWorld(renderCapacity);
     this.sceneEntity = this.world.create();
@@ -183,39 +222,111 @@ export class Application {
   }
 
   private checkLoadingDevice(): void {
-    if (!this.renderer || this.gpu.disposed || this.gpu.lost)
+    if (this.disposing || !this.renderer || this.gpu.disposed || this.gpu.lost)
       throw new Error("Device unavailable during asset loading");
   }
-  private async uploadAsset(asset: RuntimeAsset): Promise<UploadedAsset> {
+  private async uploadAsset(
+    asset: RuntimeAsset,
+    signal: AbortSignal,
+  ): Promise<UploadedAsset> {
     this.checkLoadingDevice();
     return uploadAsset(
       asset,
       this.renderer.meshes,
       this.materials,
       this.renderer.textures,
-      () => this.checkLoadingDevice(),
+      () => {
+        signal.throwIfAborted();
+        this.checkLoadingDevice();
+      },
     );
   }
+  /** Each call creates a scene instance; cached GPU assets remain shared. */
   async loadAsset(url: string): Promise<Uint32Array> {
-    const uploaded = await this.assetLoader.load(url);
     this.checkLoadingDevice();
-    const asset = this.assetLoader.get(url).decoded!;
-    return instantiate(
-      asset,
+    const release = this.assetLoader.retain(url);
+    try {
+      const uploaded = await this.assetLoader.load(url);
+      this.checkLoadingDevice();
+      const record = this.assetLoader.records.get(url);
+      if (
+        !record?.decoded ||
+        record.state !== "Ready" ||
+        record.uploaded !== uploaded
+      )
+        throw new Error("Asset was unloaded before instantiation");
+      const asset = record.decoded,
+        start = this.world.nextEntity;
+      try {
+        const nodes = instantiate(
+          asset,
+          this.world,
+          this.renderer.meshes,
+          this.materials,
+          asset.defaultScene,
+          this.animations,
+          this.skeletons,
+          uploaded,
+        );
+        this.assetInstances.add(url, start, this.world.nextEntity, release);
+        return nodes;
+      } catch (error) {
+        this.assetInstances.rollback(start, asset);
+        throw error;
+      }
+    } catch (error) {
+      release();
+      throw error;
+    }
+  }
+
+  cancelAssetLoad(url: string): boolean {
+    return this.assetLoader.cancel(url);
+  }
+  /** Removes every instance loaded through this application, then releases its cached asset. */
+  unloadAsset(url: string): Promise<void> {
+    return this.assetLoader.unload(url);
+  }
+
+  private assertCanUnloadAsset(url: string, uploaded: UploadedAsset): void {
+    this.assetInstances.assertCanUnload(url, uploaded);
+    const ids = new Set(uploaded.meshIds.flat());
+    for (const group of this.renderer.lodGroups.entries)
+      if (group.meshes.some((id) => ids.has(id)))
+        throw new Error(
+          "Asset is referenced by an LOD group; detach it before unloading",
+        );
+    if (this.renderer.streaming.referencesAsset(uploaded))
+      throw new Error(
+        "Asset is referenced by streaming; detach it before unloading",
+      );
+    const materialIds = new Set(uploaded.materialIds);
+    for (let id = 0; id < this.renderer.textures.groups.length; id++)
+      if (
+        !materialIds.has(id) &&
+        uploaded.textureGroups?.includes(this.renderer.textures.groups[id]!)
+      )
+        throw new Error("Asset texture group is bound to an external material");
+  }
+  private refreshAssetSnapshot(): void {
+    this.transformSystem.update(this.world.transforms);
+    this.extractor.extract(
       this.world,
-      this.renderer.meshes,
-      this.materials,
-      asset.defaultScene,
-      this.animations,
+      this.renderWorld,
       this.skeletons,
-      uploaded,
+      this.animations.morphPool,
     );
   }
 
-  dispose(): void {
+  async dispose(): Promise<void> {
     this.stop();
+    this.disposing = true;
     this.assetDecoder.dispose();
-    this.renderer?.dispose();
-    this.gpu?.dispose();
+    try {
+      await this.assetLoader.dispose();
+    } finally {
+      this.renderer?.dispose();
+      this.gpu?.dispose();
+    }
   }
 }

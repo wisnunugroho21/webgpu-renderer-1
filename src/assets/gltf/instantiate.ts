@@ -8,6 +8,8 @@ export interface UploadedAsset {
   materialIds: number[];
   defaultMaterial: number;
   meshIds: number[][];
+  /** Original preparation array carries the shared texture ownership lease. */
+  textureGroups?: GPUBindGroup[];
 }
 /** Instantiate selected scene hierarchy into ECS; GPU assets are uploaded once per primitive. */
 export function instantiate(
@@ -46,10 +48,7 @@ export function instantiate(
   );
   if (world.nextEntity + active.length + primitiveCount > world.capacity)
     throw new Error("World capacity exceeded by asset");
-  if (
-    !uploaded &&
-    materials.count + asset.materials.length + 1 > materials.capacity
-  )
+  if (!uploaded && materials.available < asset.materials.length + 1)
     throw new Error("Material capacity exceeded by asset");
   const materialIds =
       uploaded?.materialIds ??

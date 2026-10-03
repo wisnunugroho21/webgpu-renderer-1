@@ -39,3 +39,31 @@ it("uses main decode for small assets and rejects worker jobs on disposal", asyn
   expect(worker.terminate).toHaveBeenCalled();
   vi.unstubAllGlobals();
 });
+it("cancels one worker job without terminating other decodes or accepting a late response", async () => {
+  vi.stubGlobal("Worker", function () {});
+  const worker = {
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+    onmessage: undefined as ((event: MessageEvent) => void) | undefined,
+  };
+  const decoder = new AssetDecoder(
+    {} as GLTFLoader,
+    () => worker as unknown as Worker,
+  );
+  decoder.thresholdBytes = 0;
+  const json = {
+    json: { asset: { version: "2.0" } },
+    resources: {},
+  } as JSONDocument;
+  const controller = new AbortController();
+  const a = decoder.decode(json, controller.signal),
+    b = decoder.decode(json);
+  controller.abort();
+  await expect(a).rejects.toMatchObject({ name: "AbortError" });
+  worker.onmessage!({ data: { id: 0, asset: { meshes: [] } } } as MessageEvent);
+  worker.onmessage!({ data: { id: 1, asset: { meshes: [] } } } as MessageEvent);
+  expect(await b).toEqual({ meshes: [] });
+  expect(worker.terminate).not.toHaveBeenCalled();
+  decoder.dispose();
+  vi.unstubAllGlobals();
+});

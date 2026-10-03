@@ -65,11 +65,13 @@ Color, camera depth and shadow shaders share `deformVertex`: base attributes →
 | Light                  |    64 | Four `vec4<f32>` records                                                             |
 | Shadow                 |    80 | View-projection matrix and cascade settings                                          |
 
-Initialization prepares caches, shared buffers, binding groups and bounded color variants. Asset upload prepares textures, list topology, missing flat normals, vertex packing, morph deltas and eligible static mesh clusters. `assets/uploadAsset.ts` yields between primitive uploads and rechecks the device after asynchronous boundaries; individual primitive packing remains synchronous.
+Initialization prepares caches, shared buffers, binding groups and bounded color variants. Asset upload prepares textures, list topology, missing flat normals, vertex packing, morph deltas and eligible static mesh clusters. `assets/uploadAsset.ts` yields between primitive uploads and rechecks the device after asynchronous boundaries; individual primitive packing remains synchronous. Upload ownership stays local until all primitives succeed; failures release buffers, material slots, texture leases and shared delta ranges.
 
 Ordinary frames reuse GPU resources and persistent typed arrays. The dynamic arena rotates three preallocated slots, with aligned offsets and one flush. Queue ordering protects writes/submissions; ordinary frames do not map buffers or wait for completion. Dirty joint, morph, material and light ranges avoid unchanged uploads. Resolve named ABI offsets outside tight vertex/instance loops; repeated module/property lookups can undermine otherwise equivalent refactors. Mesh/material IDs identify shared assets; entities never own separate mesh buffers.
 
-Resize allocation, asset loading and first supported enable of optional geometry optimization are cold paths. Streaming eviction waits for submitted work asynchronously outside the frame loop and rechecks ownership before destruction.
+Resize allocation, asset loading and first supported enable of optional geometry optimization are cold paths. Streaming eviction and whole-asset unloading wait for submitted work asynchronously outside the frame loop. `AssetInstances` tracks application-created nodes/primitives and retained cache leases. Unloading vetoes external consumers before removal, retires controllers/skins/morph states, refreshes extraction synchronously, then fences GPU resources. Shared texture reference counts preserve other assets. Cold registry compaction remaps ECS IDs; arena offsets and live views remain stable. World entity IDs stay monotonic.
+
+`AssetLoader` passes abort signals through fetch, decode and upload. Worker jobs remove cancelled callbacks without terminating other jobs. Uploads recheck signals at yield boundaries. LRU cache budgets protect retained/pending/latest loads; application byte accounting deduplicates decoded backing buffers. Failure metadata/history are bounded and failed cleanup retains ownership for retry. `Application.dispose()` is asynchronous and cancels/cleans assets before destroying the device.
 
 ## Optional features and correctness constraints
 
@@ -87,6 +89,7 @@ npm run format:check
 npm test
 npm run build
 RENDERER_PREVIEW=1 npm run validate:gpu
+npm run validate:assets
 npm run benchmark -- --outputJson artifacts/benchmarks.json
 npm run benchmark:gpu
 ```

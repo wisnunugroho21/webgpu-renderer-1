@@ -1,3 +1,4 @@
+import { RangeAllocator } from "../../assets/RangeAllocator";
 import { RuntimeAsset } from "../../assets/gltf/RuntimeAsset";
 import { World } from "../../ecs/World";
 import { MeshManager } from "../../rendering/MeshManager";
@@ -5,10 +6,47 @@ import { SkeletonAsset } from "./SkeletonAsset";
 import { SkeletonInstance } from "./SkeletonInstance";
 export class SkeletonRegistry {
   jointCount = 0;
-  constructor(readonly jointCapacity = 65536) {}
+  private readonly arena: RangeAllocator;
+  constructor(readonly jointCapacity = 65536) {
+    this.arena = new RangeAllocator(jointCapacity);
+  }
   private readonly cache = new WeakMap<RuntimeAsset, SkeletonAsset[]>();
   readonly assets: SkeletonAsset[] = [];
   readonly instances: SkeletonInstance[] = [];
+  /** Retire unused instances and remap ECS IDs without moving surviving palette offsets. */
+  releaseUnused(world: World, asset?: RuntimeAsset): void {
+    const used = new Set<number>();
+    for (let e = 0; e < world.nextEntity; e++)
+      if (world.alive[e] && world.skins.has[e])
+        used.add(world.skins.instanceId[e]!);
+    const remap = new Map<number, number>();
+    let count = 0;
+    for (let id = 0; id < this.instances.length; id++) {
+      const instance = this.instances[id]!;
+      if (!used.has(id)) {
+        this.arena.release(instance.jointOffset);
+        continue;
+      }
+      remap.set(id, count);
+      this.instances[count++] = instance;
+    }
+    this.instances.length = count;
+    this.jointCount = this.arena.count;
+    for (let e = 0; e < world.nextEntity; e++)
+      if (world.alive[e] && world.skins.has[e])
+        world.skins.instanceId[e] = remap.get(world.skins.instanceId[e]!)!;
+    if (asset) {
+      const cached = this.cache.get(asset);
+      if (
+        cached &&
+        !this.instances.some((instance) => cached.includes(instance.asset))
+      ) {
+        this.cache.delete(asset);
+        for (let i = this.assets.length - 1; i >= 0; i--)
+          if (cached.includes(this.assets[i]!)) this.assets.splice(i, 1);
+      }
+    }
+  }
   attach(
     asset: RuntimeAsset,
     entities: Int32Array,
@@ -27,11 +65,10 @@ export class SkeletonRegistry {
       if (e < 0 || data.skin < 0) continue;
       const skeleton = skeletons[data.skin];
       if (!skeleton) throw new Error("Unknown skin");
-      if (this.jointCount + skeleton.jointCount > this.jointCapacity)
-        throw new Error("Shared joint capacity exceeded");
+
       const instance = new SkeletonInstance(skeleton, e, entities);
-      instance.jointOffset = this.jointCount;
-      this.jointCount += instance.jointCount;
+      instance.jointOffset = this.arena.allocate(instance.jointCount);
+      this.jointCount = this.arena.count;
       const id = this.instances.push(instance) - 1;
       world.skins.add(e);
       world.skins.instanceId[e] = id;

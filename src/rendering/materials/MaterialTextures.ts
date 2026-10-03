@@ -245,7 +245,7 @@ export class MaterialTextures {
       return groups;
     } catch (error) {
       await Promise.allSettled(pending);
-      await this.device.queue.onSubmittedWorkDone();
+      await this.device.queue.onSubmittedWorkDone().catch(() => {});
       const failed: GPUBindGroup[] = [];
       this.ownership.set(failed, owned);
       await this.release(failed);
@@ -270,7 +270,7 @@ export class MaterialTextures {
       const count = (this.references.get(key) ?? 1) - 1;
       this.references.set(key, count);
       if (count) continue;
-      const texture = await this.cache.get(key);
+      const texture = await this.cache.get(key)?.catch(() => undefined);
       if ((this.references.get(key) ?? 0) !== 0) continue;
       this.references.delete(key);
       this.cache.delete(key);

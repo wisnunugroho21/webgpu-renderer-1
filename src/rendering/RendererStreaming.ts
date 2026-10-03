@@ -1,3 +1,4 @@
+import { UploadedAsset } from "../assets/gltf/instantiate";
 import { RenderWorld } from "./RenderWorld";
 import { Streaming, StreamLease } from "../assets/Streaming";
 import {
@@ -144,6 +145,20 @@ export class RendererStreaming {
     this.textures.groups[material] = slot.fallback;
     this.materialSlots.delete(material);
     slot.lease.release();
+  }
+  /** Cold unload guard includes fallbacks hidden behind a currently streamed replacement. */
+  referencesAsset(asset: UploadedAsset): boolean {
+    const ids = new Set(asset.meshIds.flat());
+    for (const slot of this.lodSlots.values())
+      if (ids.has(slot.fallback)) return true;
+    for (const [id, slot] of this.materialSlots)
+      if (
+        asset.materialIds.includes(id) ||
+        asset.defaultMaterial === id ||
+        asset.textureGroups?.includes(slot.fallback)
+      )
+        return true;
+    return false;
   }
   touch(frame: number): void {
     for (const slot of this.lodSlots.values()) slot.lease.touch(frame);

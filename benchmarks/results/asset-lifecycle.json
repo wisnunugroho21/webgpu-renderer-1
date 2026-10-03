@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-04",
+  "tests": 155,
+  "testFiles": 43,
+  "gpuValidationErrors": 0,
+  "workAndWarmResourcesUnchanged": true,
+  "cycleCount": 10,
+  "resourceBaseline": {
+    "buffers": 36,
+    "bufferBytes": 61085312,
+    "textures": 5,
+    "textureCache": 0,
+    "materials": 1,
+    "meshCount": 1,
+    "deltas": 0,
+    "joints": 0,
+    "skeletons": 0,
+    "skeletonAssets": 0,
+    "morphWeights": 0,
+    "morphStates": 0,
+    "animators": 0,
+    "entities": 2,
+    "renderables": 1
+  },
+  "cycleLoadMedianMs": 3.899999998509884,
+  "cycleUnloadMedianMs": 0.30000000447034836,
+  "cpuBefore": {
+    "parse and convert 100000 glTF vertices": 28.059419,
+    "preprocess and pack 100000 mesh vertices (no GPU upload)": 5.560099988888895
+  },
+  "cpuAfter": {
+    "load/unload 100 decoded assets with a 16-record LRU budget": 0.20392633686786302,
+    "allocate/release 1000 fragmented shared arena ranges": 1.8488391808118096,
+    "parse and convert 100000 glTF vertices": 27.98698850000001,
+    "preprocess and pack 100000 mesh vertices (no GPU upload)": 5.580494142857163
+  },
+  "cancellation": {
+    "cancelled": true,
+    "error": "AbortError",
+    "records": 0,
+    "entities": 2
+  },
+  "cache": {
+    "records": 1,
+    "bytes": 168,
+    "urls": [
+      "/regression/triangle.glb?cache-b"
+    ]
+  }
+}

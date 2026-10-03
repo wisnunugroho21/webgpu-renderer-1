@@ -9,29 +9,48 @@ export class MaterialManager {
   readonly alphaMode: Uint8Array;
   readonly doubleSided: Uint8Array;
   count = 0;
+  readonly alive: Uint8Array;
+  private readonly free: number[] = [];
+  get available(): number {
+    return this.capacity - this.count + this.free.length;
+  }
   revision = 0;
   uploadBytes = 0;
   private dirtyStart = Infinity;
   private dirtyEnd = 0;
   constructor(readonly capacity = 2048) {
+    this.alive = new Uint8Array(capacity);
     this.data = new Float32Array(capacity * MATERIAL_WORDS);
     this.flags = new Uint32Array(capacity);
     this.alphaMode = new Uint8Array(capacity);
     this.doubleSided = new Uint8Array(capacity);
   }
   create(material: Material = {}): number {
-    if (this.count === this.capacity)
-      throw new Error("Material capacity exceeded");
-    const id = this.count;
+    if (!this.available) throw new Error("Material capacity exceeded");
+    const id = this.free.at(-1) ?? this.count;
     this.set(id, material, true);
-    this.count++;
+    if (id === this.count) this.count++;
+    else this.free.pop();
+    this.alive[id] = 1;
     return id;
+  }
+  /** Caller must detach references and fence GPU work before making a slot reusable. */
+  release(id: number): void {
+    if (!this.alive[id]) return;
+    this.alive[id] = 0;
+    this.free.push(id);
+    this.data.fill(0, id * MATERIAL_WORDS, (id + 1) * MATERIAL_WORDS);
+    this.flags[id] = this.alphaMode[id] = this.doubleSided[id] = 0;
+    this.revision++;
+    this.dirtyStart = Math.min(this.dirtyStart, id);
+    this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
   }
   set(id: number, material: Material, creating = false): void {
     if (
       !Number.isInteger(id) ||
       id < 0 ||
-      id >= (creating ? this.capacity : this.count)
+      id >= (creating ? this.capacity : this.count) ||
+      (!creating && !this.alive[id])
     )
       throw new Error("Unknown material");
     const baseColor = material.baseColor ?? [1, 1, 1, 1],
@@ -103,7 +122,7 @@ export class MaterialManager {
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
   }
   textureLayout(id: number): Float32Array {
-    if (!Number.isInteger(id) || id < 0 || id >= this.count)
+    if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
     const o = id * MATERIAL_WORDS;
     return new Float32Array([
@@ -116,7 +135,7 @@ export class MaterialManager {
     ]);
   }
   setTextureLayout(id: number, layout: ArrayLike<number>): void {
-    if (!Number.isInteger(id) || id < 0 || id >= this.count)
+    if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
     if (layout.length !== 6) throw new Error("Invalid texture layout");
     for (let i = 0; i < 6; i++)
@@ -141,7 +160,8 @@ export class MaterialManager {
     ]);
   }
   pipelineIndex(id: number): number {
-    if (id >= this.count) throw new Error("Unknown material");
+    if (id >= this.count || !this.alive[id])
+      throw new Error("Unknown material");
     return this.alphaMode[id]! * 2 + this.doubleSided[id]!;
   }
   createBuffer(manager: BufferManager): GPUBuffer {

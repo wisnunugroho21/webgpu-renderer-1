@@ -59,6 +59,30 @@ export class AnimationSystem {
       }
     return animator;
   }
+  /** Remove controllers only when every bound ECS node has been detached. */
+  releaseUnused(world: World): void {
+    const used = new Set<number>();
+    for (let e = 0; e < world.nextEntity; e++)
+      if (world.alive[e] && world.animators.has[e])
+        used.add(world.animators.animatorId[e]!);
+    const remap = new Map<number, number>();
+    let count = 0;
+    for (let id = 0; id < this.animators.length; id++) {
+      if (!used.has(id)) {
+        this.animators[id]!.pause();
+        continue;
+      }
+      remap.set(id, count);
+      this.animators[count++] = this.animators[id]!;
+    }
+    this.animators.length = count;
+    for (let e = 0; e < world.nextEntity; e++)
+      if (world.alive[e] && world.animators.has[e])
+        world.animators.animatorId[e] = remap.get(
+          world.animators.animatorId[e]!,
+        )!;
+    this.morphPool.releaseUnused(world);
+  }
   update(deltaSeconds: number): void {
     this.activeAnimators = 0;
     for (const animator of this.animators) {

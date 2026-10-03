@@ -26,6 +26,9 @@ export class MeshManager {
     private readonly queue: GPUQueue,
     private readonly morphDeltas?: MorphDeltaBuffers,
   ) {}
+  fence(): Promise<void> {
+    return this.queue.onSubmittedWorkDone();
+  }
   register(mesh: Mesh): number {
     this.entries.push(mesh);
     return this.entries.length - 1;
@@ -39,6 +42,8 @@ export class MeshManager {
     const mesh = this.get(id);
     this.resources.buffers.destroy(mesh.vertex);
     this.resources.buffers.destroy(mesh.index);
+    if (mesh.morphOffset !== undefined)
+      this.morphDeltas?.release(mesh.morphOffset);
     delete this.entries[id];
   }
   upload(primitive: RuntimePrimitive): number {
@@ -109,28 +114,36 @@ export class MeshManager {
         ? new MeshClusters(positions, indices)
         : undefined;
     const morphOffset = morph ? this.morphDeltas?.append(morph) : undefined;
-    const vertex = this.resources.buffers.create({
-      label: "Asset vertices",
-      size: vertices.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    const index = this.resources.buffers.create({
-      label: "Asset indices",
-      size: indices.byteLength,
-      usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-    });
-    this.queue.writeBuffer(vertex, 0, vertices);
-    this.queue.writeBuffer(index, 0, indices);
-    return this.register({
-      clusters,
-      vertex,
-      index,
-      indexCount: indices.length,
-      topology,
-      skin,
-      morph,
-      morphOffset,
-      bounds: { min, max },
-    });
+    let vertex: GPUBuffer | undefined, index: GPUBuffer | undefined;
+    try {
+      vertex = this.resources.buffers.create({
+        label: "Asset vertices",
+        size: vertices.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      index = this.resources.buffers.create({
+        label: "Asset indices",
+        size: indices.byteLength,
+        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+      });
+      this.queue.writeBuffer(vertex, 0, vertices);
+      this.queue.writeBuffer(index, 0, indices);
+      return this.register({
+        clusters,
+        vertex,
+        index,
+        indexCount: indices.length,
+        topology,
+        skin,
+        morph,
+        morphOffset,
+        bounds: { min, max },
+      });
+    } catch (error) {
+      if (vertex) this.resources.buffers.destroy(vertex);
+      if (index) this.resources.buffers.destroy(index);
+      if (morphOffset !== undefined) this.morphDeltas?.release(morphOffset);
+      throw error;
+    }
   }
 }

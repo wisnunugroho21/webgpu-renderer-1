@@ -26,13 +26,19 @@ export class AssetDecoder {
         type: "module",
       }),
   ) {}
-  async decode(json: JSONDocument): Promise<RuntimeAsset> {
+  async decode(
+    json: JSONDocument,
+    signal?: AbortSignal,
+  ): Promise<RuntimeAsset> {
+    signal?.throwIfAborted();
     if (this.disposed) throw new Error("Asset decoder disposed");
     const transfer = transferableBuffers(json),
       bytes = transfer.reduce((sum, buffer) => sum + buffer.byteLength, 0);
     if (bytes < this.thresholdBytes || typeof Worker === "undefined") {
       this.metrics.mainJobs++;
-      return this.loader.parseJSON(json);
+      const asset = await this.loader.parseJSON(json);
+      signal?.throwIfAborted();
+      return asset;
     }
     if (!this.worker) {
       this.worker = this.factory();
@@ -66,12 +72,27 @@ export class AssetDecoder {
     }
     const id = this.nextId++;
     return new Promise<RuntimeAsset>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      const abort = () => {
+        this.pending.delete(id);
+        reject(signal!.reason);
+      };
+      signal?.addEventListener("abort", abort, { once: true });
+      this.pending.set(id, {
+        resolve: (asset) => {
+          signal?.removeEventListener("abort", abort);
+          resolve(asset);
+        },
+        reject: (error) => {
+          signal?.removeEventListener("abort", abort);
+          reject(error);
+        },
+      });
       try {
         this.worker!.postMessage({ id, json }, transfer);
         this.metrics.workerJobs++;
         this.metrics.transferredInputBytes += bytes;
       } catch (error) {
+        signal?.removeEventListener("abort", abort);
         this.pending.delete(id);
         reject(error);
       }

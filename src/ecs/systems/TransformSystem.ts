@@ -35,16 +35,27 @@ export class TransformSystem {
         this.scale[0] = store.scaleX[e]!;
         this.scale[1] = store.scaleY[e]!;
         this.scale[2] = store.scaleZ[e]!;
-        Mat4.fromTRS(this.local, this.position, this.rotation, this.scale);
-        const out = store.worldMatrices.subarray(e * 16, e * 16 + 16),
+        const offset = e * 16,
           parent = store.parent[e]!;
-        if (parent === -1) out.set(this.local);
-        else
-          Mat4.multiply(
-            out,
-            store.worldMatrices.subarray(parent * 16, parent * 16 + 16),
-            this.local,
+        if (parent === -1)
+          Mat4.fromTRS(
+            store.worldMatrices,
+            this.position,
+            this.rotation,
+            this.scale,
+            offset,
           );
+        else {
+          Mat4.fromTRS(this.local, this.position, this.rotation, this.scale);
+          // Reuse packed storage directly rather than creating two views per joint.
+          Mat4.multiply(
+            store.worldMatrices,
+            store.worldMatrices,
+            this.local,
+            offset,
+            parent * 16,
+          );
+        }
         store.dirty[e] = 0;
         this.updated++;
       }

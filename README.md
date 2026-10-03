@@ -37,6 +37,8 @@ Historical and final evidence is saved in `benchmarks/results/`; fresh local res
 
 Quaternion animation now prepares shared normalized LINEAR keyframes once and avoids unnecessary interpolation/normalization work. The 1,000-character crowd's measured animation stage decreased from 21.4 to 11.1 ms. See [animation optimization evidence](benchmarks/ANIMATION_REPORT.md). After building, `npm run profile:animation -- current` captures an animation-only timing summary and Chrome CPU profile on isolated port 5190.
 
+The [second animation optimization round](benchmarks/ANIMATION_ROUND2_REPORT.md) removes temporary matrix views and redundant pose work. Its fresh 1,000-character CPU frame benchmark decreases from 29.0 to 25.9 ms, primarily through faster transform updates.
+
 ## Runtime API
 
 In the browser console after initialization:

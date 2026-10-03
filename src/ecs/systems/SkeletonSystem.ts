@@ -34,8 +34,14 @@ export class SkeletonSystem {
           throw new Error("Skeleton joint entity removed");
         const pose = instance.poseViews[j]!;
         let changed = meshChanged;
-        for (let k = 0; k < 16; k++)
-          if (pose[k] !== matrices[entity * 16 + k]) changed = true;
+        // One mismatch is enough; changed joints still copy the complete pose.
+        // A changed mesh already requires every palette entry to be recomputed.
+        if (!changed)
+          for (let k = 0; k < 16; k++)
+            if (pose[k] !== matrices[entity * 16 + k]) {
+              changed = true;
+              break;
+            }
         if (!changed) continue;
         for (let k = 0; k < 16; k++) pose[k] = matrices[entity * 16 + k]!;
         Mat4.multiply(this.localJoint, instance.inverseMesh, pose);

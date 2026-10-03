@@ -95,6 +95,22 @@ export class TransformStore extends ComponentStore {
     this.rotationW[entity] = this.quaternion[3]!;
     this.markDirty(entity);
   }
+  /** Trusted animation path: the sampler/pose blend already normalized these f32 values.
+   * Keep setRotation for arbitrary gameplay inputs. Both setters propagate dirty state. */
+  setNormalizedRotation(
+    entity: number,
+    x: number,
+    y: number,
+    z: number,
+    w: number,
+  ): void {
+    this.require(entity);
+    this.rotationX[entity] = x;
+    this.rotationY[entity] = y;
+    this.rotationZ[entity] = z;
+    this.rotationW[entity] = w;
+    this.markDirty(entity);
+  }
   setParent(entity: number, parent: number): void {
     this.require(entity);
     if (parent !== -1) this.require(parent);

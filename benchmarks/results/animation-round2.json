@@ -1,0 +1,221 @@
+{
+  "date": "2026-10-04",
+  "tests": 134,
+  "testFiles": 40,
+  "workAndResourcesUnchanged": true,
+  "gpuValidationErrors": 0,
+  "animation": [
+    {
+      "characters": 1,
+      "before": {
+        "animation": 0.09999999403953552,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0,
+        "cpuFrame": 0.19999998807907104,
+        "completion": 0.8999999910593033
+      },
+      "after": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0,
+        "cpuFrame": 0.19999998807907104,
+        "completion": 0.7999999970197678
+      }
+    },
+    {
+      "characters": 100,
+      "before": {
+        "animation": 0.7999999970197678,
+        "transforms": 0.7000000029802322,
+        "skeletons": 0.5999999940395355,
+        "bounds": 0.20000000298023224,
+        "extraction": 0.20000000298023224,
+        "encoding": 0.20000000298023224,
+        "cpuFrame": 2.7000000029802322,
+        "completion": 3.9000000059604645
+      },
+      "after": {
+        "animation": 0.9000000059604645,
+        "transforms": 0.4000000059604645,
+        "skeletons": 0.5,
+        "bounds": 0.20000000298023224,
+        "extraction": 0.20000000298023224,
+        "encoding": 0.29999999701976776,
+        "cpuFrame": 2.5,
+        "completion": 4
+      }
+    },
+    {
+      "characters": 500,
+      "before": {
+        "animation": 5.799999997019768,
+        "transforms": 3.2999999970197678,
+        "skeletons": 2.7999999970197678,
+        "bounds": 1,
+        "extraction": 0.9000000059604645,
+        "encoding": 0.9000000059604645,
+        "cpuFrame": 14.799999997019768,
+        "completion": 17
+      },
+      "after": {
+        "animation": 5.4000000059604645,
+        "transforms": 2.0999999940395355,
+        "skeletons": 2.699999988079071,
+        "bounds": 1,
+        "extraction": 0.9000000059604645,
+        "encoding": 0.8999999910593033,
+        "cpuFrame": 13,
+        "completion": 15.200000002980232
+      }
+    },
+    {
+      "characters": 1000,
+      "before": {
+        "animation": 11.099999994039536,
+        "transforms": 6.299999997019768,
+        "skeletons": 5.600000008940697,
+        "bounds": 2.2000000029802322,
+        "extraction": 1.9000000059604645,
+        "encoding": 1.7000000029802322,
+        "cpuFrame": 29,
+        "completion": 33
+      },
+      "after": {
+        "animation": 10.799999997019768,
+        "transforms": 4.0999999940395355,
+        "skeletons": 5.0999999940395355,
+        "bounds": 2.1000000089406967,
+        "extraction": 2,
+        "encoding": 1.7000000029802322,
+        "cpuFrame": 25.900000005960464,
+        "completion": 29.599999994039536
+      }
+    }
+  ],
+  "combined": {
+    "before": {
+      "animation": 11.899999991059303,
+      "transforms": 6.5,
+      "skeletons": 5.799999997019768,
+      "bounds": 2.5,
+      "extraction": 2.2000000029802322,
+      "encoding": 1.7999999970197678,
+      "cpuFrame": 31.200000002980232,
+      "completion": 36.29999999701977
+    },
+    "after": {
+      "animation": 10.900000005960464,
+      "transforms": 4.4000000059604645,
+      "skeletons": 5.399999991059303,
+      "bounds": 2.6000000089406967,
+      "extraction": 2.3999999910593033,
+      "encoding": 1.9000000059604645,
+      "cpuFrame": 27.400000005960464,
+      "completion": 32.8999999910593
+    }
+  },
+  "cpu": [
+    {
+      "name": "100 independent animators, shared TRS clip",
+      "beforeMeanMs": 0.02179990072375293,
+      "afterMeanMs": 0.019337885481125985
+    },
+    {
+      "name": "1000 independent animators, shared TRS clip",
+      "beforeMeanMs": 0.2207621567328947,
+      "afterMeanMs": 0.19476906230529675
+    },
+    {
+      "name": "10000 independent animators, shared TRS clip",
+      "beforeMeanMs": 5.770140793103415,
+      "afterMeanMs": 5.571124144444432
+    },
+    {
+      "name": "100 dirty transforms",
+      "beforeMeanMs": 0.007876051004977623,
+      "afterMeanMs": 0.005331064079326126
+    },
+    {
+      "name": "10,000 full update baseline",
+      "beforeMeanMs": 0.7739435595054107,
+      "afterMeanMs": 0.5363440450160812
+    },
+    {
+      "name": "10,000 persistent-output matrix multiplies",
+      "beforeMeanMs": 0.2313967774178601,
+      "afterMeanMs": 0.24104051710843283
+    },
+    {
+      "name": "1,000 dirty camera updates",
+      "beforeMeanMs": 0.12622996592629923,
+      "afterMeanMs": 0.12783328425357873
+    },
+    {
+      "name": "validate/copy/normalize 10,000 four-weight vertices",
+      "beforeMeanMs": 0.541686334415585,
+      "afterMeanMs": 0.5418923055254607
+    },
+    {
+      "name": "unchanged poses",
+      "beforeMeanMs": 0.10924017453036229,
+      "afterMeanMs": 0.1126973905792204
+    },
+    {
+      "name": "all poses changed",
+      "beforeMeanMs": 0.6009548643457429,
+      "afterMeanMs": 0.6074557451456291
+    }
+  ],
+  "animationOnlyProfile": {
+    "workload": "1000 independent characters x 64 joints; 60 frames, last 50 measured",
+    "animationMedianMs": 5.5,
+    "selfTimeMs": [
+      {
+        "name": "write:1",
+        "ms": 274.292
+      },
+      {
+        "name": "sample:1",
+        "ms": 203.819
+      },
+      {
+        "name": "(program):0",
+        "ms": 124.179
+      },
+      {
+        "name": "apply:1",
+        "ms": 70.568
+      },
+      {
+        "name": "normalize:1",
+        "ms": 26.068
+      },
+      {
+        "name": "update:1",
+        "ms": 1.317
+      },
+      {
+        "name": "(idle):0",
+        "ms": 1.06
+      },
+      {
+        "name": "(anonymous):1",
+        "ms": 0.656
+      },
+      {
+        "name": "(garbage collector):0",
+        "ms": 0.496
+      },
+      {
+        "name": "evaluate:305",
+        "ms": 0.131
+      }
+    ]
+  }
+}

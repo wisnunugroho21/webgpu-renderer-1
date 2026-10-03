@@ -154,3 +154,38 @@ it("normalizes quaternion extremes and preserves aliased outputs", () => {
   Quat.normalize(out, out);
   expect(out).toEqual(expected);
 });
+
+it("composes and multiplies packed matrices without views, including exact-range aliases", () => {
+  const packed = new Float32Array(64).fill(123);
+  const a = Mat4.create(),
+    b = Mat4.create(),
+    expected = Mat4.create();
+  const q = Quat.create();
+  Quat.fromAxisAngle(q, [1, 2, 3], 0.4);
+  Mat4.fromTRS(a, [2, 3, 4], q, [-2, 3, 0.5]);
+  a[4] = a[4]! + 0.7; // Shear remains valid with the generic 4x4 calculation.
+  Mat4.fromTRS(b, [-1, 2, 0], q, [1, 2, 3]);
+  Mat4.fromTRS(packed, [-1, 2, 0], q, [1, 2, 3], 32);
+  expect(packed.subarray(32, 48)).toEqual(b);
+  packed.set(a, 16);
+  Mat4.multiply(expected, a, b);
+  Mat4.multiply(packed, packed, packed, 0, 16, 32);
+  expect(packed.subarray(0, 16)).toEqual(expected);
+  Mat4.multiply(packed, packed, packed, 16, 16, 32);
+  expect(packed.subarray(16, 32)).toEqual(expected);
+  packed.set(a, 16);
+  Mat4.multiply(packed, packed, packed, 32, 16, 32);
+  expect(packed.subarray(32, 48)).toEqual(expected);
+  expect(packed.subarray(48)).toEqual(new Float32Array(16).fill(123));
+});
+
+it("slerps packed quaternion keys and supports overlapping output", () => {
+  const keys = new Float32Array([9, 9, 0, 0, 0, 1, 0, 0, -1, 0, 9, 9]);
+  const expected = Quat.create();
+  Quat.slerp(expected, keys.subarray(2, 6), keys.subarray(6, 10), 0.3);
+  const actual = Quat.create();
+  Quat.slerp(actual, keys, keys, 0.3, 2, 6);
+  expect(actual).toEqual(expected);
+  Quat.slerp(keys, keys, keys, 0.3, 2, 6);
+  expect(keys.subarray(0, 4)).toEqual(expected);
+});

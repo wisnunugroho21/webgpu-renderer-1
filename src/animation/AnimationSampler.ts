@@ -6,7 +6,6 @@ export class AnimationSampler {
   readonly duration: number;
   private readonly rotationKeys?: Float32Array;
   private readonly a = new Float32Array(4);
-  private readonly b = new Float32Array(4);
   constructor(
     readonly input: Float32Array,
     readonly output: Float32Array,
@@ -87,11 +86,8 @@ export class AnimationSampler {
             (t3 - t2) * dt * values[b - size + i]!;
       } else if (this.rotation) {
         const keys = this.rotationKeys!;
-        for (let i = 0; i < 4; i++) {
-          this.a[i] = keys[a + i]!;
-          this.b[i] = keys[b + i]!;
-        }
-        Quat.slerp(out, this.a, this.b, t);
+        // Read normalized keys directly; do not copy eight components per joint.
+        Quat.slerp(out, keys, keys, t, a, b);
       } else
         for (let i = 0; i < size; i++)
           out[i] = values[a + i]! * (1 - t) + values[b + i]! * t;

@@ -57,8 +57,20 @@ export const Quat = {
     a: ArrayLike<number>,
     b: ArrayLike<number>,
     t: number,
+    aOffset = 0,
+    bOffset = 0,
   ): Quat {
-    let dot = a[0]! * b[0]! + a[1]! * b[1]! + a[2]! * b[2]! + a[3]! * b[3]!;
+    // Cache both endpoints: packed keys need no temporary copies or views,
+    // and writes may alias either input after its components have been read.
+    const ax = a[aOffset]!,
+      ay = a[aOffset + 1]!,
+      az = a[aOffset + 2]!,
+      aw = a[aOffset + 3]!;
+    const bx = b[bOffset]!,
+      by = b[bOffset + 1]!,
+      bz = b[bOffset + 2]!,
+      bw = b[bOffset + 3]!;
+    let dot = ax * bx + ay * by + az * bz + aw * bw;
     const sign = dot < 0 ? -1 : 1;
     dot = Math.min(1, Math.abs(dot));
     // Nearly parallel rotations use normalized linear interpolation. Avoid
@@ -71,7 +83,10 @@ export const Quat = {
       wa = Math.sin((1 - t) * theta) / sinTheta;
       wb = Math.sin(t * theta) / sinTheta;
     }
-    for (let i = 0; i < 4; i++) out[i] = wa * a[i]! + wb * sign * b[i]!;
+    out[0] = wa * ax + wb * sign * bx;
+    out[1] = wa * ay + wb * sign * by;
+    out[2] = wa * az + wb * sign * bz;
+    out[3] = wa * aw + wb * sign * bw;
     return Quat.normalize(out, out);
   },
 };

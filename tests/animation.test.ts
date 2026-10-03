@@ -214,3 +214,44 @@ describe("shared normalized quaternion keys", () => {
     expect(keys).toEqual(saved);
   });
 });
+
+it("keeps constant rotation poses clean and propagates changed animation to descendants", () => {
+  const world = new World(2),
+    parent = world.create(),
+    child = world.create();
+  world.transforms.add(parent);
+  world.transforms.add(child);
+  world.transforms.setParent(child, parent);
+  world.transforms.setPosition(child, 1, 0, 0);
+  const constant = new AnimationClip("constant", [
+    new AnimationChannel(
+      0,
+      "rotation",
+      sampler([0, 1], [0.3, 0.4, 0.5, 0.7, 0.3, 0.4, 0.5, 0.7], "LINEAR", true),
+    ),
+  ]);
+  const moving = new AnimationClip("moving", [
+    new AnimationChannel(
+      0,
+      "rotation",
+      sampler([0, 1], [0, 0, 0, 1, 0, 0, 1, 0], "LINEAR", true),
+    ),
+  ]);
+  const animator = new Animator(
+    [constant, moving],
+    world,
+    new Int32Array([parent]),
+    new Map(),
+  );
+  const transforms = new TransformSystem(2);
+  animator.play();
+  animator.currentTime = 0.5;
+  transforms.update(world.transforms);
+  animator.update(0);
+  expect(world.transforms.dirtyCount).toBe(0);
+  animator.play(1);
+  animator.currentTime = 0.5;
+  expect(transforms.update(world.transforms)).toBe(2);
+  expect(world.transforms.worldMatrices[child * 16 + 12]).toBeCloseTo(0, 5);
+  expect(world.transforms.worldMatrices[child * 16 + 13]).toBeCloseTo(1, 5);
+});

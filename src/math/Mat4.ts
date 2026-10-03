@@ -9,33 +9,44 @@ export const Mat4 = {
     out[0] = out[5] = out[10] = out[15] = 1;
     return out;
   },
-  multiply(out: Mat4, a: ArrayLike<number>, b: ArrayLike<number>): Mat4 {
-    // Cache A so multiplication supports in-place output for either operand.
-    const a00 = a[0]!,
-      a01 = a[1]!,
-      a02 = a[2]!,
-      a03 = a[3]!,
-      a10 = a[4]!,
-      a11 = a[5]!,
-      a12 = a[6]!,
-      a13 = a[7]!,
-      a20 = a[8]!,
-      a21 = a[9]!,
-      a22 = a[10]!,
-      a23 = a[11]!,
-      a30 = a[12]!,
-      a31 = a[13]!,
-      a32 = a[14]!,
-      a33 = a[15]!;
+  multiply(
+    out: Mat4,
+    a: ArrayLike<number>,
+    b: ArrayLike<number>,
+    outOffset = 0,
+    aOffset = 0,
+    bOffset = 0,
+  ): Mat4 {
+    // Offsets address packed matrices without allocating typed-array views.
+    // Cache A for in-place output. B may alias the identical output range;
+    // partially overlapping B/output ranges are not supported.
+    const a00 = a[aOffset + 0]!,
+      a01 = a[aOffset + 1]!,
+      a02 = a[aOffset + 2]!,
+      a03 = a[aOffset + 3]!,
+      a10 = a[aOffset + 4]!,
+      a11 = a[aOffset + 5]!,
+      a12 = a[aOffset + 6]!,
+      a13 = a[aOffset + 7]!,
+      a20 = a[aOffset + 8]!,
+      a21 = a[aOffset + 9]!,
+      a22 = a[aOffset + 10]!,
+      a23 = a[aOffset + 11]!,
+      a30 = a[aOffset + 12]!,
+      a31 = a[aOffset + 13]!,
+      a32 = a[aOffset + 14]!,
+      a33 = a[aOffset + 15]!;
     for (let c = 0; c < 4; c++) {
-      const x = b[c * 4]!,
-        y = b[c * 4 + 1]!,
-        z = b[c * 4 + 2]!,
-        w = b[c * 4 + 3]!;
-      out[c * 4] = a00 * x + a10 * y + a20 * z + a30 * w;
-      out[c * 4 + 1] = a01 * x + a11 * y + a21 * z + a31 * w;
-      out[c * 4 + 2] = a02 * x + a12 * y + a22 * z + a32 * w;
-      out[c * 4 + 3] = a03 * x + a13 * y + a23 * z + a33 * w;
+      const source = bOffset + c * 4,
+        destination = outOffset + c * 4;
+      const x = b[source]!,
+        y = b[source + 1]!,
+        z = b[source + 2]!,
+        w = b[source + 3]!;
+      out[destination] = a00 * x + a10 * y + a20 * z + a30 * w;
+      out[destination + 1] = a01 * x + a11 * y + a21 * z + a31 * w;
+      out[destination + 2] = a02 * x + a12 * y + a22 * z + a32 * w;
+      out[destination + 3] = a03 * x + a13 * y + a23 * z + a33 * w;
     }
     return out;
   },
@@ -178,6 +189,7 @@ export const Mat4 = {
     p: ArrayLike<number>,
     q: ArrayLike<number>,
     s: ArrayLike<number>,
+    outOffset = 0,
   ): Mat4 {
     const x = q[0]!,
       y = q[1]!,
@@ -192,22 +204,22 @@ export const Mat4 = {
       wx = w * x,
       wy = w * y,
       wz = w * z;
-    out[0] = (1 - 2 * (yy + zz)) * s[0]!;
-    out[1] = 2 * (xy + wz) * s[0]!;
-    out[2] = 2 * (xz - wy) * s[0]!;
-    out[3] = 0;
-    out[4] = 2 * (xy - wz) * s[1]!;
-    out[5] = (1 - 2 * (xx + zz)) * s[1]!;
-    out[6] = 2 * (yz + wx) * s[1]!;
-    out[7] = 0;
-    out[8] = 2 * (xz + wy) * s[2]!;
-    out[9] = 2 * (yz - wx) * s[2]!;
-    out[10] = (1 - 2 * (xx + yy)) * s[2]!;
-    out[11] = 0;
-    out[12] = p[0]!;
-    out[13] = p[1]!;
-    out[14] = p[2]!;
-    out[15] = 1;
+    out[outOffset + 0] = (1 - 2 * (yy + zz)) * s[0]!;
+    out[outOffset + 1] = 2 * (xy + wz) * s[0]!;
+    out[outOffset + 2] = 2 * (xz - wy) * s[0]!;
+    out[outOffset + 3] = 0;
+    out[outOffset + 4] = 2 * (xy - wz) * s[1]!;
+    out[outOffset + 5] = (1 - 2 * (xx + zz)) * s[1]!;
+    out[outOffset + 6] = 2 * (yz + wx) * s[1]!;
+    out[outOffset + 7] = 0;
+    out[outOffset + 8] = 2 * (xz + wy) * s[2]!;
+    out[outOffset + 9] = 2 * (yz - wx) * s[2]!;
+    out[outOffset + 10] = (1 - 2 * (xx + yy)) * s[2]!;
+    out[outOffset + 11] = 0;
+    out[outOffset + 12] = p[0]!;
+    out[outOffset + 13] = p[1]!;
+    out[outOffset + 14] = p[2]!;
+    out[outOffset + 15] = 1;
     return out;
   },
   transformPoint(

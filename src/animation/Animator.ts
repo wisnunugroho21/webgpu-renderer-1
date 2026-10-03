@@ -270,7 +270,8 @@ export class Animator {
           t.rotationZ[e] !== v[2] ||
           t.rotationW[e] !== v[3]
         )
-          t.setRotation(e, v[0]!, v[1]!, v[2]!, v[3]!);
+          // Rotation samplers and blended poses guarantee normalized output.
+          t.setNormalizedRotation(e, v[0]!, v[1]!, v[2]!, v[3]!);
         break;
       case "weights":
         if (slot.morph)

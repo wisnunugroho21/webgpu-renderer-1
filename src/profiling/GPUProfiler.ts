@@ -11,6 +11,7 @@ export const GPUPass = {
   indirect: 8,
   lod: 9,
   geometry: 10,
+  toneMapping: 11,
 } as const;
 export interface GPUTiming {
   frame: number;

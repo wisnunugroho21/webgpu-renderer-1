@@ -1,0 +1,199 @@
+{
+  "layers": {
+    "activeDifference": 38571,
+    "zeroDifference": 0,
+    "referenceDifference": 0,
+    "clearedDifference": 0,
+    "resourcesBefore": {
+      "pipelineCreations": 52,
+      "shaderModules": 12,
+      "bufferCreations": 38,
+      "textureCreations": 5,
+      "samplerCreations": 2,
+      "buffers": 38,
+      "textures": 5,
+      "bufferBytes": 61135576,
+      "cacheHits": 54,
+      "cacheMisses": 66
+    },
+    "resourcesAfter": {
+      "pipelineCreations": 52,
+      "shaderModules": 12,
+      "bufferCreations": 38,
+      "textureCreations": 5,
+      "samplerCreations": 2,
+      "buffers": 38,
+      "textures": 5,
+      "bufferBytes": 61135576,
+      "cacheHits": 54,
+      "cacheMisses": 66
+    },
+    "jointUploadBytes": 4096,
+    "depthPasses": 1,
+    "shadowPasses": 1
+  },
+  "environment": {
+    "installationMs": 19.19999998807907,
+    "analyticError": 0,
+    "darkCenter": [
+      0,
+      0,
+      0
+    ],
+    "center": [
+      127,
+      127,
+      127
+    ],
+    "expected": 127,
+    "activeDifference": 23352,
+    "disabledDifference": 0,
+    "resumedDifference": 0,
+    "failedInstallDifference": 0,
+    "rejected": true,
+    "zeroIntensityDifference": 23352,
+    "rotationDifference": 15568,
+    "roughnessDifference": 15568,
+    "modeImages": [
+      {
+        "mode": "individual",
+        "differentBytes": 0
+      },
+      {
+        "mode": "sorted",
+        "differentBytes": 0
+      },
+      {
+        "mode": "instanced",
+        "differentBytes": 0
+      },
+      {
+        "mode": "gpu-indirect",
+        "differentBytes": 0
+      }
+    ],
+    "timings": {
+      "off": {
+        "cpuEncodingMs": 0,
+        "completionMs": 0.8999999910593033
+      },
+      "on": {
+        "cpuEncodingMs": 0,
+        "completionMs": 0.9000000059604645
+      }
+    },
+    "overdrawTimings": {
+      "off": {
+        "cpuEncodingMs": 0.20000000298023224,
+        "completionMs": 4.700000002980232
+      },
+      "on": {
+        "cpuEncodingMs": 0.20000000298023224,
+        "completionMs": 5
+      }
+    },
+    "overdrawResourcesBefore": {
+      "pipelineCreations": 84,
+      "shaderModules": 13,
+      "bufferCreations": 40,
+      "textureCreations": 11,
+      "samplerCreations": 3,
+      "buffers": 39,
+      "textures": 8,
+      "bufferBytes": 61135592,
+      "cacheHits": 96,
+      "cacheMisses": 100
+    },
+    "overdrawResourcesAfter": {
+      "pipelineCreations": 84,
+      "shaderModules": 13,
+      "bufferCreations": 40,
+      "textureCreations": 11,
+      "samplerCreations": 3,
+      "buffers": 39,
+      "textures": 8,
+      "bufferBytes": 61135592,
+      "cacheHits": 96,
+      "cacheMisses": 100
+    },
+    "timingResources": {
+      "pipelineCreations": 84,
+      "shaderModules": 13,
+      "bufferCreations": 40,
+      "textureCreations": 11,
+      "samplerCreations": 3,
+      "buffers": 39,
+      "textures": 8,
+      "bufferBytes": 61135592,
+      "cacheHits": 96,
+      "cacheMisses": 100
+    },
+    "beforeEnvironment": {
+      "pipelineCreations": 52,
+      "shaderModules": 12,
+      "bufferCreations": 38,
+      "textureCreations": 5,
+      "samplerCreations": 2,
+      "buffers": 38,
+      "textures": 5,
+      "bufferBytes": 61135576,
+      "cacheHits": 54,
+      "cacheMisses": 66
+    },
+    "warmResources": {
+      "pipelineCreations": 84,
+      "shaderModules": 13,
+      "bufferCreations": 39,
+      "textureCreations": 8,
+      "samplerCreations": 3,
+      "buffers": 39,
+      "textures": 8,
+      "bufferBytes": 61135592,
+      "cacheHits": 95,
+      "cacheMisses": 100
+    },
+    "afterWarm": {
+      "pipelineCreations": 84,
+      "shaderModules": 13,
+      "bufferCreations": 40,
+      "textureCreations": 11,
+      "samplerCreations": 3,
+      "buffers": 39,
+      "textures": 8,
+      "bufferBytes": 61135592,
+      "cacheHits": 96,
+      "cacheMisses": 100
+    },
+    "clearedResources": {
+      "pipelineCreations": 84,
+      "shaderModules": 13,
+      "bufferCreations": 40,
+      "textureCreations": 11,
+      "samplerCreations": 3,
+      "buffers": 38,
+      "textures": 5,
+      "bufferBytes": 61135576,
+      "cacheHits": 96,
+      "cacheMisses": 100
+    }
+  },
+  "gpuError": null,
+  "uncapturedErrors": [],
+  "demo": {
+    "resources": {
+      "pipelineCreations": 149,
+      "shaderModules": 14,
+      "bufferCreations": 40,
+      "textureCreations": 9,
+      "samplerCreations": 3,
+      "buffers": 40,
+      "textures": 9,
+      "bufferBytes": 61155976,
+      "cacheHits": 174,
+      "cacheMisses": 166
+    },
+    "rotation": 0.11659999999999997,
+    "gpuErrors": []
+  },
+  "pageErrors": []
+}

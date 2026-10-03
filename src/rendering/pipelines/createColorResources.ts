@@ -44,6 +44,7 @@ const sharedShader = [
 ].join("\n");
 export interface ColorResourcesInput {
   environmentLayout?: GPUBindGroupLayout;
+  colorFormat?: GPUTextureFormat;
   gpu: GPUContext;
   world: RenderWorld;
   resources: Resources;
@@ -174,7 +175,7 @@ export function createColorResources(input: ColorResourcesInput) {
     fragment: {
       module,
       entryPoint: "fs",
-      targets: [{ format: gpu.renderFormat }],
+      targets: [{ format: input.colorFormat ?? gpu.renderFormat }],
     },
     primitive: { topology: "triangle-list", cullMode: "back" },
     depthStencil: {
@@ -214,7 +215,7 @@ export function createColorResources(input: ColorResourcesInput) {
         ...pipelineDescriptor.fragment!,
         targets: [
           {
-            format: gpu.renderFormat,
+            format: input.colorFormat ?? gpu.renderFormat,
             ...(index >= 12
               ? {
                   blend: {

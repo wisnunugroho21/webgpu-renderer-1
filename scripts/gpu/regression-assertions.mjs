@@ -439,6 +439,7 @@ export function assertRegressionReport(
       "gpu-compaction",
       "gpu-indirect",
       "color",
+      "tone-mapping",
       "hiz-debug",
     ],
   );

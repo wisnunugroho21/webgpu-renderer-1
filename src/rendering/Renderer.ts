@@ -1,3 +1,4 @@
+import { HDRRendering } from "./post/HDRRendering";
 import { EnvironmentData } from "./environment/EnvironmentData";
 import { EnvironmentLighting } from "./environment/EnvironmentLighting";
 import { FrameUniforms } from "./FrameUniforms";
@@ -56,6 +57,10 @@ import { MaterialTextures } from "./materials/MaterialTextures";
 
 export class Renderer {
   readonly environment: EnvironmentLighting;
+  readonly hdr: HDRRendering;
+  private hdrColor?: ReturnType<typeof createColorResources>;
+  private hdrEnvironmentColor?: ReturnType<typeof createColorResources>;
+  private environmentLayout?: GPUBindGroupLayout;
   private readonly colorInput: ColorResourcesInput;
   private environmentColor?: ReturnType<typeof createColorResources>;
   readonly geometryOptimization: GeometryOptimization;
@@ -271,10 +276,20 @@ export class Renderer {
       gpuDraws: this.gpuDraws,
     };
     const color = createColorResources(this.colorInput);
+    this.hdr = new HDRRendering(gpu, this.resources, () => {
+      this.hdrColor ??= createColorResources({
+        ...this.colorInput,
+        colorFormat: "rgba16float",
+      });
+      this.prepareHDREnvironment();
+    });
     this.environment = new EnvironmentLighting(
       device,
       this.resources,
       (environmentLayout) => {
+        this.environmentLayout = environmentLayout;
+        // Prepare retained HDR variants even when the feature is temporarily disabled.
+        if (this.hdrColor) this.prepareHDREnvironment();
         this.environmentColor ??= createColorResources({
           ...this.colorInput,
           environmentLayout,
@@ -315,6 +330,8 @@ export class Renderer {
           this.gpuProfiler,
         ),
       color: (encoder, view) => this.encodeColor(encoder, view),
+      toneMapping: (encoder, view) =>
+        this.hdr.encode(encoder, view, this.gpuProfiler),
       hiz: (encoder) => {
         if (!this.temporal.reuse) this.hiz.encode(encoder, this.gpuProfiler);
         else this.hiz.passes = 0;
@@ -359,6 +376,7 @@ export class Renderer {
 
   resize(): void {
     const { width, height } = this.gpu.canvas;
+    this.hdr.resize(width, height);
     if (width === this.width && height === this.height) return;
     if (this.depth) this.resources.textures.destroy(this.depth);
     this.width = width;
@@ -638,13 +656,22 @@ export class Renderer {
     this.colorInstanceOffset = instanceOffset;
   }
 
+  private prepareHDREnvironment(): void {
+    if (this.environmentLayout)
+      this.hdrEnvironmentColor ??= createColorResources({
+        ...this.colorInput,
+        colorFormat: "rgba16float",
+        environmentLayout: this.environmentLayout,
+      });
+  }
+
   private encodeColor(encoder: GPUCommandEncoder, view: GPUTextureView): void {
     const pass = encoder.beginRenderPass({
       label: "Opaque cube",
       timestampWrites: this.gpuProfiler.writes(GPUPass.color),
       colorAttachments: [
         {
-          view,
+          view: this.hdr.enabled ? this.hdr.view! : view,
           clearValue: this.clearColor,
           loadOp: "clear",
           storeOp: "store",
@@ -658,7 +685,13 @@ export class Renderer {
       },
     });
     const environment = this.environment.active;
-    const colors = environment ? this.environmentColor! : undefined;
+    const colors = this.hdr.enabled
+      ? environment
+        ? this.hdrEnvironmentColor!
+        : this.hdrColor!
+      : environment
+        ? this.environmentColor!
+        : undefined;
     const pipelines = colors?.pipelines ?? this.pipelines;
     const frameGroups = colors?.frameGroups ?? this.frameGroups;
     if (environment) pass.setBindGroup(2, this.environment.group!);

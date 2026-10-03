@@ -7,6 +7,7 @@ interface RenderCallbacks {
   depth: Execute;
   geometryClusters: Execute;
   color: Execute;
+  toneMapping: Execute;
   hiz: Execute;
   hizDebug: Execute;
   gpuOcclusion: Execute;
@@ -73,8 +74,14 @@ export function configureRenderGraph(
       "clusterMetadata",
       "clusterIndices",
     ],
-    writes: ["mainDepth", "swapchain"],
+    writes: ["mainDepth", "sceneColor"],
     execute: callbacks.color,
+  });
+  graph.add({
+    name: "tone-mapping",
+    reads: ["sceneColor"],
+    writes: ["swapchain"],
+    execute: callbacks.toneMapping,
   });
   graph.add({
     name: "hiz",

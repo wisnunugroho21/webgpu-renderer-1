@@ -178,7 +178,7 @@ await app.renderer.setEnvironment(null); // retire textures/uniform buffer safel
 
 One environment is shared across materials. Installation is transactional and serial; failure preserves the previous environment. First installation creates bounded pipeline variants and three filterable rgba16float textures plus a 16-byte uniform. No environment GPU resources are created by default; toggles and parameter changes reuse installed resources. Clearing releases textures/buffer after a cold completion fence; shader/pipeline/sampler caches live until renderer disposal. Frame/deformation ABIs remain unchanged.
 
-HDR/EXR decoding, skyboxes, tone mapping and glTF environment extensions are separate capabilities. This implementation supplies single-scattering diffuse/specular IBL; existing display conversion can clip bright HDR highlights. Validation, measured overhead and limitations: [scene features report](benchmarks/SCENE_FEATURES_REPORT.md).
+HDR/EXR decoding, skyboxes and glTF environment extensions remain separate capabilities. This implementation supplies single-scattering diffuse/specular IBL; enable optional HDR rendering below to preserve bright highlights through tone mapping. Validation, measured overhead and limitations: [scene features report](benchmarks/SCENE_FEATURES_REPORT.md).
 
 Lights use ECS `world.lights.set(entity, properties)` with directional/point/spot types. Directional lights opt into shadows with `castShadow: true`. Configure `renderer.shadows.cascades` (1–4), `shadowDistance` (>0.1–100), `enabled`, or `cacheEnabled`. The shared array supports four shadow lights and rejects overflow. Clustered lighting defaults to automatic selection for many bounded lights; `renderer.clusters.mode` accepts `auto`, `off`, or `on`, with safe overflow fallback.
 
@@ -228,3 +228,17 @@ geometry.enabled = false;
 Uploaded static triangle meshes are divided into shared, consecutive 256-triangle clusters. Compute culls conservative transformed cluster bounds and writes indexed indirect color draws. Small meshes, animated meshes, transparency, unsupported adapters, capacity overflow and `gpu-indirect` object submission use the existing draw path. CPU LOD is supported; depth and shadows retain full geometry. This version provides cluster bounds/culling rather than a mesh-shader API or GPU cluster LOD.
 
 GPU resources and large staging storage allocate once on first supported enable and remain resident until renderer disposal. The fixed limit is 65,536 cluster-instance records per frame; overflowing batches fall back intact. `geometryClusterCandidates` counts cluster-instance records; `geometryClusterDraws` counts submitted indirect commands, including zero-instance culled commands. Actual GPU triangle/instance counts remain `-1` in runtime statistics; benchmark diagnostics read them explicitly. GPU profiler pass 10 measures cluster culling. The expanded `npm run benchmark:gpu` validates enabled/disabled full images and measures both mostly rejected and fully visible 200,000-triangle workloads.
+
+## Optional HDR and tone mapping
+
+```ts
+app.renderer.hdr.enabled = true;
+app.renderer.hdr.exposure = 1; // stops: +1 doubles radiance, -1 halves it
+app.renderer.hdr.toneMapping = "reinhard"; // default; "clamp" for a linear clamp
+```
+
+HDR is disabled by default and allocates no resources until enabled. It renders the full scene, including transparency, into a shared linear `rgba16float` target. Exposure is applied after blending, then Reinhard maps each channel with `x / (1 + x)`. The final sRGB canvas attachment performs display encoding once. Exposure accepts finite values from −16 to +16 stops. This is SDR presentation of HDR lighting; it does not enable an HDR monitor output mode. Reinhard compresses colors per channel and can reduce saturation at high intensity; no bloom or automatic exposure is included.
+
+Disabling HDR restores the original direct rendering path; resources remain cached for reuse. Resize replaces the target, and renderer disposal releases it. The target uses 8 bytes per pixel (about 15.8 MiB at 1920×1080), plus one 16-byte uniform and bounded color/presentation pipeline variants. Half-float scene values above 65504 saturate during presentation. Hi-Z debug runs after tone mapping. No ordinary-frame waits, readbacks or resource creation are added.
+
+The lighting demo enables HDR. Click the canvas, press **H** to toggle it and **−/+** to change exposure by half a stop. Run `npm run build && npm run validate:hdr` for analytic pixel references, transparency, submission modes, animation/IBL integration, resize, lifetime and overhead checks. See [HDR measurements](benchmarks/HDR_REPORT.md).

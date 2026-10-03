@@ -1,0 +1,168 @@
+{
+  "baselineResources": {
+    "pipelineCreations": 52,
+    "shaderModules": 12,
+    "bufferCreations": 36,
+    "textureCreations": 5,
+    "samplerCreations": 2,
+    "buffers": 36,
+    "textures": 5,
+    "bufferBytes": 61085312,
+    "cacheHits": 49,
+    "cacheMisses": 66
+  },
+  "setupMs": 1.8999999910593033,
+  "restoredDifference": 0,
+  "values": [
+    {
+      "value": 0,
+      "pixel": 0
+    },
+    {
+      "value": 0.18,
+      "pixel": 109
+    },
+    {
+      "value": 1,
+      "pixel": 188
+    },
+    {
+      "value": 2,
+      "pixel": 213
+    },
+    {
+      "value": 4,
+      "pixel": 231
+    },
+    {
+      "value": 16,
+      "pixel": 248
+    },
+    {
+      "value": 65504,
+      "pixel": 255
+    },
+    {
+      "value": 1000000,
+      "pixel": 255
+    }
+  ],
+  "doubled": 213,
+  "halved": 156,
+  "maximum": 255,
+  "minimum": 0,
+  "invalid": 5,
+  "identity": 118,
+  "legacyIdentity": 118,
+  "blend": 213,
+  "modeResults": [
+    {
+      "mode": "individual",
+      "pixel": 213
+    },
+    {
+      "mode": "sorted",
+      "pixel": 213
+    },
+    {
+      "mode": "instanced",
+      "pixel": 213
+    },
+    {
+      "mode": "gpu-indirect",
+      "pixel": 213
+    }
+  ],
+  "off": {
+    "cpuEncodeMs": 0,
+    "gpuCompletionMs": 0.800000011920929
+  },
+  "on": {
+    "cpuEncodeMs": 0,
+    "gpuCompletionMs": 0.9000000059604645
+  },
+  "offAgain": {
+    "cpuEncodeMs": 0,
+    "gpuCompletionMs": 0.8999999910593033
+  },
+  "resources": {
+    "pipelineCreations": 149,
+    "shaderModules": 14,
+    "bufferCreations": 40,
+    "textureCreations": 9,
+    "samplerCreations": 3,
+    "buffers": 40,
+    "textures": 9,
+    "bufferBytes": 61135608,
+    "cacheHits": 179,
+    "cacheMisses": 166
+  },
+  "warmResources": {
+    "pipelineCreations": 149,
+    "shaderModules": 14,
+    "bufferCreations": 40,
+    "textureCreations": 9,
+    "samplerCreations": 3,
+    "buffers": 40,
+    "textures": 9,
+    "bufferBytes": 61135608,
+    "cacheHits": 179,
+    "cacheMisses": 166
+  },
+  "environmentModes": [
+    {
+      "mode": "individual",
+      "difference": 0
+    },
+    {
+      "mode": "sorted",
+      "difference": 0
+    },
+    {
+      "mode": "instanced",
+      "difference": 0
+    },
+    {
+      "mode": "gpu-indirect",
+      "difference": 0
+    }
+  ],
+  "overdrawOff": {
+    "cpuEncodeMs": 0.10000000894069672,
+    "gpuCompletionMs": 9.299999997019768
+  },
+  "overdrawOn": {
+    "cpuEncodeMs": 0.09999999403953552,
+    "gpuCompletionMs": 8.699999988079071
+  },
+  "timestamps": [
+    {
+      "frame": 491,
+      "pass": 5,
+      "milliseconds": 0
+    },
+    {
+      "frame": 491,
+      "pass": 9,
+      "milliseconds": 0.065536
+    },
+    {
+      "frame": 491,
+      "pass": 7,
+      "milliseconds": 0
+    },
+    {
+      "frame": 491,
+      "pass": 2,
+      "milliseconds": 0
+    },
+    {
+      "frame": 491,
+      "pass": 11,
+      "milliseconds": 0.065536
+    }
+  ],
+  "validationError": null,
+  "gpuErrors": [],
+  "demoControls": true
+}

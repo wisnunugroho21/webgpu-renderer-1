@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-04",
+  "tests": 172,
+  "testFiles": 47,
+  "gpuValidationErrors": 0,
+  "unchangedCounterAndResourceSnapshots": 86,
+  "cpuBefore": {
+    "Phase 7: extract 10,000 renderables into persistent arrays": 0.9074063514492743,
+    "10,000 candidates with persistent hysteresis": 0.19965723153692605,
+    "compare 10,000 unchanged shadow casters": 0.7983026363636361,
+    "cull 10,000 shadow caster bounds": 0.3208601648492629,
+    "fit 10,000 caster bounds": 0.047260733270322174
+  },
+  "cpuAfter": {
+    "Phase 7: extract 10,000 renderables into persistent arrays": 0.9191919742647062,
+    "1000 empty gameplay frame dispatches": 0.00947432659403149,
+    "100 gameplay callbacks across 100 fixed frames": 0.06683466372627564,
+    "1000 unchanged ECS camera updates": 0.042205654764919075,
+    "1000 collection-game fixed steps, six items": 0.029019824376089597,
+    "10,000 candidates with persistent hysteresis": 0.20312002233956117,
+    "compare 10,000 unchanged shadow casters": 0.8027071410256397,
+    "cull 10,000 shadow caster bounds": 0.3119189850280727,
+    "fit 10,000 caster bounds": 0.04775383726482656
+  },
+  "intermediateCPU": {
+    "Phase 7: extract 10,000 renderables into persistent arrays": 0.911224102003641,
+    "1000 empty gameplay frame dispatches": 0.009149794755430296,
+    "100 gameplay callbacks across 100 fixed frames": 0.07089370197079375,
+    "1000 unchanged ECS camera updates": 0.04272261850649322,
+    "1000 collection-game fixed steps, six items": 0.02901283544156816,
+    "10,000 candidates with persistent hysteresis": 0.2090340857023414,
+    "compare 10,000 unchanged shadow casters": 0.7937481428571422,
+    "cull 10,000 shadow caster bounds": 0.31066454223602247,
+    "fit 10,000 caster bounds": 0.04739491440758311
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "projectionChecks": [
+    {
+      "kind": "perspective",
+      "differentBytes": 0,
+      "near": 2,
+      "far": 200
+    },
+    {
+      "kind": "orthographic",
+      "differentBytes": 0,
+      "near": 0,
+      "far": 40
+    }
+  ],
+  "orthographicShadowPasses": 4,
+  "clippedShadowPasses": 0,
+  "cpuLevel": 0,
+  "indirectDifference": 0,
+  "fixed": 6,
+  "variable": 7,
+  "stillPaused": true,
+  "resumed": true,
+  "cameraEntity": 34,
+  "cameraPosition": [
+    0,
+    0,
+    12
+  ],
+  "before": {
+    "pipelineCreations": 52,
+    "shaderModules": 12,
+    "bufferCreations": 36,
+    "textureCreations": 5,
+    "samplerCreations": 2,
+    "buffers": 36,
+    "textures": 5,
+    "bufferBytes": 61085312,
+    "cacheHits": 49,
+    "cacheMisses": 66
+  },
+  "after": {
+    "pipelineCreations": 52,
+    "shaderModules": 12,
+    "bufferCreations": 36,
+    "textureCreations": 5,
+    "samplerCreations": 2,
+    "buffers": 36,
+    "textures": 5,
+    "bufferBytes": 61085312,
+    "cacheHits": 49,
+    "cacheMisses": 66
+  },
+  "errors": [],
+  "example": {
+    "moved": {
+      "x": -4.999999999999999,
+      "score": 1,
+      "status": "Collected 1/6\nWASD / arrows: move · R: restart · C: camera\nClick the scene to focus the controls."
+    },
+    "switched": "perspective",
+    "blurPosition": -4.999999999999999,
+    "restarted": {
+      "x": 0,
+      "score": 0
+    },
+    "exampleBefore": {
+      "pipelineCreations": 52,
+      "shaderModules": 12,
+      "bufferCreations": 36,
+      "textureCreations": 5,
+      "samplerCreations": 2,
+      "buffers": 36,
+      "textures": 5,
+      "bufferBytes": 61085312,
+      "cacheHits": 49,
+      "cacheMisses": 66
+    },
+    "exampleAfter": {
+      "pipelineCreations": 52,
+      "shaderModules": 12,
+      "bufferCreations": 36,
+      "textureCreations": 5,
+      "samplerCreations": 2,
+      "buffers": 36,
+      "textures": 5,
+      "bufferBytes": 61085312,
+      "cacheHits": 49,
+      "cacheMisses": 66
+    },
+    "errors": []
+  },
+  "environment": {
+    "mode": "production-preview",
+    "browser": "153.0.8010.53",
+    "timestamp": "2026-10-03T21:21:01.226Z"
+  }
+}

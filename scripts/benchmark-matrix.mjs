@@ -366,6 +366,299 @@ try {
         results.occlusion.push({ occlusion: enabled, ...measured });
       }
     });
+
+    await withApp(16384, async (app) => {
+      const r = app.renderer,
+        g = r.geometryOptimization;
+      results.geometry = {
+        supported: g.supported,
+        defaultEnabled: g.enabled,
+        benchmarks: [],
+        checks: [],
+      };
+      if (!g.supported) return;
+      const nx = 1000,
+        ny = 100,
+        positions = new Float32Array((nx + 1) * (ny + 1) * 3),
+        normals = new Float32Array(positions.length),
+        indices = new Uint32Array(nx * ny * 6);
+      for (let y = 0; y <= ny; y++)
+        for (let x = 0; x <= nx; x++) {
+          const o = (y * (nx + 1) + x) * 3;
+          positions[o] = (x - nx / 2) * 0.5;
+          positions[o + 1] = (y - ny / 2) * 0.1;
+          normals[o + 2] = 1;
+        }
+      let at = 0;
+      for (let y = 0; y < ny; y++)
+        for (let x = 0; x < nx; x++) {
+          const a = y * (nx + 1) + x,
+            b = a + 1,
+            c = a + nx + 1,
+            d = c + 1;
+          indices.set([a, b, c, c, b, d], at);
+          at += 6;
+        }
+      const cold = performance.now(),
+        meshID = r.meshes.upload({
+          attributes: { POSITION: positions, NORMAL: normals },
+          indices,
+          mode: 4,
+          material: -1,
+          targets: [],
+        });
+      results.geometry.assetPreparationMs = performance.now() - cold;
+      const mesh = r.meshes.get(meshID),
+        material = app.materials.create({
+          baseColor: [0.6, 0.4, 0.2, 1],
+          doubleSided: true,
+        }),
+        e = app.world.create();
+      app.world.transforms.add(e);
+      app.world.meshes.set(e, meshID, material);
+      app.world.bounds.setAABB(e, mesh.bounds.min, mesh.bounds.max);
+      r.camera.setPosition(0, 0, 8);
+      r.camera.setTarget(0, 0, 0);
+      r.cullingEnabled = true;
+      const refresh = () => {
+        app.transformSystem.update(app.world.transforms);
+        app.skeletonSystem.update(app.world, app.skeletons);
+        app.animatedBounds.update(
+          app.world,
+          r.meshes,
+          app.skeletons,
+          app.animations.morphPool,
+        );
+        app.extractor.extract(
+          app.world,
+          app.renderWorld,
+          app.skeletons,
+          app.animations.morphPool,
+        );
+      };
+      const image = async (enabled) => {
+        g.enabled = enabled;
+        refresh();
+        return await captureImage(app);
+      };
+      const difference = (a, b) => {
+        let maxDifference = 0,
+          differingBytes = 0;
+        for (let i = 0; i < a.length; i++) {
+          const d = Math.abs(a[i] - b[i]);
+          if (d) differingBytes++;
+          maxDifference = Math.max(maxDifference, d);
+        }
+        return { maxDifference, differingBytes };
+      };
+      const diagnostics = async () => {
+        const n = g.count;
+        if (!n)
+          return {
+            candidates: 0,
+            visible: 0,
+            rejected: 0,
+            falseInvisible: 0,
+            drawnTriangles: 0,
+          };
+        const rb = app.gpu.device.createBuffer({
+            size: n * 20,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+          }),
+          enc = app.gpu.device.createCommandEncoder();
+        enc.copyBufferToBuffer(g.arguments, 0, rb, 0, n * 20);
+        app.gpu.queue.submit([enc.finish()]);
+        await rb.mapAsync(GPUMapMode.READ);
+        const args = new Uint32Array(rb.getMappedRange()).slice();
+        rb.unmap();
+        rb.destroy();
+        const data = g.data,
+          bits = new Uint32Array(data.buffer),
+          instances = r.instances.data,
+          matrices = app.renderWorld.matrices,
+          vp = r.camera.viewProjection;
+        let visible = 0,
+          falseInvisible = 0,
+          drawnTriangles = 0;
+        for (let i = 0; i < n; i++) {
+          const o = i * 12,
+            first = bits[o + 11],
+            m = instances[first * 12] * 16;
+          const outside = [true, true, true, true, true, true];
+          // Independent clip-space reference transforms all eight actual local-box corners.
+          for (let corner = 0; corner < 8; corner++) {
+            const x = data[o + (corner & 1 ? 4 : 0)],
+              y = data[o + (corner & 2 ? 5 : 1)],
+              z = data[o + (corner & 4 ? 6 : 2)],
+              v = [0, 0, 0, 0],
+              clip = [0, 0, 0, 0];
+            for (let a = 0; a < 4; a++)
+              v[a] =
+                matrices[m + a] * x +
+                matrices[m + 4 + a] * y +
+                matrices[m + 8 + a] * z +
+                matrices[m + 12 + a];
+            for (let a = 0; a < 4; a++)
+              for (let b = 0; b < 4; b++) clip[a] += vp[b * 4 + a] * v[b];
+            const distances = [
+              clip[3] + clip[0],
+              clip[3] - clip[0],
+              clip[3] + clip[1],
+              clip[3] - clip[1],
+              clip[2],
+              clip[3] - clip[2],
+            ];
+            for (let p = 0; p < 6; p++)
+              if (distances[p] >= 0) outside[p] = false;
+          }
+          if (args[i * 5 + 1]) {
+            visible++;
+            drawnTriangles += args[i * 5] / 3;
+          } else if (!outside.some(Boolean)) falseInvisible++;
+          if (
+            args[i * 5] !== bits[o + 8] ||
+            args[i * 5 + 2] !== bits[o + 9] ||
+            args[i * 5 + 3] !== 0 ||
+            args[i * 5 + 4] !== first
+          )
+            throw new Error("Invalid cluster draw range");
+        }
+        return {
+          candidates: n,
+          visible,
+          rejected: n - visible,
+          falseInvisible,
+          drawnTriangles,
+        };
+      };
+      for (const workload of ["mostly-outside", "fully-visible"]) {
+        app.world.transforms.setScale(
+          e,
+          workload === "fully-visible" ? 0.01 : 1,
+          workload === "fully-visible" ? 0.5 : 1,
+          1,
+        );
+        const before = await image(false),
+          after = await image(true),
+          imageDifference = difference(before, after),
+          diagnostic = await diagnostics();
+        for (const enabled of [false, true]) {
+          g.enabled = enabled;
+          results.geometry.benchmarks.push({
+            workload,
+            enabled,
+            triangles: indices.length / 3,
+            clusters: mesh.clusters.count,
+            imageDifference,
+            diagnostic: enabled ? diagnostic : null,
+            ...(await measure(app)),
+          });
+        }
+      }
+      const check = async (name) => {
+        const before = await image(false),
+          after = await image(true);
+        results.geometry.checks.push({
+          name,
+          imageDifference: difference(before, after),
+          diagnostic: await diagnostics(),
+          stats: { ...r.stats },
+        });
+      };
+      app.world.transforms.setScale(e, 1, 1, 1);
+      r.depthPrepass.enabled = true;
+      await check("depth-prepass");
+      r.depthPrepass.enabled = false;
+      const parent = app.world.create();
+      app.world.transforms.add(parent);
+      app.world.transforms.setScale(parent, -0.7, 1.2, 0.9);
+      app.world.transforms.setParent(e, parent);
+      app.world.transforms.setRotation(e, 0, 0, Math.sin(0.3), Math.cos(0.3));
+      const second = app.world.create();
+      app.world.transforms.add(second);
+      app.world.transforms.setPosition(second, 2, 0, -0.2);
+      app.world.meshes.set(second, meshID, material);
+      app.world.bounds.setAABB(second, mesh.bounds.min, mesh.bounds.max);
+      await check("mirrored-sheared-instancing");
+      const mask = app.materials.create({
+        baseColor: [0.2, 0.8, 0.3, 0.6],
+        alphaMode: "MASK",
+        alphaCutoff: 0.5,
+        doubleSided: true,
+      });
+      app.world.meshes.materialId[e] = mask;
+      app.world.meshes.materialId[second] = mask;
+      await check("alpha-mask");
+      app.world.lights.set(app.defaultLightEntity, {
+        type: "directional",
+        castShadow: true,
+        direction: [0.3, -1, -0.2],
+      });
+      r.shadows.cascades = 1;
+      r.shadows.cacheEnabled = false;
+      await check("shadows");
+      app.world.lights.set(app.defaultLightEntity, {
+        type: "directional",
+        direction: [0, 0, -1],
+      });
+      const coarse = r.meshes.upload({
+        attributes: {
+          POSITION: new Float32Array([-1, -1, 0, 1, -1, 0, 0, 1, 0]),
+          NORMAL: new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1]),
+        },
+        indices: new Uint32Array([0, 1, 2]),
+        mode: 4,
+        material: -1,
+        targets: [],
+      });
+      const lod = r.lodGroups.register(
+        [meshID, coarse],
+        [100000, 1],
+        r.meshes,
+        0,
+      );
+      app.world.transforms.setParent(e, -1);
+      app.world.transforms.setRotation(e, 0, 0, 0, 1);
+      app.world.transforms.setScale(e, 0.01, 0.01, 0.01);
+      app.world.meshes.setLOD(e, lod);
+      await check("cpu-lod");
+      app.world.meshes.setLOD(e, -1);
+      app.world.transforms.setScale(e, 1, 1, 1);
+      r.camera.setPosition(0, 0, 0.2);
+      await check("near-plane");
+      r.camera.setPosition(0, 0, 8);
+      r.cullingEnabled = false;
+      await check("culling-disabled");
+      r.cullingEnabled = true;
+      app.canvas.style.width = "321px";
+      app.canvas.style.height = "241px";
+      app.gpu.resize();
+      await check("odd-viewport-resize");
+      const blend = app.materials.create({
+        baseColor: [0.2, 0.8, 0.3, 0.5],
+        alphaMode: "BLEND",
+        doubleSided: true,
+      });
+      app.world.meshes.materialId[e] = blend;
+      app.world.meshes.materialId[second] = blend;
+      await check("transparent-fallback");
+      app.world.meshes.materialId[e] = material;
+      app.world.meshes.materialId[second] = material;
+      r.submissionMode = "gpu-indirect";
+      await check("gpu-object-indirect-fallback");
+      r.submissionMode = "instanced";
+      r.gpuFrustum.enabled = r.gpuCompaction.enabled = r.gpuLOD.enabled = false;
+      app.world.destroy(parent);
+      app.world.destroy(e);
+      app.world.destroy(second);
+      await app.loadAsset("/regression/crowd-combined.glb");
+      app.animations.animators[0].play(0);
+      app.animations.update(0.1);
+      app.animations.morphStates[0].weights[0] = 0.2;
+      app.animations.morphStates[0].dirty = true;
+      await check("morph-skin-fallback");
+      g.enabled = false;
+    });
     return results;
   });
   report.environment = {
@@ -428,6 +721,65 @@ try {
     assert.equal(report.occlusion[0].visibleInstances, 10001);
     assert.equal(report.occlusion[1].visibleInstances, 1);
     assert.equal(report.occlusion[1].imageDifference.maxDifference, 0);
+  }
+
+  assert.equal(report.geometry.defaultEnabled, false);
+  if (report.geometry.supported) {
+    for (const row of [
+      ...report.geometry.benchmarks,
+      ...report.geometry.checks,
+    ]) {
+      assert.equal(
+        row.imageDifference.maxDifference,
+        0,
+        `Geometry image mismatch: ${row.workload ?? row.name}`,
+      );
+      if (row.diagnostic) assert.equal(row.diagnostic.falseInvisible, 0);
+      if (row.resourcesBefore)
+        for (const key of [
+          "pipelineCreations",
+          "shaderModules",
+          "bufferCreations",
+          "textureCreations",
+          "samplerCreations",
+        ])
+          assert.equal(row.resourcesBefore[key], row.resourcesAfter[key]);
+    }
+    const narrow = report.geometry.benchmarks.find(
+        (x) => x.enabled && x.workload === "mostly-outside",
+      ),
+      full = report.geometry.benchmarks.find(
+        (x) => x.enabled && x.workload === "fully-visible",
+      );
+    assert.ok(narrow.diagnostic.rejected > narrow.diagnostic.candidates / 2);
+    assert.equal(full.diagnostic.rejected, 0);
+    assert.ok(
+      report.geometry.checks.find((x) => x.name === "morph-skin-fallback").stats
+        .activeMorphTargets > 0,
+    );
+    assert.equal(
+      report.geometry.checks.find((x) => x.name === "cpu-lod").stats.lod1,
+      1,
+    );
+    assert.ok(
+      report.geometry.checks.find((x) => x.name === "shadows").stats
+        .shadowDrawCalls > 0,
+    );
+    assert.equal(
+      report.geometry.checks.find((x) => x.name === "culling-disabled")
+        .diagnostic.rejected,
+      0,
+    );
+    for (const name of [
+      "transparent-fallback",
+      "gpu-object-indirect-fallback",
+      "morph-skin-fallback",
+    ])
+      assert.equal(
+        report.geometry.checks.find((x) => x.name === name).stats
+          .geometryClusterCandidates,
+        0,
+      );
   }
   console.log(JSON.stringify(report, null, 2));
 } finally {

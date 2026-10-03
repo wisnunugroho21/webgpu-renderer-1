@@ -6,11 +6,11 @@
     "description": ""
   },
   "format": "bgra8unorm",
-  "frames": 187,
+  "frames": 190,
   "frameCadence": {
-    "fps": 59.88023952095873,
-    "frameTimeMs": 16.699999999999818,
-    "cpuFrameMs": 0.09999999403953552
+    "fps": 60.24096385542202,
+    "frameTimeMs": 16.59999999999991,
+    "cpuFrameMs": 0
   },
   "size": [
     1280,
@@ -54,9 +54,13 @@
       255
     ],
     "offscreenStats": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -310,9 +314,13 @@
   },
   "jointChecks": {
     "full": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -358,9 +366,13 @@
       "bvhNodesTested": 0
     },
     "unchanged": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -406,9 +418,13 @@
       "bvhNodesTested": 0
     },
     "partial": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -510,9 +526,13 @@
     "medianCpuMs": 0.20000000298023224,
     "p95CpuMs": 0.29999999701976776,
     "stats": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -667,12 +687,16 @@
       255
     ],
     "vertexWrites": 0,
-    "medianCpuMs": 0.19999998807907104,
-    "p95CpuMs": 0.20000000298023224,
+    "medianCpuMs": 0.10000000894069672,
+    "p95CpuMs": 0.29999999701976776,
     "stats": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -746,9 +770,13 @@
     "medianCpuMs": 0.20000000298023224,
     "p95CpuMs": 0.29999999701976776,
     "stats": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -852,9 +880,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -908,9 +940,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -964,9 +1000,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1021,9 +1061,13 @@
         255
       ],
       "stats": {
-        "fps": 59.88023952095873,
-        "frameTimeMs": 16.699999999999818,
-        "cpuFrameMs": 0.09999999403953552,
+        "geometryClusterCandidates": 0,
+        "geometryClusterDraws": 0,
+        "geometryFallbackBatches": 0,
+        "geometryUploadBytes": 0,
+        "fps": 60.24096385542202,
+        "frameTimeMs": 16.59999999999991,
+        "cpuFrameMs": 0,
         "indirectDraws": 0,
         "indirectUploadBytes": 0,
         "gpuCandidates": 0,
@@ -1084,9 +1128,13 @@
         "distance": 5,
         "selection": 0,
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1136,9 +1184,13 @@
         "distance": 20,
         "selection": 1,
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1188,9 +1240,13 @@
         "distance": 40,
         "selection": 2,
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1240,9 +1296,13 @@
         "distance": 80,
         "selection": -1,
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1324,9 +1384,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1380,9 +1444,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1436,9 +1504,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1492,9 +1564,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1548,9 +1624,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1604,9 +1684,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1660,9 +1744,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -1746,25 +1834,25 @@
       "lights": 1,
       "cpuMedianMs": 0,
       "completionMedianMs": 0.7000000029802322,
-      "completionP95Ms": 0.7999999970197678
+      "completionP95Ms": 1.8999999910593033
     },
     "64": {
       "lights": 64,
       "cpuMedianMs": 0,
-      "completionMedianMs": 0.7999999970197678,
-      "completionP95Ms": 0.9000000059604645
+      "completionMedianMs": 1,
+      "completionP95Ms": 1.1000000089406967
     },
     "256": {
       "lights": 256,
-      "cpuMedianMs": 0.09999999403953552,
-      "completionMedianMs": 1.1000000089406967,
-      "completionP95Ms": 1.2000000029802322
+      "cpuMedianMs": 0,
+      "completionMedianMs": 1.2000000029802322,
+      "completionP95Ms": 2.5999999940395355
     },
     "1024": {
       "lights": 1024,
-      "cpuMedianMs": 0,
-      "completionMedianMs": 2.300000011920929,
-      "completionP95Ms": 2.5999999940395355
+      "cpuMedianMs": 0.10000000894069672,
+      "completionMedianMs": 2.4000000059604645,
+      "completionP95Ms": 4.0999999940395355
     }
   },
   "clusterChecks": {
@@ -1774,14 +1862,14 @@
     },
     "timings": {
       "off": {
-        "cpuMedianMs": 0.20000000298023224,
-        "completionMedianMs": 32.29999999701977,
-        "completionP95Ms": 34.599999994039536
+        "cpuMedianMs": 0.09999999403953552,
+        "completionMedianMs": 34.400000005960464,
+        "completionP95Ms": 36.099999994039536
       },
       "on": {
         "cpuMedianMs": 0.09999999403953552,
-        "completionMedianMs": 2.2000000029802322,
-        "completionP95Ms": 2.2999999970197678
+        "completionMedianMs": 1.7999999970197678,
+        "completionP95Ms": 2.7999999970197678
       }
     },
     "metadata": {
@@ -1847,9 +1935,13 @@
       255
     ],
     "stats": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -1924,14 +2016,18 @@
         "completionMedianMs": 0.7999999970197678
       },
       "on": {
-        "cpuMedianMs": 0,
-        "completionMedianMs": 1.0999999940395355
+        "cpuMedianMs": 0.09999999403953552,
+        "completionMedianMs": 1.1000000089406967
       }
     },
     "unculled": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -1977,9 +2073,13 @@
       "bvhNodesTested": 0
     },
     "culled": {
-      "fps": 59.88023952095873,
-      "frameTimeMs": 16.699999999999818,
-      "cpuFrameMs": 0.09999999403953552,
+      "geometryClusterCandidates": 0,
+      "geometryClusterDraws": 0,
+      "geometryFallbackBatches": 0,
+      "geometryUploadBytes": 0,
+      "fps": 60.24096385542202,
+      "frameTimeMs": 16.59999999999991,
+      "cpuFrameMs": 0,
       "indirectDraws": 0,
       "indirectUploadBytes": 0,
       "gpuCandidates": 0,
@@ -2042,9 +2142,13 @@
         255
       ],
       "stats": {
-        "fps": 59.88023952095873,
-        "frameTimeMs": 16.699999999999818,
-        "cpuFrameMs": 0.09999999403953552,
+        "geometryClusterCandidates": 0,
+        "geometryClusterDraws": 0,
+        "geometryFallbackBatches": 0,
+        "geometryUploadBytes": 0,
+        "fps": 60.24096385542202,
+        "frameTimeMs": 16.59999999999991,
+        "cpuFrameMs": 0,
         "indirectDraws": 0,
         "indirectUploadBytes": 0,
         "gpuCandidates": 0,
@@ -2092,9 +2196,13 @@
     },
     "multipleLights": {
       "stats": {
-        "fps": 59.88023952095873,
-        "frameTimeMs": 16.699999999999818,
-        "cpuFrameMs": 0.09999999403953552,
+        "geometryClusterCandidates": 0,
+        "geometryClusterDraws": 0,
+        "geometryFallbackBatches": 0,
+        "geometryUploadBytes": 0,
+        "fps": 60.24096385542202,
+        "frameTimeMs": 16.59999999999991,
+        "cpuFrameMs": 0,
         "indirectDraws": 0,
         "indirectUploadBytes": 0,
         "gpuCandidates": 0,
@@ -2145,7 +2253,7 @@
         2,
         1
       ],
-      "completionMedianMs": 1.5
+      "completionMedianMs": 1.4000000059604645
     },
     "deformation": {
       "maxDifference": 0,
@@ -2171,9 +2279,13 @@
         255
       ],
       "stats": {
-        "fps": 59.88023952095873,
-        "frameTimeMs": 16.699999999999818,
-        "cpuFrameMs": 0.09999999403953552,
+        "geometryClusterCandidates": 0,
+        "geometryClusterDraws": 0,
+        "geometryFallbackBatches": 0,
+        "geometryUploadBytes": 0,
+        "fps": 60.24096385542202,
+        "frameTimeMs": 16.59999999999991,
+        "cpuFrameMs": 0,
         "indirectDraws": 0,
         "indirectUploadBytes": 0,
         "gpuCandidates": 0,
@@ -2248,7 +2360,7 @@
         "cacheHits": 343,
         "cacheMisses": 67
       },
-      "completionMedianMs": 1.4000000059604645
+      "completionMedianMs": 1.2999999970197678
     },
     "cache": {
       "pixel": [
@@ -2258,9 +2370,13 @@
         255
       ],
       "stats": {
-        "fps": 59.88023952095873,
-        "frameTimeMs": 16.699999999999818,
-        "cpuFrameMs": 0.09999999403953552,
+        "geometryClusterCandidates": 0,
+        "geometryClusterDraws": 0,
+        "geometryFallbackBatches": 0,
+        "geometryUploadBytes": 0,
+        "fps": 60.24096385542202,
+        "frameTimeMs": 16.59999999999991,
+        "cpuFrameMs": 0,
         "indirectDraws": 0,
         "indirectUploadBytes": 0,
         "gpuCandidates": 0,
@@ -2325,9 +2441,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -2381,9 +2501,13 @@
           255
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -2448,108 +2572,108 @@
     "supported": true,
     "gpuTimings": [
       {
-        "frame": 513,
+        "frame": 516,
+        "pass": 0,
+        "milliseconds": 0.131072
+      },
+      {
+        "frame": 516,
         "pass": 0,
         "milliseconds": 0.196608
       },
       {
-        "frame": 513,
+        "frame": 516,
         "pass": 0,
         "milliseconds": 0.196608
       },
       {
-        "frame": 513,
+        "frame": 516,
         "pass": 0,
-        "milliseconds": 0.196608
+        "milliseconds": 0.131072
       },
       {
-        "frame": 513,
-        "pass": 0,
-        "milliseconds": 0.196608
-      },
-      {
-        "frame": 513,
+        "frame": 516,
         "pass": 1,
         "milliseconds": 0.065536
       },
       {
-        "frame": 513,
+        "frame": 516,
         "pass": 2,
-        "milliseconds": 0.65536
+        "milliseconds": 0.589824
       },
       {
-        "frame": 514,
+        "frame": 517,
         "pass": 0,
         "milliseconds": 0.196608
       },
       {
-        "frame": 514,
-        "pass": 0,
-        "milliseconds": 0.196608
-      },
-      {
-        "frame": 514,
+        "frame": 517,
         "pass": 0,
         "milliseconds": 0.262144
       },
       {
-        "frame": 514,
+        "frame": 517,
         "pass": 0,
         "milliseconds": 0.196608
       },
       {
-        "frame": 514,
+        "frame": 517,
+        "pass": 0,
+        "milliseconds": 0.262144
+      },
+      {
+        "frame": 517,
         "pass": 1,
         "milliseconds": 0.065536
       },
       {
-        "frame": 514,
-        "pass": 2,
-        "milliseconds": 0.720896
-      },
-      {
-        "frame": 512,
-        "pass": 0,
-        "milliseconds": 0.196608
-      },
-      {
-        "frame": 512,
-        "pass": 0,
-        "milliseconds": 0.196608
-      },
-      {
-        "frame": 512,
-        "pass": 0,
-        "milliseconds": 0.065536
-      },
-      {
-        "frame": 512,
-        "pass": 0,
-        "milliseconds": 0.065536
-      },
-      {
-        "frame": 512,
-        "pass": 1,
-        "milliseconds": 0.131072
-      },
-      {
-        "frame": 512,
+        "frame": 517,
         "pass": 2,
         "milliseconds": 0.65536
+      },
+      {
+        "frame": 515,
+        "pass": 0,
+        "milliseconds": 0.065536
+      },
+      {
+        "frame": 515,
+        "pass": 0,
+        "milliseconds": 0.065536
+      },
+      {
+        "frame": 515,
+        "pass": 0,
+        "milliseconds": 0.065536
+      },
+      {
+        "frame": 515,
+        "pass": 0,
+        "milliseconds": 0.065536
+      },
+      {
+        "frame": 515,
+        "pass": 1,
+        "milliseconds": 0.065536
+      },
+      {
+        "frame": 515,
+        "pass": 2,
+        "milliseconds": 0.458752
       }
     ],
     "droppedCaptures": 1,
-    "cpuFrames": 187,
+    "cpuFrames": 190,
     "cpuStages": [
       0,
       0.09999999403953552,
       0,
       0,
       0,
-      0,
-      0.20000000298023224,
+      0.10000000894069672,
       0.09999999403953552,
-      1.2999999970197678
+      0.10000000894069672,
+      1.5999999940395355
     ],
     "resourcesBefore": {
       "pipelineCreations": 52,
@@ -2583,9 +2707,13 @@
           "cpuMedianMs": 0,
           "completionMedianMs": 0.7000000029802322,
           "stats": {
-            "fps": 59.88023952095873,
-            "frameTimeMs": 16.699999999999818,
-            "cpuFrameMs": 0.09999999403953552,
+            "geometryClusterCandidates": 0,
+            "geometryClusterDraws": 0,
+            "geometryFallbackBatches": 0,
+            "geometryUploadBytes": 0,
+            "fps": 60.24096385542202,
+            "frameTimeMs": 16.59999999999991,
+            "cpuFrameMs": 0,
             "indirectDraws": 0,
             "indirectUploadBytes": 0,
             "gpuCandidates": 0,
@@ -2637,11 +2765,15 @@
         },
         "on": {
           "cpuMedianMs": 0,
-          "completionMedianMs": 0.8999999910593033,
+          "completionMedianMs": 0.800000011920929,
           "stats": {
-            "fps": 59.88023952095873,
-            "frameTimeMs": 16.699999999999818,
-            "cpuFrameMs": 0.09999999403953552,
+            "geometryClusterCandidates": 0,
+            "geometryClusterDraws": 0,
+            "geometryFallbackBatches": 0,
+            "geometryUploadBytes": 0,
+            "fps": 60.24096385542202,
+            "frameTimeMs": 16.59999999999991,
+            "cpuFrameMs": 0,
             "indirectDraws": 0,
             "indirectUploadBytes": 0,
             "gpuCandidates": 0,
@@ -2690,12 +2822,16 @@
       },
       "overdraw": {
         "off": {
-          "cpuMedianMs": 0,
-          "completionMedianMs": 5.5,
+          "cpuMedianMs": 0.09999999403953552,
+          "completionMedianMs": 6,
           "stats": {
-            "fps": 59.88023952095873,
-            "frameTimeMs": 16.699999999999818,
-            "cpuFrameMs": 0.09999999403953552,
+            "geometryClusterCandidates": 0,
+            "geometryClusterDraws": 0,
+            "geometryFallbackBatches": 0,
+            "geometryUploadBytes": 0,
+            "fps": 60.24096385542202,
+            "frameTimeMs": 16.59999999999991,
+            "cpuFrameMs": 0,
             "indirectDraws": 0,
             "indirectUploadBytes": 0,
             "gpuCandidates": 0,
@@ -2747,11 +2883,15 @@
         },
         "on": {
           "cpuMedianMs": 0.09999999403953552,
-          "completionMedianMs": 1.3999999910593033,
+          "completionMedianMs": 1.300000011920929,
           "stats": {
-            "fps": 59.88023952095873,
-            "frameTimeMs": 16.699999999999818,
-            "cpuFrameMs": 0.09999999403953552,
+            "geometryClusterCandidates": 0,
+            "geometryClusterDraws": 0,
+            "geometryFallbackBatches": 0,
+            "geometryUploadBytes": 0,
+            "fps": 60.24096385542202,
+            "frameTimeMs": 16.59999999999991,
+            "cpuFrameMs": 0,
             "indirectDraws": 0,
             "indirectUploadBytes": 0,
             "gpuCandidates": 0,
@@ -2800,12 +2940,16 @@
       },
       "expensive": {
         "off": {
-          "cpuMedianMs": 0.29999999701976776,
-          "completionMedianMs": 319.20000000298023,
+          "cpuMedianMs": 0.20000000298023224,
+          "completionMedianMs": 369.19999998807907,
           "stats": {
-            "fps": 59.88023952095873,
-            "frameTimeMs": 16.699999999999818,
-            "cpuFrameMs": 0.09999999403953552,
+            "geometryClusterCandidates": 0,
+            "geometryClusterDraws": 0,
+            "geometryFallbackBatches": 0,
+            "geometryUploadBytes": 0,
+            "fps": 60.24096385542202,
+            "frameTimeMs": 16.59999999999991,
+            "cpuFrameMs": 0,
             "indirectDraws": 0,
             "indirectUploadBytes": 0,
             "gpuCandidates": 0,
@@ -2856,12 +3000,16 @@
           "differingBytes": 0
         },
         "on": {
-          "cpuMedianMs": 0.10000000894069672,
-          "completionMedianMs": 13,
+          "cpuMedianMs": 0.20000000298023224,
+          "completionMedianMs": 13.200000002980232,
           "stats": {
-            "fps": 59.88023952095873,
-            "frameTimeMs": 16.699999999999818,
-            "cpuFrameMs": 0.09999999403953552,
+            "geometryClusterCandidates": 0,
+            "geometryClusterDraws": 0,
+            "geometryFallbackBatches": 0,
+            "geometryUploadBytes": 0,
+            "fps": 60.24096385542202,
+            "frameTimeMs": 16.59999999999991,
+            "cpuFrameMs": 0,
             "indirectDraws": 0,
             "indirectUploadBytes": 0,
             "gpuCandidates": 0,
@@ -3006,18 +3154,18 @@
     },
     "timings": {
       "off": {
-        "completionMedianMs": 24.899999991059303,
-        "cpuMedianMs": 0.19999998807907104
+        "completionMedianMs": 24.900000005960464,
+        "cpuMedianMs": 0.20000000298023224
       },
       "on": {
-        "completionMedianMs": 25.899999991059303,
-        "cpuMedianMs": 0.29999999701976776
+        "completionMedianMs": 25.5,
+        "cpuMedianMs": 0.09999999403953552
       }
     },
     "timestampFrameMs": [
-      0.45875199999999994,
-      0.7208960000000001,
-      0.39321599999999995
+      1.114112,
+      0.65536,
+      0.45875199999999994
     ],
     "resourcesAfter": {
       "pipelineCreations": 52,
@@ -3098,9 +3246,13 @@
       "count": 32,
       "mismatches": 0,
       "stats": {
-        "fps": 59.88023952095873,
-        "frameTimeMs": 16.699999999999818,
-        "cpuFrameMs": 0.09999999403953552,
+        "geometryClusterCandidates": 0,
+        "geometryClusterDraws": 0,
+        "geometryFallbackBatches": 0,
+        "geometryUploadBytes": 0,
+        "fps": 60.24096385542202,
+        "frameTimeMs": 16.59999999999991,
+        "cpuFrameMs": 0,
         "indirectDraws": 0,
         "indirectUploadBytes": 0,
         "gpuCandidates": 32,
@@ -3159,13 +3311,13 @@
       "cacheHits": 343,
       "cacheMisses": 67
     },
-    "initialUploadMs": 9,
+    "initialUploadMs": 8,
     "initialUploadBytes": 3200016,
     "large": {
       "count": 100000,
       "visible": 14954,
       "mismatches": 0,
-      "cpuMedianMs": 2.2999999970197678,
+      "cpuMedianMs": 2,
       "completionMedianMs": 0.7999999970197678,
       "resourcesBefore": {
         "pipelineCreations": 53,
@@ -3233,7 +3385,7 @@
       0,
       1
     ],
-    "cpuReferenceMs": 109.09999999403954,
+    "cpuReferenceMs": 94.80000001192093,
     "large": {
       "count": 100000,
       "mismatches": 0,
@@ -3280,9 +3432,9 @@
   },
   "visibilityMatrix": {
     "count": 100000,
-    "bvhBuildMs": 170.29999999701977,
+    "bvhBuildMs": 161.40000000596046,
     "noCulling": {
-      "medianMs": 0,
+      "medianMs": 0.09999999403953552,
       "visible": 100000
     },
     "cpuFrustum": {
@@ -3290,11 +3442,11 @@
       "visible": 99700
     },
     "bvh": {
-      "medianMs": 0.29999999701976776,
+      "medianMs": 0.5999999940395355,
       "visible": 99900
     },
     "gpuFrustum": {
-      "completionMedianMs": 0.3999999910593033,
+      "completionMedianMs": 0.4000000059604645,
       "visible": 99700,
       "mismatches": 0
     },
@@ -3390,9 +3542,13 @@
           ]
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 2,
           "indirectUploadBytes": 224,
           "gpuCandidates": 3,
@@ -3460,9 +3616,13 @@
           ]
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 2,
           "indirectUploadBytes": 0,
           "gpuCandidates": 3,
@@ -3547,12 +3707,16 @@
     },
     "timings": {
       "instanced": {
-        "cpuMedianMs": 1.2000000029802322,
-        "completionMedianMs": 3.0999999940395355,
+        "cpuMedianMs": 1.1000000089406967,
+        "completionMedianMs": 3,
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -3600,11 +3764,15 @@
       },
       "gpu-indirect": {
         "cpuMedianMs": 1.9000000059604645,
-        "completionMedianMs": 4.4000000059604645,
+        "completionMedianMs": 4.5,
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 1,
           "indirectUploadBytes": 0,
           "gpuCandidates": 10000,
@@ -3915,9 +4083,13 @@
         "differingBytes": 0
       },
       "stats": {
-        "fps": 59.88023952095873,
-        "frameTimeMs": 16.699999999999818,
-        "cpuFrameMs": 0.09999999403953552,
+        "geometryClusterCandidates": 0,
+        "geometryClusterDraws": 0,
+        "geometryFallbackBatches": 0,
+        "geometryUploadBytes": 0,
+        "fps": 60.24096385542202,
+        "frameTimeMs": 16.59999999999991,
+        "cpuFrameMs": 0,
         "indirectDraws": 2,
         "indirectUploadBytes": 0,
         "gpuCandidates": 1,
@@ -3977,8 +4149,8 @@
       "count": 100000,
       "frustumVisible": 66247,
       "mismatches": 0,
-      "cpuLODMedianMs": 1.4000000059604645,
-      "frustumAndLODCompletionMedianMs": 0.5999999940395355,
+      "cpuLODMedianMs": 1.3999999910593033,
+      "frustumAndLODCompletionMedianMs": 0.7000000029802322,
       "distribution": [
         945,
         5226,
@@ -4027,8 +4199,8 @@
     "rotationReset": true,
     "motionReset": true,
     "readbackInclusiveMedianMs": {
-      "off": 3,
-      "on": 2.7999999970197678
+      "off": 3.6000000089406967,
+      "on": 2.7000000029802322
     },
     "resourcesBefore": {
       "pipelineCreations": 56,
@@ -4056,7 +4228,7 @@
     }
   },
   "streamingChecks": {
-    "lodLoadMs": 0.19999998807907104,
+    "lodLoadMs": 0.7000000029802322,
     "lod": {
       "mesh": 19,
       "indexCount": 3,
@@ -4087,7 +4259,7 @@
       "protectedEvictions": 0
     },
     "lodEvictions": 1,
-    "lodEvictionMs": 0.4000000059604645,
+    "lodEvictionMs": 0.09999999403953552,
     "lodRestored": {
       "maxDifference": 0,
       "differingBytes": 0
@@ -4117,7 +4289,7 @@
       "cacheMisses": 71
     },
     "evictedMeshUnavailable": true,
-    "textureLoadMs": 0.7000000029802322,
+    "textureLoadMs": 0.5999999940395355,
     "textureDifference": {
       "maxDifference": 171,
       "differingBytes": 10332
@@ -4125,7 +4297,7 @@
     "sharedReferences": 1,
     "sharedProtectedEvictions": 0,
     "textureEvictions": 1,
-    "textureEvictionMs": 0.20000000298023224,
+    "textureEvictionMs": 0.10000000894069672,
     "textureRestored": {
       "maxDifference": 0,
       "differingBytes": 0
@@ -4153,7 +4325,7 @@
       "texture-compression-bc",
       "timestamp-query"
     ],
-    "coldMs": 0.5999999940395355,
+    "coldMs": 1.199999988079071,
     "format": "bc1-rgba-unorm-srgb",
     "mips": 4,
     "mipBlocks": [
@@ -4198,7 +4370,7 @@
         0
       ]
     ],
-    "pngColdMs": 0.29999999701976776,
+    "pngColdMs": 0.3999999910593033,
     "image": {
       "maxDifference": 0,
       "differingBytes": 0
@@ -4277,6 +4449,17 @@
       ]
     },
     {
+      "name": "geometry-clusters",
+      "reads": [
+        "frame",
+        "geometry",
+        "instances"
+      ],
+      "writes": [
+        "geometryArguments"
+      ]
+    },
+    {
       "name": "hiz",
       "reads": [
         "prepassDepth"
@@ -4339,6 +4522,7 @@
         "lights",
         "frame",
         "drawArguments",
+        "geometryArguments",
         "prepassDepth",
         "shadowDepth",
         "clusterMetadata",
@@ -4363,8 +4547,8 @@
   "errors": [],
   "validationError": null,
   "cpuEncodingMs": {
-    "median": 0.3999999910593033,
-    "p95": 0.5
+    "median": 0.20000000298023224,
+    "p95": 0.30000001192092896
   },
   "lossHandled": true,
   "loadingChecks": {
@@ -4376,11 +4560,11 @@
       "Uploading",
       "Ready"
     ],
-    "elapsedMs": 218.40000000596046,
-    "cachedMs": 0,
+    "elapsedMs": 223.8999999910593,
+    "cachedMs": 0.10000000894069672,
     "timings": {
-      "networkMs": 213.09999999403954,
-      "decodeMs": 4,
+      "networkMs": 215.20000000298023,
+      "decodeMs": 7.299999997019768,
       "uploadMs": 0.5
     },
     "framesDuringLoad": 13,
@@ -4410,9 +4594,9 @@
     }
   },
   "workerChecks": {
-    "mainDecodeMs": 19.900000005960464,
-    "coldWorkerMs": 39.900000005960464,
-    "warmWorkerMedianMs": 19.200000002980232,
+    "mainDecodeMs": 21.899999991059303,
+    "coldWorkerMs": 50,
+    "warmWorkerMedianMs": 20.099999994039536,
     "framesDuringWorker": 3,
     "framesDuringMain": 0,
     "mismatches": 0,
@@ -4423,13 +4607,13 @@
       "mainJobs": 1,
       "transferredInputBytes": 11202992,
       "transferredOutputBytes": 11200416,
-      "lastWorkerDecodeMs": 18.100000008940697
+      "lastWorkerDecodeMs": 18.900000005960464
     }
   },
   "environment": {
     "mode": "production-preview",
     "browser": "153.0.8010.53",
-    "timestamp": "2026-10-03T12:27:15.019Z"
+    "timestamp": "2026-10-03T13:12:05.426Z"
   },
   "cameraCheck": {
     "creations": 0,
@@ -4462,8 +4646,8 @@
   },
   "resourceBenchmark": {
     "count": 100,
-    "uncachedMs": 1,
-    "cachedMs": 2.6000000089406967,
+    "uncachedMs": 0.5999999940395355,
+    "cachedMs": 1.9000000059604645,
     "stats": {
       "pipelineCreations": 52,
       "shaderModules": 12,
@@ -4479,8 +4663,8 @@
   },
   "dynamicBenchmark": {
     "count": 10000,
-    "individualMs": 14.599999994039536,
-    "sharedMs": 1.9000000059604645,
+    "individualMs": 11.299999997019768,
+    "sharedMs": 1.4000000059604645,
     "sharedBufferCreations": 0,
     "arenaBuffers": 3,
     "uploadBytes": 640000
@@ -4489,18 +4673,22 @@
     "objects": 10000,
     "results": {
       "individual": {
-        "medianCpuMs": 1.7000000029802322,
+        "medianCpuMs": 1.7999999970197678,
         "samples": [
-          1.5999999940395355,
-          1.6000000089406967,
           1.7000000029802322,
-          1.8999999910593033,
+          1.7999999970197678,
+          1.7999999970197678,
+          2,
           2
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -4548,18 +4736,22 @@
         "imageHash": 2458891209
       },
       "sorted": {
-        "medianCpuMs": 1.7999999970197678,
+        "medianCpuMs": 1.7000000029802322,
         "samples": [
+          1.5999999940395355,
           1.699999988079071,
           1.7000000029802322,
           1.7999999970197678,
-          1.7999999970197678,
-          1.7999999970197678
+          1.9000000059604645
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -4610,15 +4802,19 @@
         "medianCpuMs": 1.4000000059604645,
         "samples": [
           1.2999999970197678,
-          1.300000011920929,
+          1.3999999910593033,
           1.4000000059604645,
           1.4000000059604645,
-          1.4000000059604645
+          1.5
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,
@@ -4666,18 +4862,22 @@
         "imageHash": 2458891209
       },
       "instanced-bvh": {
-        "medianCpuMs": 2.5999999940395355,
+        "medianCpuMs": 2.5,
         "samples": [
+          2.4000000059604645,
           2.5,
           2.5,
-          2.5999999940395355,
-          2.5999999940395355,
-          3.0999999940395355
+          2.6000000089406967,
+          3.3999999910593033
         ],
         "stats": {
-          "fps": 59.88023952095873,
-          "frameTimeMs": 16.699999999999818,
-          "cpuFrameMs": 0.09999999403953552,
+          "geometryClusterCandidates": 0,
+          "geometryClusterDraws": 0,
+          "geometryFallbackBatches": 0,
+          "geometryUploadBytes": 0,
+          "fps": 60.24096385542202,
+          "frameTimeMs": 16.59999999999991,
+          "cpuFrameMs": 0,
           "indirectDraws": 0,
           "indirectUploadBytes": 0,
           "gpuCandidates": 0,

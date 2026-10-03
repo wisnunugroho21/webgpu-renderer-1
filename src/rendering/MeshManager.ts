@@ -3,7 +3,9 @@ import { MorphTargetData } from "../animation/MorphTargetData";
 import { SkinVertexData } from "../animation/skinning/SkinVertexData";
 import { Resources } from "../gpu/Resources";
 import { RuntimePrimitive } from "../assets/gltf/RuntimeAsset";
+import { MeshClusters } from "./geometry/MeshClusters";
 export interface Mesh {
+  clusters?: MeshClusters;
   vertex: GPUBuffer;
   index: GPUBuffer;
   indexCount: number;
@@ -191,6 +193,10 @@ export class MeshManager {
       max[axis] = Math.max(max[axis]!, positions[i]!);
     }
     const indices = new Uint32Array(result);
+    const clusters =
+      topology === 0 && !skin && !morph
+        ? new MeshClusters(positions, indices)
+        : undefined;
     const morphOffset = morph ? this.morphDeltas?.append(morph) : undefined;
     const vertex = this.resources.buffers.create({
       label: "Asset vertices",
@@ -205,6 +211,7 @@ export class MeshManager {
     this.queue.writeBuffer(vertex, 0, vertices);
     this.queue.writeBuffer(index, 0, indices);
     return this.register({
+      clusters,
       vertex,
       index,
       indexCount: indices.length,

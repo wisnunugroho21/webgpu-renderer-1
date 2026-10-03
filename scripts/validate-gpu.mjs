@@ -4347,6 +4347,7 @@ try {
       "shadows",
       "light-clusters",
       "depth",
+      "geometry-clusters",
       "hiz",
       "gpu-occlusion",
       "gpu-lod",

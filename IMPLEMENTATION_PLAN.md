@@ -1778,7 +1778,7 @@ Avoid copying large typed arrays unnecessarily.
 
 ## 49. Phase 44 — Advanced Geometry Optimization
 
-Only after benchmarks justify it.
+Optional feature, disabled by default. Experimental implementation is authorized before benchmark evidence justifies enabling it. Validate correctness and benchmark enabled/disabled behavior; retain the conventional renderer as fallback.
 
 Possible features:
 

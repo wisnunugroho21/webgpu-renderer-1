@@ -1,6 +1,6 @@
 # WebGPU renderer
 
-TypeScript/Vite renderer following [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The initial repository was empty. See [PROGRESS.md](PROGRESS.md) for phase-by-phase validation, benchmark evidence, limitations and benchmark-gated deferrals.
+TypeScript/Vite renderer following [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The initial repository was empty. See [PROGRESS.md](PROGRESS.md) for phase-by-phase validation, benchmark evidence, limitations and optional feature limits.
 
 ```sh
 npm ci
@@ -40,7 +40,7 @@ The loader uses [glTF Transform core](https://gltf-transform.dev/) for container
 
 Entity and material capacities are explicit. Entity IDs are monotonic, preventing stale-ID aliasing; exhausted capacity fails rather than allocating GPU resources in the frame loop. BVH-static objects are marked with `RenderFlags.STATIC`; changes invalidate the snapshot hierarchy. Gameplay changes should use transform setters so dirty propagation occurs.
 
-Phases 1–43 and the Definition of Done are validated. Phase 44 advanced geometry remains deferred because profiling does not justify meshlets. CPU instancing remains the default; GPU visibility, indirect drawing, LOD and temporal reuse are available as measured optional paths.
+Phases 1–44 and the Definition of Done are validated. Phase 44 advanced geometry is an optional feature, disabled by default under the user’s amended rule. CPU instancing remains the default; GPU visibility, indirect drawing, LOD and temporal reuse are available as measured optional paths.
 
 PBR shading uses shared material records and five glTF texture maps, with sRGB color attachments and linear blending. Textures decode asynchronously; full GPU mip chains, shared samplers and content-based deduplication are prepared during loading. Linear data and sRGB color uses receive separate cached textures.
 
@@ -61,3 +61,16 @@ GPU LOD consumes authored compatible mesh groups registered with `renderer.lodGr
 Native KTX2 compressed textures support adapter-gated BC, ETC2/EAC and ASTC formats, role-correct linear/sRGB sampling and authored mip chains. Unsupported formats, malformed blocks, cubemaps/arrays, Basis Universal and supercompression fail explicitly. Ordinary decoded images still receive generated GPU mipmaps.
 
 `renderer.stats` exposes draw/state/visibility, uploads, deformation activity, FPS and frame durations. FPS measures RAF submission cadence; GPU timing requires the explicit profiler. `activeMorphTargets` counts nonzero signed weights, while `morphTargets` counts declared attached targets. The 1,000-character benchmark is CPU-animation-bound and exceeds a 60 FPS frame budget on the tested machine.
+
+Enable optional Phase 44 cluster culling after initialization:
+
+```js
+const geometry = window.rendererApp.renderer.geometryOptimization;
+if (geometry.supported) geometry.enabled = true;
+// Restore conventional mesh draws:
+geometry.enabled = false;
+```
+
+Uploaded static triangle meshes are divided into shared, consecutive 256-triangle clusters. Compute culls conservative transformed cluster bounds and writes indexed indirect color draws. Small meshes, animated meshes, transparency, unsupported adapters, capacity overflow and `gpu-indirect` object submission use the existing draw path. CPU LOD is supported; depth and shadows retain full geometry. This version provides cluster bounds/culling rather than a mesh-shader API or GPU cluster LOD.
+
+GPU resources and large staging storage allocate once on first supported enable and remain resident until renderer disposal. The fixed limit is 65,536 cluster-instance records per frame; overflowing batches fall back intact. `geometryClusterCandidates` counts cluster-instance records; `geometryClusterDraws` counts submitted indirect commands, including zero-instance culled commands. Actual GPU triangle/instance counts remain `-1` in runtime statistics; benchmark diagnostics read them explicitly. GPU profiler pass 10 measures cluster culling. The expanded `npm run benchmark:gpu` validates enabled/disabled full images and measures both mostly rejected and fully visible 200,000-triangle workloads.

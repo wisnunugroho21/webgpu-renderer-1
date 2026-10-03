@@ -1,3 +1,4 @@
+import { GeometryOptimization } from "./geometry/GeometryOptimization";
 import { RendererStreaming } from "./RendererStreaming";
 import { TemporalVisibility } from "./visibility/TemporalVisibility";
 import { GPULODSelector } from "./lod/GPULODSelector";
@@ -55,6 +56,7 @@ const shader = [
 import { MaterialTextures } from "./materials/MaterialTextures";
 
 export class Renderer {
+  readonly geometryOptimization: GeometryOptimization;
   readonly camera = new Camera();
   readonly lodGroups = new LODGroups();
   readonly lodSelector: LODSelector;
@@ -364,6 +366,12 @@ export class Renderer {
         },
       ],
     });
+    this.geometryOptimization = new GeometryOptimization(
+      device,
+      this.resources,
+      this.dynamic,
+      world.capacity,
+    );
     this.pipelineDescriptor = {
       label: "Cube pipeline",
       layout: device.createPipelineLayout({
@@ -516,6 +524,18 @@ export class Renderer {
         ),
     });
     this.graph.add({
+      name: "geometry-clusters",
+      reads: ["frame", "geometry", "instances"],
+      writes: ["geometryArguments"],
+      execute: (encoder) =>
+        this.geometryOptimization.encode(
+          encoder,
+          this.dynamic.frameSlot,
+          this.colorInstanceOffset,
+          this.gpuProfiler,
+        ),
+    });
+    this.graph.add({
       name: "color",
       reads: [
         "geometry",
@@ -525,6 +545,7 @@ export class Renderer {
         "lights",
         "frame",
         "drawArguments",
+        "geometryArguments",
         "prepassDepth",
         "shadowDepth",
         "clusterMetadata",
@@ -789,6 +810,20 @@ export class Renderer {
       this.materials,
       this.gpu.queue,
     );
+    this.geometryOptimization.prepare(
+      this.batches,
+      this.queue,
+      this.world,
+      this.meshes,
+      this.camera.viewProjection,
+      this.cullingEnabled,
+      indirect,
+      this.gpu.queue,
+    );
+    this.stats.geometryClusterCandidates = this.geometryOptimization.count;
+    this.stats.geometryFallbackBatches =
+      this.geometryOptimization.fallbackBatches;
+    this.stats.geometryUploadBytes = this.geometryOptimization.uploadBytes;
     this.stats.indirectUploadBytes = this.gpuDraws.uploadBytes;
     this.stats.gpuCandidates = this.gpuFrustum.enabled
       ? this.gpuFrustum.count
@@ -813,7 +848,8 @@ export class Renderer {
       this.stats.shadowUploadBytes +
       this.gpuFrustum.uploadBytes +
       this.gpuDraws.uploadBytes +
-      this.gpuLOD.uploadBytes;
+      this.gpuLOD.uploadBytes +
+      this.geometryOptimization.uploadBytes;
 
     this.stats.clusters = clustered
       ? this.clusters.tilesX * this.clusters.tilesY * this.clusters.slices
@@ -823,6 +859,8 @@ export class Renderer {
     this.graph.execute(encoder, view);
     this.gpuProfiler.resolveFrame(encoder);
     this.profiler.end(CPUStage.encoding);
+    if (this.geometryOptimization.count)
+      this.stats.triangles = this.stats.instances = -1;
     if (indirect) {
       this.stats.lod0 =
         this.stats.lod1 =
@@ -901,6 +939,17 @@ export class Renderer {
       if (this.gpuDraws.enabled) {
         pass.drawIndexedIndirect(this.gpuDraws.arguments, i * 20);
         this.stats.indirectDraws++;
+      } else if (this.geometryOptimization.clusterCount[i]) {
+        const first = this.geometryOptimization.firstCluster[i]!,
+          count = this.geometryOptimization.clusterCount[i]!;
+        for (let c = first; c < first + count; c++)
+          pass.drawIndexedIndirect(
+            this.geometryOptimization.arguments!,
+            c * 20,
+          );
+        this.stats.geometryClusterDraws += count;
+        this.stats.indirectDraws += count;
+        this.stats.drawCalls += count - 1;
       } else
         pass.drawIndexed(
           geometry.indexCount,

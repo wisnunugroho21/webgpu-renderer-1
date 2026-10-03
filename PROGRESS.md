@@ -1,6 +1,6 @@
 # Implementation progress
 
-Source of truth: `IMPLEMENTATION_PLAN.md`, copied unchanged from the supplied document.
+Source of truth: `IMPLEMENTATION_PLAN.md`, copied from the supplied document. On 2026-10-03 the user explicitly amended Phase 44 to allow an optional feature before benchmark justification; both the repository plan and supplied source were updated.
 
 Repository audit: initially empty; no implementation or existing tests. Execute numbered phases in order, with validation gates before advancing. Future measurement-gated optimizations require benchmark evidence.
 
@@ -373,15 +373,26 @@ Profiled 100,000 vertices: glTF parse/conversion 31.1577 ms, mesh CPU packing 4.
 - Browser main decode 21.9 ms, cold worker 38.8 ms, warm worker median 19.1 ms (worker processing 18 ms). Cold startup trades latency for responsiveness. Mesh packing remains on the yielded upload path because its profiled cost fits a frame budget.
 - Raw results: `benchmarks/results/phase-43.json` and `benchmarks/results/phase-43-cpu.json`.
 
-## Phase 44 — evaluated, deferred as required
+## Phase 44 — optional feature validated
 
-The plan permits advanced geometry only after benchmarks justify it. Current 10,000-cube end-to-end GPU indirect submission is slower than CPU instancing, while occlusion and LOD already remove hidden/small geometry correctly. No measured workload identifies mesh clustering/meshlets as the next bottleneck. Adding them now would violate this phase's prerequisite; no meshlet architecture is introduced.
+User amendment replaces the previous benchmark gate: advanced geometry may be implemented experimentally, disabled by default. `renderer.geometryOptimization.enabled = true` activates compute frustum culling of static mesh clusters followed by indexed indirect color draws; `supported` exposes the optional indirect-first-instance requirement.
+
+Static triangle assets prepare shared consecutive 256-triangle cluster ranges and local AABBs during cold upload. Vertex/index buffers and vertex IDs remain unchanged; instance-major primitive order is preserved. GPU transforms local bounds conservatively under reflection, nonuniform scale and shear. No frame readbacks/waits or resource construction. GPU buffers and the large CPU staging array allocate only on first supported enable, remain warm across toggles and are disposed with the renderer. Unchanged cluster records upload zero bytes; only the 80-byte camera/count header updates.
+
+Small one-cluster meshes, non-triangle geometry, skin/morph geometry, BLEND materials, unsupported adapters, overflowing whole batches and GPU object-indirect submission retain the existing draw path. CPU LOD can select eligible clustered meshes. Camera depth and shadows use full geometry to preserve existing occlusion and deformation correctness. This implements mesh clustering, cluster bounds and compute/indirect cluster culling; geometry streaming already exists in Phase 42. Cluster LOD and additional meshlet packing are future extensions, not claimed implementations.
+
+- 129 unit tests across 40 files, strict TypeScript/production build, full production-preview WebGPU regression and expanded independent benchmark matrix pass with zero GPU/page errors.
+- 200,000 triangles form 782 clusters. Mostly outside the camera: 575 clusters reject, leaving 52,992 triangles. Fully visible: all 782 remain. Every enabled/disabled image matches byte-for-byte, with zero false-invisible clusters against an independent eight-corner clip-space reference.
+- Checks cover depth prepass, mirrored/sheared instancing, MASK, shadows, actual CPU LOD selection, near plane, culling disabled, viewport resize, transparent fallback, GPU object-indirect fallback and combined morph/skin fallback. Warm resource-creation counts remain unchanged; unsupported devices allocate no feature GPU resources.
+- GPU color work decreases in the mostly-outside fixture, but 782 indirect commands replace one draw and total completion varies around 2 ms. Fully visible geometry regresses from roughly 1.8 to 2.2 ms. Default remains off; no universal speedup is claimed.
+- CPU-only cluster metadata preparation for 200,000 triangles averages 3.7311 ms; browser full packing/upload setup takes about 30 ms (cold asset work).
+- Raw results: `benchmarks/results/phase-44.json`, `phase-44-cpu.json`, and the geometry section of `benchmark-matrix.json`. See `benchmarks/REPORT.md` for final measured timings.
 
 ## Final completion audit — validated
 
-Phases 1–43 are validated; Phase 44 is benchmark-gated and deferred. Native compressed textures are validated (122 tests/build/production GPU checks): KTX2 BC/ETC2/ASTC role-correct formats, authored mips, block/dimension/DFD checks and adapter feature gates. BC1's four mip blocks read back exactly and its full image equals the RGBA reference. Tiny fixture cold native/PNG uploads take 0.7/2.7 ms; native chain is 56 bytes versus 340 RGBA bytes. Basis Universal/supercompression remains an explicitly rejected future asset technology, as permitted by the technology stack. Raw result: `benchmarks/results/compressed-textures.json`. Container layout follows the [Khronos KTX specification](https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html).
+Phases 1–44 are validated; Phase 44 is optional and disabled by default under the user’s amended rule. Native compressed textures are validated (122 tests/build/production GPU checks): KTX2 BC/ETC2/ASTC role-correct formats, authored mips, block/dimension/DFD checks and adapter feature gates. BC1's four mip blocks read back exactly and its full image equals the RGBA reference. Tiny fixture cold native/PNG uploads take 0.7/2.7 ms; native chain is 56 bytes versus 340 RGBA bytes. Basis Universal/supercompression remains an explicitly rejected future asset technology, as permitted by the technology stack. Raw result: `benchmarks/results/compressed-textures.json`. Container layout follows the [Khronos KTX specification](https://registry.khronos.org/KTX/specs/2.0/ktxspec.v2.html).
 
-The required A–G benchmark matrix is complete. Final gates: 124 tests across 39 files, strict TypeScript/production build, real Chrome WebGPU production-preview regression, and the independent GPU workload matrix all pass. No scoped/uncaptured GPU errors or page errors; warm workload resource-creation counts remain unchanged. The source Definition of Done is covered, with optional eight-weight GPU skinning and future Basis/Draco/Meshopt technologies explicitly unsupported rather than silently misrendered.
+The required A–G benchmark matrix is complete. Final gates after Phase 44: 129 tests across 40 files, strict TypeScript/production build, real Chrome WebGPU production-preview regression, and the independent GPU workload matrix all pass. No scoped/uncaptured GPU errors or page errors; warm workload resource-creation counts remain unchanged. The source Definition of Done is covered, with optional eight-weight GPU skinning and future Basis/Draco/Meshopt technologies explicitly unsupported rather than silently misrendered.
 
 - A: 10,000 cubes, individual/sorted/instanced/BVH full images agree. Instancing issues one draw versus 10,000.
 - B: 100,000 bounds, enumeration/CPU frustum/BVH/GPU frustum/GPU Hi-Z measured. GPU flags match independent references with zero false-invisible results; construction/upload/depth exclusions are explicit.
@@ -393,6 +404,6 @@ The required A–G benchmark matrix is complete. Final gates: 124 tests across 3
 
 Benchmark-driven refinement skips delta-buffer reads for zero-weight morph targets while retaining the branchless loop for dense weights. An initial sparse-only implementation regressed dense workloads and was repaired before advancing; both comparison reports are retained. Shared skeleton/clip assets avoid repeated immutable crowd allocation. Streaming texture changes now update/restore UV and normal metadata, increment material revision, and invalidate temporal/shadow caches. A real GPU regression changes an opaque mask to transparent, reveals the hidden object, and matches the CPU image exactly.
 
-The 1,000-character workload is CPU-animation-bound (~38.6 ms CPU frame, ~21.1 ms animation); meshlets would not address the measured bottleneck. Phase 44 remains deferred by its explicit benchmark prerequisite. This is the only unimplemented numbered phase and is not a failed prerequisite for the Definition of Done.
+The 1,000-character workload is CPU-animation-bound (~38.6 ms CPU frame, ~21.1 ms animation); meshlets would not address the measured bottleneck. Under the original rule Phase 44 was deferred; the user subsequently authorized its optional implementation. It is now validated and remains disabled by default because whole-frame benefits depend on workload.
 
 Final evidence: `benchmarks/results/final-regression.json`, `benchmark-matrix.json`, `benchmark-suite.json`, `final-cpu.json`; methodology and conclusions: `benchmarks/REPORT.md`. No 60 FPS guarantee is claimed for the character stress workload.

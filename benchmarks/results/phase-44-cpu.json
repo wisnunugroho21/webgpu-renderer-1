@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/geometry.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/geometry.bench.ts > Phase 44 optional geometry cold preparation",
+          "benchmarks": [
+            {
+              "id": "-1048842101_0_0",
+              "name": "200,000 triangles into conservative 256-triangle clusters",
+              "rank": 1,
+              "rme": 1.5904988158064681,
+              "samples": [],
+              "totalTime": 503.7009990000005,
+              "min": 3.6205830000000105,
+              "max": 7.75366699999995,
+              "hz": 268.01614503051616,
+              "period": 3.7311185111111147,
+              "mean": 3.7311185111111147,
+              "variance": 0.12375604262615947,
+              "sd": 0.35178977049675486,
+              "sem": 0.030277242722223575,
+              "df": 134,
+              "critical": 1.96,
+              "moe": 0.059343395735558205,
+              "p75": 3.7160410000000184,
+              "p99": 3.8834580000000187,
+              "p995": 7.75366699999995,
+              "p999": 7.75366699999995,
+              "sampleCount": 135,
+              "median": 3.687791999999945
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

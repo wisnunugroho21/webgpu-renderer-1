@@ -1,4 +1,8 @@
 export class RendererStats {
+  geometryClusterCandidates = 0;
+  geometryClusterDraws = 0;
+  geometryFallbackBatches = 0;
+  geometryUploadBytes = 0;
   fps = 0;
   frameTimeMs = 0;
   cpuFrameMs = 0;
@@ -46,6 +50,11 @@ export class RendererStats {
   visibleObjects = 0;
   bvhNodesTested = 0;
   reset(): void {
+    this.geometryClusterCandidates =
+      this.geometryClusterDraws =
+      this.geometryFallbackBatches =
+      this.geometryUploadBytes =
+        0;
     this.indirectDraws = this.indirectUploadBytes = 0;
     this.depthPasses = this.depthDrawCalls = this.depthTriangles = 0;
     this.shadowPasses =

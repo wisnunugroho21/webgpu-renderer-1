@@ -87,6 +87,24 @@ export function instantiate(
     );
   }
   for (const node of active) {
+    const camera = asset.cameras[asset.nodes[node]!.camera];
+    if (!camera) continue;
+    if (camera.type === "perspective")
+      world.cameras.setPerspective(entities[node]!, {
+        fovY: camera.fovY,
+        near: camera.near,
+        far: camera.far,
+        aspect: camera.aspect ?? undefined,
+      });
+    else
+      world.cameras.setOrthographic(entities[node]!, {
+        height: camera.yMag * 2,
+        near: camera.near,
+        far: camera.far,
+        aspect: camera.xMag / camera.yMag,
+      });
+  }
+  for (const node of active) {
     const parent = parents[node]!;
     if (parent !== -1)
       world.transforms.setParent(entities[node]!, entities[parent]!);

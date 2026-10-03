@@ -103,7 +103,10 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
   if dot(n, n) > 0.5 {
     let metallic = clamp(m.surface.x * mr.b, 0.0, 1.0);
     let roughness = clamp(m.surface.y * mr.g, 0.045, 1.0);
-    let v = safeNormalize(frame.eye.xyz - input.world);
+    var v = safeNormalize(frame.eye.xyz - input.world);
+    if ((u32(frame.lighting.z) & 2u) != 0u) {
+      v = safeNormalize(vec3<f32>(frame.view[0].z, frame.view[1].z, frame.view[2].z));
+    }
     result = directLighting(base.rgb, metallic, roughness, n, v, input.world, input.position.xy) + base.rgb * (1.0 - metallic) * 0.03 * ao + emissive;
   }
   return vec4<f32>(result, select(1.0, base.a, m.surface.z == 2.0));

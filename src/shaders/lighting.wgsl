@@ -31,10 +31,14 @@ fn directLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, 
   var count = u32(frame.eye.w);
   var start = 0u;
   var clustered = false;
-  if (frame.lighting.z == 1.0) {
+  if ((u32(frame.lighting.z) & 1u) != 0u) {
     let cell = min(vec2<u32>(pixel / frame.cluster.z), vec2<u32>(frame.cluster.xy) - 1u);
     let depth = max(- (frame.view * vec4<f32>(position, 1)).z, frame.lighting.x);
-    let z = min(u32(max(0.0, log(depth / frame.lighting.x) / log(frame.lighting.y / frame.lighting.x) * frame.cluster.w)), u32(frame.cluster.w) - 1u);
+    var slice = (depth - frame.lighting.x) / (frame.lighting.y - frame.lighting.x);
+    if ((u32(frame.lighting.z) & 2u) == 0u) {
+      slice = log(depth / frame.lighting.x) / log(frame.lighting.y / frame.lighting.x);
+    }
+    let z = min(u32(max(0.0, slice * frame.cluster.w)), u32(frame.cluster.w) - 1u);
     let index = (z * u32(frame.cluster.y) + cell.y) * u32(frame.cluster.x) + cell.x;
     let candidates = lightClusterCounts[index].count;
     if (candidates <= u32(frame.lighting.w)) {

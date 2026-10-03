@@ -1,3 +1,5 @@
+import { SimulationLoop, FixedUpdate, FrameUpdate } from "./SimulationLoop";
+import { CameraSystem } from "../ecs/systems/CameraSystem";
 import { AssetInstances } from "../assets/AssetInstances";
 import { transferableBuffers } from "../assets/workers/transfer";
 import { uploadAsset, releaseUploadedAsset } from "../assets/uploadAsset";
@@ -29,6 +31,9 @@ export class Application {
   readonly skeletons = new SkeletonRegistry();
   readonly skeletonSystem = new SkeletonSystem();
   readonly animatedBounds = new AnimatedBoundsSystem();
+  readonly simulation = new SimulationLoop();
+  readonly cameraSystem = new CameraSystem();
+  private starting?: Promise<void>;
   private lastFrameTime = 0;
   readonly transformSystem: TransformSystem;
   readonly sceneEntity: number;
@@ -115,7 +120,34 @@ export class Application {
     });
   }
 
-  async start(): Promise<void> {
+  onFixedUpdate(callback: FixedUpdate): () => void {
+    return this.simulation.onFixedUpdate(callback);
+  }
+  onUpdate(callback: FrameUpdate): () => void {
+    return this.simulation.onUpdate(callback);
+  }
+  setActiveCamera(entity: number | null): void {
+    this.cameraSystem.select(entity, this.world);
+  }
+
+  start(): Promise<void> {
+    if (this.disposing)
+      return Promise.reject(new Error("Application disposed"));
+    if (this.renderer) {
+      try {
+        this.resume();
+        return Promise.resolve();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+    if (!this.starting)
+      this.starting = this.initialize().finally(() => {
+        this.starting = undefined;
+      });
+    return this.starting;
+  }
+  private async initialize(): Promise<void> {
     this.gpu = await GPUContext.create(
       this.canvas,
       (info) => {
@@ -127,6 +159,13 @@ export class Application {
         this.status.textContent = `WebGPU error: ${message}`;
       },
     );
+    if (this.disposing) {
+      this.gpu.dispose();
+      throw new Error("Application disposed during startup");
+    }
+    this.stopped = false;
+    this.lastFrameTime = 0;
+    this.simulation.resetAccumulator();
     this.transformSystem.update(this.world.transforms);
     this.skeletonSystem.update(this.world, this.skeletons);
     if (this.renderer)
@@ -160,61 +199,84 @@ export class Application {
       this.pixelRatio = window.devicePixelRatio;
       this.gpu.resize();
     }
-    const start = performance.now();
-    this.profiler.beginFrame();
-    const delta = this.lastFrameTime
-      ? Math.max(0, (timestamp - this.lastFrameTime) / 1000)
-      : 0;
-    this.lastFrameTime = timestamp;
-    // Bounds and extraction must follow deformation and world-transform updates.
-    this.profiler.start(CPUStage.animation);
-    this.animations.update(delta);
-    this.profiler.end(CPUStage.animation);
-    this.profiler.start(CPUStage.transforms);
-    this.transformSystem.update(this.world.transforms);
-    this.profiler.end(CPUStage.transforms);
-    this.profiler.start(CPUStage.skeletons);
-    this.skeletonSystem.update(this.world, this.skeletons);
-    this.profiler.end(CPUStage.skeletons);
-    this.profiler.start(CPUStage.animatedBounds);
-    if (this.renderer)
-      this.animatedBounds.update(
+    try {
+      const start = performance.now();
+      this.profiler.beginFrame();
+      const rawDelta = this.lastFrameTime
+        ? Math.max(0, (timestamp - this.lastFrameTime) / 1000)
+        : 0;
+      this.lastFrameTime = timestamp;
+      this.profiler.start(CPUStage.simulation);
+      const delta = this.simulation.advance(rawDelta);
+      this.profiler.end(CPUStage.simulation);
+      // Bounds and extraction must follow deformation and world-transform updates.
+      this.profiler.start(CPUStage.animation);
+      this.animations.update(delta);
+      this.profiler.end(CPUStage.animation);
+      this.profiler.start(CPUStage.transforms);
+      this.transformSystem.update(this.world.transforms);
+      this.profiler.end(CPUStage.transforms);
+      this.cameraSystem.update(this.world, this.renderer.camera);
+      this.profiler.start(CPUStage.skeletons);
+      this.skeletonSystem.update(this.world, this.skeletons);
+      this.profiler.end(CPUStage.skeletons);
+      this.profiler.start(CPUStage.animatedBounds);
+      if (this.renderer)
+        this.animatedBounds.update(
+          this.world,
+          this.renderer.meshes,
+          this.skeletons,
+          this.animations.morphPool,
+        );
+      this.profiler.end(CPUStage.animatedBounds);
+      this.profiler.start(CPUStage.extraction);
+      this.extractor.extract(
         this.world,
-        this.renderer.meshes,
+        this.renderWorld,
         this.skeletons,
         this.animations.morphPool,
       );
-    this.profiler.end(CPUStage.animatedBounds);
-    this.profiler.start(CPUStage.extraction);
-    this.extractor.extract(
-      this.world,
-      this.renderWorld,
-      this.skeletons,
-      this.animations.morphPool,
-    );
-    this.profiler.end(CPUStage.extraction);
-    this.renderer.stats.activeAnimators = this.animations.activeAnimators;
-    const encoder = this.gpu.device.createCommandEncoder({
-      label: "Frame encoder",
-    });
-    this.renderer.encode(
-      encoder,
-      this.gpu.context
-        .getCurrentTexture()
-        .createView({ format: this.gpu.renderFormat }),
-    );
-    // Submit once after every graph pass has encoded into the same command buffer.
-    this.gpu.queue.submit([encoder.finish()]);
-    this.renderer.stats.frameTimeMs = delta * 1000;
-    this.renderer.stats.fps = delta > 0 ? 1 / delta : 0;
-    this.renderer.stats.cpuFrameMs = performance.now() - start;
-    this.encodingTimes[this.frames % this.encodingTimes.length] =
-      this.renderer.stats.cpuFrameMs;
-    this.profiler.finishFrame();
-    this.frames++;
-    this.frameId = requestAnimationFrame(this.frame);
+      this.profiler.end(CPUStage.extraction);
+      this.renderer.stats.activeAnimators = this.animations.activeAnimators;
+      const encoder = this.gpu.device.createCommandEncoder({
+        label: "Frame encoder",
+      });
+      this.renderer.encode(
+        encoder,
+        this.gpu.context
+          .getCurrentTexture()
+          .createView({ format: this.gpu.renderFormat }),
+      );
+      // Submit once after every graph pass has encoded into the same command buffer.
+      this.gpu.queue.submit([encoder.finish()]);
+      this.renderer.stats.frameTimeMs = rawDelta * 1000;
+      this.renderer.stats.fps = rawDelta > 0 ? 1 / rawDelta : 0;
+      this.renderer.stats.cpuFrameMs = performance.now() - start;
+      this.encodingTimes[this.frames % this.encodingTimes.length] =
+        this.renderer.stats.cpuFrameMs;
+      this.profiler.finishFrame();
+      this.frames++;
+      if (!this.stopped) this.frameId = requestAnimationFrame(this.frame);
+    } catch (error) {
+      this.stop();
+      this.status.textContent = `Frame update failed: ${String(error)}`;
+      console.error(error);
+    }
   };
 
+  pause(): void {
+    this.stop();
+  }
+  resume(): void {
+    this.checkLoadingDevice();
+    if (!this.stopped) return;
+    this.stopped = false;
+    this.lastFrameTime = 0;
+    this.simulation.resetAccumulator();
+    this.gpu.resize();
+    this.observer?.observe(this.canvas);
+    this.frameId = requestAnimationFrame(this.frame);
+  }
   stop(): void {
     this.stopped = true;
     cancelAnimationFrame(this.frameId);
@@ -310,6 +372,8 @@ export class Application {
   }
   private refreshAssetSnapshot(): void {
     this.transformSystem.update(this.world.transforms);
+    if (this.renderer)
+      this.cameraSystem.update(this.world, this.renderer.camera);
     this.extractor.extract(
       this.world,
       this.renderWorld,
@@ -321,6 +385,7 @@ export class Application {
   async dispose(): Promise<void> {
     this.stop();
     this.disposing = true;
+    this.simulation.clear();
     this.assetDecoder.dispose();
     try {
       await this.assetLoader.dispose();

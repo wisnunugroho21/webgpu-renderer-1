@@ -28,6 +28,8 @@ export class LODSelector {
     this.distribution.fill(0);
     this.culled = 0;
     let visible = 0;
+    const orthographic = camera.projectionType === "orthographic",
+      projectionY = camera.projection[5]!;
     for (let i = 0; i < count; i++) {
       const object = input?.[i] ?? i,
         id = world.entityId[object]!,
@@ -50,10 +52,11 @@ export class LODSelector {
           view[10]! * world.sphere[s + 2]! +
           view[14]!
         );
-      const pixels =
-        depth <= radius
+      const pixels = orthographic
+        ? radius * projectionY * height
+        : depth <= radius
           ? Infinity
-          : (radius * camera.projection[5]! * height) / (depth - radius);
+          : (radius * projectionY * height) / (depth - radius);
       let level = -1;
       for (let l = 0; l < group.thresholds.length; l++)
         if (pixels >= group.thresholds[l]!) {

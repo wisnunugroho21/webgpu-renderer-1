@@ -63,8 +63,8 @@ export class ShadowManager {
     return this.distance;
   }
   set shadowDistance(value: number) {
-    if (!Number.isFinite(value) || value <= 0.1 || value > 100)
-      throw new Error("Shadow distance must be >0.1 and <=100");
+    if (!Number.isFinite(value) || value <= 0)
+      throw new Error("Shadow distance must be positive");
     this.distance = value;
   }
   cullingEnabled = true;
@@ -221,7 +221,10 @@ export class ShadowManager {
     let castingLights = 0;
     for (let light = 0; light < world.lightCount; light++) {
       const offset = light * 16,
-        cast = this.enabled && world.lightShadow[light] !== 0;
+        cast =
+          this.enabled &&
+          world.lightShadow[light] !== 0 &&
+          Math.min(camera.far, this.shadowDistance) > camera.near;
       if (cast && castingLights === 4)
         throw new Error("Directional shadow light capacity exceeded (4)");
       const first = cast ? this.layerCount + 1 : 0,
@@ -236,13 +239,14 @@ export class ShadowManager {
       }
       if (!cast) continue;
       castingLights++;
-      let near = 0.1;
+      let near = camera.near;
       for (let cascade = 1; cascade <= this.cascades; cascade++) {
         const far = cascadeSplit(
-          0.1,
-          this.shadowDistance,
+          camera.near,
+          Math.min(camera.far, this.shadowDistance),
           cascade,
           this.cascades,
+          camera.projectionType === "orthographic" ? 0 : 0.6,
         );
         this.camera.fit(camera, world, light, near, far, this.resolution);
         const layer = this.layerCount++,

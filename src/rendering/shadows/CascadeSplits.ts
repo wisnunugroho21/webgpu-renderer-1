@@ -7,7 +7,7 @@ export function cascadeSplit(
   lambda = 0.6,
 ): number {
   if (!(
-    near > 0 &&
+    (near > 0 || (near === 0 && lambda === 0)) &&
     far > near &&
     Number.isInteger(count) &&
     count >= 1 &&
@@ -20,6 +20,7 @@ export function cascadeSplit(
   ))
     throw new Error("Invalid cascade split");
   const t = index / count;
+  if (lambda === 0) return near + (far - near) * t;
   return (
     lambda * near * (far / near) ** t + (1 - lambda) * (near + (far - near) * t)
   );

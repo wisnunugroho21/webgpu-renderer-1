@@ -24,10 +24,11 @@ export class FrameUniforms {
     data[37] = clusters.tilesY;
     data[38] = clusters.tileSize;
     data[39] = clusters.slices;
-    // Cluster slicing shares the camera's fixed near/far range.
-    data[40] = 0.1;
-    data[41] = 100;
-    data[42] = clustered ? 1 : 0;
+    // lighting.z packs bit 0 = clustered lights, bit 1 = orthographic projection.
+    data[40] = camera.near;
+    data[41] = camera.far;
+    data[42] =
+      (clustered ? 1 : 0) + (camera.projectionType === "orthographic" ? 2 : 0);
     data[43] = clusters.maxLights;
     data[44] = width;
     data[45] = height;

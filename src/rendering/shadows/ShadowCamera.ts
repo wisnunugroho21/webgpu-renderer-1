@@ -26,8 +26,12 @@ export class ShadowCamera {
       for (let y = -1; y <= 1; y += 2)
         for (let x = -1; x <= 1; x += 2) {
           const depth = z ? far : near,
-            px = (x * depth) / camera.projection[0]!,
-            py = (y * depth) / camera.projection[5]!;
+            px =
+              (x * (camera.projectionType === "orthographic" ? 1 : depth)) /
+              camera.projection[0]!,
+            py =
+              (y * (camera.projectionType === "orthographic" ? 1 : depth)) /
+              camera.projection[5]!;
           for (let axis = 0; axis < 3; axis++) {
             const v =
               this.inverse[axis]! * px +

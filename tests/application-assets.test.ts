@@ -1,3 +1,4 @@
+import { Camera } from "../src/rendering/Camera";
 import { afterEach, expect, it, vi } from "vitest";
 import { Application } from "../src/app/Application";
 import { GLTFLoader } from "../src/assets/gltf/GLTFLoader";
@@ -55,6 +56,7 @@ function fixture() {
   app.renderer = {
     meshes,
     textures,
+    camera: new Camera(),
     lodGroups: { entries: [] },
     streaming: { referencesAsset: () => false },
     dispose: () => resources.dispose(),
@@ -238,5 +240,25 @@ it("unloads a skinned asset after its entities were manually destroyed", async (
   expect(f.app.skeletons.assets).toHaveLength(0);
   expect(f.app.animations.animators).toHaveLength(0);
   expect(f.app.animations.morphPool.count).toBe(0);
+  await f.app.dispose();
+});
+
+it("returns to manual camera mode when unloading the selected asset camera", async () => {
+  const f = fixture();
+  f.asset.nodes[0]!.camera = 0;
+  f.asset.cameras.push({
+    type: "perspective",
+    near: 0.1,
+    far: 50,
+    aspect: null,
+    fovY: 1,
+    xMag: 0,
+    yMag: 0,
+  });
+  const nodes = await f.app.loadAsset("camera");
+  const entity = Array.from(nodes).find((e) => f.app.world.cameras.has[e])!;
+  f.app.setActiveCamera(entity);
+  await f.app.unloadAsset("camera");
+  expect(f.app.cameraSystem.activeEntity).toBeNull();
   await f.app.dispose();
 });

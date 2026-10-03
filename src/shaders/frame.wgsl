@@ -1,4 +1,5 @@
 // CPU ABI: FrameUniforms packs 48 f32 words (192 bytes); eye.w stores light count.
+// lighting.z: bit 0 enables clustering; bit 1 selects orthographic camera math.
 // Matrices are column-major; clip depth uses WebGPU zero-to-one standard Z.
 struct Frame {
   viewProjection: mat4x4<f32>,

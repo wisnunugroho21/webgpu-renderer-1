@@ -1,5 +1,18 @@
 import { Mat4 } from "../math/Mat4";
 import { Vec3 } from "../math/Vec3";
+export interface PerspectiveOptions {
+  fovY?: number;
+  near?: number;
+  far?: number;
+  aspect?: number;
+}
+export interface OrthographicOptions {
+  height?: number;
+  near?: number;
+  far?: number;
+  aspect?: number;
+}
+/** Standard-Z projection. Omitted aspect follows the viewport; authored aspect stays fixed. */
 export class Camera {
   readonly position = Vec3.create(3, 2, 5);
   readonly target = Vec3.create();
@@ -9,18 +22,108 @@ export class Camera {
   readonly viewProjection = Mat4.create();
   private dirty = true;
   private aspect = 0;
-  setPosition(x: number, y: number, z: number): void {
-    Vec3.set(this.position, x, y, z);
+  private fixedAspect?: number;
+  private kind: "perspective" | "orthographic" = "perspective";
+  private zNear = 0.1;
+  private zFar = 100;
+  private fieldOfView = Math.PI / 3;
+  private height = 10;
+  get projectionType(): "perspective" | "orthographic" {
+    return this.kind;
+  }
+  get near(): number {
+    return this.zNear;
+  }
+  get far(): number {
+    return this.zFar;
+  }
+  get fovY(): number {
+    return this.fieldOfView;
+  }
+  get orthographicHeight(): number {
+    return this.height;
+  }
+  setPerspective(options: PerspectiveOptions = {}): void {
+    const near = options.near ?? 0.1,
+      far = options.far ?? 100,
+      fov = options.fovY ?? Math.PI / 3;
+    this.validate(near, far, options.aspect);
+    if (near <= 0 || !Number.isFinite(fov) || fov <= 0 || fov >= Math.PI)
+      throw new Error("Invalid perspective camera");
+    this.kind = "perspective";
+    this.zNear = near;
+    this.zFar = far;
+    this.fieldOfView = fov;
+    this.fixedAspect = options.aspect;
     this.dirty = true;
+  }
+  setOrthographic(options: OrthographicOptions = {}): void {
+    const near = options.near ?? 0.1,
+      far = options.far ?? 100,
+      height = options.height ?? 10;
+    this.validate(near, far, options.aspect);
+    if (!Number.isFinite(height) || height <= 0)
+      throw new Error("Invalid orthographic camera");
+    this.kind = "orthographic";
+    this.zNear = near;
+    this.zFar = far;
+    this.height = height;
+    this.fixedAspect = options.aspect;
+    this.dirty = true;
+  }
+  private validate(near: number, far: number, aspect?: number): void {
+    if (
+      !Number.isFinite(near) ||
+      !Number.isFinite(far) ||
+      near < 0 ||
+      far <= near ||
+      (aspect !== undefined && (!Number.isFinite(aspect) || aspect <= 0))
+    )
+      throw new Error("Invalid camera projection");
+  }
+  setPosition(x: number, y: number, z: number): void {
+    this.vector(this.position, x, y, z);
   }
   setTarget(x: number, y: number, z: number): void {
-    Vec3.set(this.target, x, y, z);
+    this.vector(this.target, x, y, z);
+  }
+  setUp(x: number, y: number, z: number): void {
+    if (Math.hypot(x, y, z) === 0) throw new Error("Invalid camera up");
+    this.vector(this.up, x, y, z);
+  }
+  private vector(out: Float32Array, x: number, y: number, z: number): void {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z))
+      throw new Error("Invalid camera vector");
+    if (out[0] === x && out[1] === y && out[2] === z) return;
+    Vec3.set(out, x, y, z);
     this.dirty = true;
   }
-  update(aspect: number): boolean {
+  update(viewportAspect: number): boolean {
+    if (!Number.isFinite(viewportAspect) || viewportAspect <= 0)
+      throw new Error("Invalid camera aspect");
+    const aspect = this.fixedAspect ?? viewportAspect;
     if (!this.dirty && aspect === this.aspect) return false;
     Mat4.lookAt(this.view, this.position, this.target, this.up);
-    Mat4.perspective(this.projection, Math.PI / 3, aspect, 0.1, 100);
+    if (this.kind === "perspective")
+      Mat4.perspective(
+        this.projection,
+        this.fieldOfView,
+        aspect,
+        this.zNear,
+        this.zFar,
+      );
+    else {
+      const y = this.height / 2;
+      Mat4.orthographic(
+        this.projection,
+        -y * aspect,
+        y * aspect,
+        -y,
+        y,
+        this.zNear,
+        this.zFar,
+      );
+    }
     Mat4.multiply(this.viewProjection, this.projection, this.view);
     this.aspect = aspect;
     this.dirty = false;

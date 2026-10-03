@@ -21,10 +21,17 @@ struct ClusterHeader {
   let hiPixel = min(loPixel + frame.cluster.z, frame.viewport.xy);
   let loNDC = vec2<f32>(loPixel.x / frame.viewport.x * 2.0 - 1.0, 1.0 - hiPixel.y / frame.viewport.y * 2.0);
   let hiNDC = vec2<f32>(hiPixel.x / frame.viewport.x * 2.0 - 1.0, 1.0 - loPixel.y / frame.viewport.y * 2.0);
-  let near = frame.lighting.x * pow(frame.lighting.y / frame.lighting.x, f32(cell.z) / frame.cluster.w);
-  let far = frame.lighting.x * pow(frame.lighting.y / frame.lighting.x, f32(cell.z + 1u) / frame.cluster.w);
-  let lo = min(loNDC * near / frame.viewport.zw, loNDC * far / frame.viewport.zw);
-  let hi = max(hiNDC * near / frame.viewport.zw, hiNDC * far / frame.viewport.zw);
+  let perspectiveNear = max(frame.lighting.x, 1e-6);
+  var near = perspectiveNear * pow(frame.lighting.y / perspectiveNear, f32(cell.z) / frame.cluster.w);
+  var far = perspectiveNear * pow(frame.lighting.y / perspectiveNear, f32(cell.z + 1u) / frame.cluster.w);
+  var lo = min(loNDC * near / frame.viewport.zw, loNDC * far / frame.viewport.zw);
+  var hi = max(hiNDC * near / frame.viewport.zw, hiNDC * far / frame.viewport.zw);
+  if ((u32(frame.lighting.z) & 2u) != 0u) {
+    near = mix(frame.lighting.x, frame.lighting.y, f32(cell.z) / frame.cluster.w);
+    far = mix(frame.lighting.x, frame.lighting.y, f32(cell.z + 1u) / frame.cluster.w);
+    lo = loNDC / frame.viewport.zw;
+    hi = hiNDC / frame.viewport.zw;
+  }
   let minimum = vec3<f32>(lo, near);
   let maximum = vec3<f32>(hi, far);
   for (var i = lane; i < u32(frame.eye.w); i += 64u) {

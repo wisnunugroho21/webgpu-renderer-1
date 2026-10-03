@@ -51,7 +51,9 @@ struct History {
   let object = objects[id];
   let depth = - (frame.view * vec4<f32>(object.boundsCenter, 1)).z;
   var pixels = 1e30;
-  if (depth > object.boundsRadius) {
+  if ((u32(frame.lighting.z) & 2u) != 0u) {
+    pixels = object.boundsRadius * frame.viewport.w * frame.viewport.y;
+  } else if (depth > object.boundsRadius) {
     pixels = object.boundsRadius * frame.viewport.w * frame.viewport.y / (depth - object.boundsRadius);
   }
   var level = - 1;

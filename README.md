@@ -24,6 +24,7 @@ npm run format:check
 npm test
 npm run build
 npm run validate:gpu
+npm run validate:game
 RENDERER_PREVIEW=1 npm run validate:gpu
 npm run benchmark -- --outputJson artifacts/benchmarks.json
 npm run benchmark:gpu
@@ -38,6 +39,60 @@ Historical and final evidence is saved in `benchmarks/results/`; fresh local res
 Quaternion animation now prepares shared normalized LINEAR keyframes once and avoids unnecessary interpolation/normalization work. The 1,000-character crowd's measured animation stage decreased from 21.4 to 11.1 ms. See [animation optimization evidence](benchmarks/ANIMATION_REPORT.md). After building, `npm run profile:animation -- current` captures an animation-only timing summary and Chrome CPU profile on isolated port 5190.
 
 The [second animation optimization round](benchmarks/ANIMATION_ROUND2_REPORT.md) removes temporary matrix views and redundant pose work. Its fresh 1,000-character CPU frame benchmark decreases from 29.0 to 25.9 ms, primarily through faster transform updates.
+
+## Playable example and gameplay loop
+
+Run `npm run dev` and open the printed server URL with `/?example=collect` appended (normally `http://127.0.0.1:5173/?example=collect`). Collect six golden cubes using **WASD or arrow keys**. **R** restarts; **C** switches between orthographic and perspective cameras. Click the canvas to focus input. The original cube remains the default route.
+
+The example in `src/examples/collect.ts` uses shared cube geometry/material IDs, focus-scoped keyboard input, fixed simulation for movement/collision, and interpolated render poses. `CollectGame.ts` keeps the gameplay model independent of rendering and input. `KeyboardInput.dispose()` removes its listeners; unregister gameplay callbacks when their owner is destroyed.
+
+```ts
+await app.start();
+app.simulation.configure({
+  stepSeconds: 1 / 60,
+  maxFrameSeconds: 0.25,
+  maxSteps: 8,
+});
+
+const offFixed = app.onFixedUpdate((dt, simulationSeconds) => {
+  // Input, movement, collisions and other simulation rules go here.
+  // Use app.world transform setters to propagate dirty state.
+});
+const offUpdate = app.onUpdate((dt, alpha) => {
+  // Optional interpolation/HUD/camera preparation once per displayed frame.
+  // alpha is the fraction between the previous and current fixed poses.
+});
+
+app.pause();
+app.resume();
+offFixed();
+offUpdate();
+```
+
+Callbacks are synchronous and run before animation, transforms, camera selection, skeleton palettes, bounds and extraction. Unsubscribing is idempotent. Callbacks added during dispatch start next frame; removing a callback prevents subsequent calls. Catch-up is bounded to avoid a long hidden-tab pause monopolizing the frame; `simulation.droppedSeconds` reports discarded time. Pause/resume clears accumulated debt and the first resumed frame receives zero delta. `stop()` also pauses; repeated `resume()` does not create duplicate RAF loops. Frame errors stop the loop and appear in the status output. RAF FPS/frame-time statistics use actual elapsed time, while animation/gameplay use the clamped delta.
+
+## Cameras
+
+```ts
+app.setActiveCamera(null); // use renderer.camera directly
+const camera = app.renderer.camera;
+camera.setPosition(0, 4, 10);
+camera.setTarget(0, 0, 0);
+camera.setPerspective({ fovY: Math.PI / 3, near: 0.1, far: 250 });
+camera.setOrthographic({ height: 12, near: 0, far: 250 });
+```
+
+Projection setters configure a complete projection with defaults for omitted fields: perspective FOV 60 degrees, orthographic height 10, near 0.1, far 100. Distances must be finite; perspective near is positive, orthographic near may be zero. Omitted `aspect` follows viewport resize; a supplied positive aspect stays fixed. Use `setUp` when changing camera orientation. Update pose through setters rather than mutating camera vector arrays directly.
+
+For an ECS camera, add a transform, call `world.cameras.setPerspective(entity, options)` or `setOrthographic(entity, options)`, then `app.setActiveCamera(entity)`. Camera poses follow the world transform after hierarchy updates, looking down local -Z with local +Y as up. Camera scale is removed by the look-at basis. glTF camera nodes now instantiate these components; discover/select them explicitly:
+
+```ts
+const nodes = await app.loadAsset("/scene.glb");
+const cameraEntity = Array.from(nodes).find((e) => app.world.cameras.has[e]);
+if (cameraEntity !== undefined) app.setActiveCamera(cameraEntity);
+```
+
+Removing/unloading the selected camera returns to manual mode while retaining its last pose. Clustering uses actual near/far (logarithmic perspective slices, linear orthographic slices); CPU/GPU LOD, PBR view direction and shadow cascades support both projections. Shadow distance is clamped to camera far, and shadows disable when their distance does not reach camera near. The 192-byte frame ABI and existing perspective defaults are preserved. Validation and measurements: [game API report](benchmarks/GAME_API_REPORT.md).
 
 ## Runtime API
 

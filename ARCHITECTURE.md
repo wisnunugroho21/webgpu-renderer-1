@@ -16,6 +16,8 @@
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | `src/app`                                  | Browser lifecycle and frame orchestration                                                                      |
 | `src/ecs`                                  | Gameplay entities, component arrays, transform/animation/skeleton/bounds systems                               |
+| `src/input`                                | Focus-scoped keyboard state and input listener lifecycle                                                       |
+| `src/examples`                             | Collection game model and application hooks demonstrating renderer use                                         |
 | `src/animation`                            | Clip sampling, poses, morph pools, skeleton assets and per-character palettes                                  |
 | `src/assets`                               | Fetch/decode/cache states, worker transfers, GPU upload preparation, scene instantiation and streaming records |
 | `src/math`                                 | Allocation-conscious vector, quaternion and column-major matrix operations                                     |
@@ -36,7 +38,7 @@ Existing import paths and public APIs remain stable. Small focused modules stay 
 
 ## Frame flow
 
-The application updates animation, world transforms, joint palettes and conservative animated bounds, then extracts render state. Renderer passes consume `RenderWorld`; they do not query ECS stores.
+The application dispatches bounded fixed-step gameplay and variable update hooks, then updates animation, world transforms, the selected ECS camera, joint palettes and conservative animated bounds before extracting render state. Renderer passes consume `RenderWorld`; they do not query ECS stores.
 
 `Renderer.encode()` makes the preparation order explicit:
 
@@ -73,6 +75,10 @@ Resize allocation, asset loading and first supported enable of optional geometry
 
 `AssetLoader` passes abort signals through fetch, decode and upload. Worker jobs remove cancelled callbacks without terminating other jobs. Uploads recheck signals at yield boundaries. LRU cache budgets protect retained/pending/latest loads; application byte accounting deduplicates decoded backing buffers. Failure metadata/history are bounded and failed cleanup retains ownership for retry. `Application.dispose()` is asynchronous and cancels/cleans assets before destroying the device.
 
+`SimulationLoop` keeps callback arrays stable during dispatch and allocates new arrays only on subscription changes. Fixed simulation/collision and interpolated visual poses are separate in the collection example. Keyboard state clears on canvas/window focus loss and hidden documents. Pause/resume resets timing debt; ordinary frames keep one RAF loop and one command-buffer submission.
+
+`CameraSystem` is application/ECS-side and reads camera components after world transforms update. It follows glTF local -Z/+Y and changes renderer projection only when settings change. Direct camera use is selected with `setActiveCamera(null)`. FrameUniforms retains the 192-byte ABI: lighting.z bit 0 enables clustering, bit 1 selects orthographic math. Camera near/far drive cluster slicing and cascade bounds. Both CPU/GPU LOD use constant projected size for orthographic cameras; shadow receiver corners and PBR view direction also use projection-appropriate math.
+
 ## Optional features and correctness constraints
 
 CPU instancing is the default. BVH, depth prepass, GPU visibility/occlusion/indirect submission, temporal reuse, and Phase 44 geometry optimization remain measured optional choices. Phase 44 remains disabled by default, with static multi-cluster triangle eligibility and conservative fallbacks for unsupported/deforming/transparent/overflowing batches.
@@ -90,6 +96,7 @@ npm test
 npm run build
 RENDERER_PREVIEW=1 npm run validate:gpu
 npm run validate:assets
+npm run validate:game
 npm run benchmark -- --outputJson artifacts/benchmarks.json
 npm run benchmark:gpu
 ```

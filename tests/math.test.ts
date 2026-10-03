@@ -134,3 +134,23 @@ describe("bounds and WebGPU frustum", () => {
     ).toBe(false);
   });
 });
+
+it("normalizes quaternion extremes and preserves aliased outputs", () => {
+  const out = Quat.create();
+  for (const magnitude of [0, 1e-300, 1e-160, 1e-30, 1, 1e30, 1e160, 1e300]) {
+    const source = [magnitude, -2 * magnitude, 3 * magnitude, -4 * magnitude];
+    const length = Math.hypot(...source);
+    Quat.normalize(out, source);
+    const expected = source.map((component, i) =>
+      length === 0 ? (i === 3 ? 1 : 0) : component / length,
+    );
+    for (let axis = 0; axis < 4; axis++)
+      expect(out[axis]).toBeCloseTo(expected[axis]!, 6);
+    expect(Math.hypot(...out)).toBeCloseTo(1, 6);
+  }
+  out.set([1, 2, 3, 4]);
+  const expected = new Float32Array(4);
+  Quat.normalize(expected, out);
+  Quat.normalize(out, out);
+  expect(out).toEqual(expected);
+});

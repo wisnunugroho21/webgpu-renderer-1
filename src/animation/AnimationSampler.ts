@@ -4,6 +4,7 @@ export type Interpolation = "STEP" | "LINEAR" | "CUBICSPLINE";
 export class AnimationSampler {
   readonly size: number;
   readonly duration: number;
+  private readonly rotationKeys?: Float32Array;
   private readonly a = new Float32Array(4);
   private readonly b = new Float32Array(4);
   constructor(
@@ -36,6 +37,18 @@ export class AnimationSampler {
     for (const value of output)
       if (!Number.isFinite(value)) throw new Error("Invalid animation output");
     this.duration = input[input.length - 1]!;
+    if (rotation && interpolation === "LINEAR") {
+      // Clips are immutable and shared between instances. Normalize keyframes
+      // once at decode instead of repeating two normalizations for every joint.
+      // Keep f32 rounding identical to the original per-sample scratch arrays.
+      this.rotationKeys = new Float32Array(output.length);
+      for (let offset = 0; offset < output.length; offset += 4) {
+        for (let axis = 0; axis < 4; axis++)
+          this.a[axis] = output[offset + axis]!;
+        Quat.normalize(this.a, this.a);
+        this.rotationKeys.set(this.a, offset);
+      }
+    }
   }
   sample(time: number, out: Float32Array): void {
     if (!Number.isFinite(time) || out.length < this.size)
@@ -73,12 +86,11 @@ export class AnimationSampler {
             (-2 * t3 + 3 * t2) * values[b + i]! +
             (t3 - t2) * dt * values[b - size + i]!;
       } else if (this.rotation) {
+        const keys = this.rotationKeys!;
         for (let i = 0; i < 4; i++) {
-          this.a[i] = values[a + i]!;
-          this.b[i] = values[b + i]!;
+          this.a[i] = keys[a + i]!;
+          this.b[i] = keys[b + i]!;
         }
-        Quat.normalize(this.a, this.a);
-        Quat.normalize(this.b, this.b);
         Quat.slerp(out, this.a, this.b, t);
       } else
         for (let i = 0; i < size; i++)

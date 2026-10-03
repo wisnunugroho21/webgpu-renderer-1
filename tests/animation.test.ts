@@ -1,3 +1,4 @@
+import { Quat } from "../src/math/Quat";
 import { describe, it, expect } from "vitest";
 import { AnimationSampler } from "../src/animation/AnimationSampler";
 import { AnimationChannel } from "../src/animation/AnimationChannel";
@@ -166,5 +167,50 @@ describe("animator ECS playback", () => {
     expect(b.currentTime).toBe(1);
     w.destroy(e);
     expect(() => a.update(0.1)).not.toThrow();
+  });
+});
+
+describe("shared normalized quaternion keys", () => {
+  it("matches uncached sampling for arbitrary signs, lengths, endpoints and seeks", () => {
+    const times = new Float32Array([0, 0.2, 0.7, 1.5]);
+    const keys = new Float32Array([
+      0, 0, 0, 2, 0, 0, 0, -3, 1e30, -2e30, 3e30, 4e30, 0, 0, 0, 0,
+    ]);
+    const saved = keys.slice();
+    const sampled = new AnimationSampler(times, keys, "LINEAR", true);
+    const actual = new Float32Array(4),
+      expected = new Float32Array(4);
+    const a = new Float32Array(4),
+      b = new Float32Array(4);
+    // Reverse and discontinuous queries exercise shared data without a playback cursor.
+    for (const time of [0.4, 1.2, -1, 1.5, 0.1, 0.7, 0.2, 2, 0.6]) {
+      let lo = 0,
+        hi = times.length - 1;
+      if (time <= times[0]!) hi = lo;
+      else if (time >= times[hi]!) lo = hi;
+      else
+        while (hi - lo > 1) {
+          const mid = (lo + hi) >>> 1;
+          if (times[mid]! <= time) lo = mid;
+          else hi = mid;
+        }
+      if (lo === hi) expected.set(keys.subarray(lo * 4, lo * 4 + 4));
+      else {
+        a.set(keys.subarray(lo * 4, lo * 4 + 4));
+        b.set(keys.subarray(hi * 4, hi * 4 + 4));
+        Quat.normalize(a, a);
+        Quat.normalize(b, b);
+        Quat.slerp(
+          expected,
+          a,
+          b,
+          (time - times[lo]!) / (times[hi]! - times[lo]!),
+        );
+      }
+      Quat.normalize(expected, expected);
+      sampled.sample(time, actual);
+      expect(actual).toEqual(expected);
+    }
+    expect(keys).toEqual(saved);
   });
 });

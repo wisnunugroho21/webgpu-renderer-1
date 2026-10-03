@@ -35,6 +35,8 @@ Production preview validation requires `npm run build` first. CPU benchmark resu
 
 Historical and final evidence is saved in `benchmarks/results/`; fresh local results and screenshots go to `artifacts/`. See [benchmarks/REPORT.md](benchmarks/REPORT.md) for the complete A–G matrix and timing limits. Crowd fixtures can be regenerated with `node scripts/create-crowd-fixtures.mjs`.
 
+Quaternion animation now prepares shared normalized LINEAR keyframes once and avoids unnecessary interpolation/normalization work. The 1,000-character crowd's measured animation stage decreased from 21.4 to 11.1 ms. See [animation optimization evidence](benchmarks/ANIMATION_REPORT.md). After building, `npm run profile:animation -- current` captures an animation-only timing summary and Chrome CPU profile on isolated port 5190.
+
 ## Runtime API
 
 In the browser console after initialization:

@@ -1,5 +1,6 @@
 import { TransformStore } from "../components/TransformStore";
 import { Mat4 } from "../../math/Mat4";
+/** Resolve dirty ancestors before descendants using fixed scratch storage. */
 export class TransformSystem {
   updated = 0;
   private readonly local = Mat4.create();
@@ -17,6 +18,7 @@ export class TransformSystem {
         count = 0;
       store.queued[entity] = 0;
       if (!store.has[entity] || !store.dirty[entity]) continue;
+      // Climb to the first clean ancestor, then pop in parent-to-child order.
       while (entity !== -1 && store.dirty[entity]) {
         this.stack[count++] = entity;
         entity = store.parent[entity]!;

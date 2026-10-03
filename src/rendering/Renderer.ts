@@ -1,3 +1,15 @@
+import { FrameUniforms } from "./FrameUniforms";
+import {
+  FRAME_BYTES,
+  MATRIX_BYTES,
+  MATRIX_WORDS,
+  INSTANCE_BYTES,
+  INSTANCE_WORDS,
+} from "./layouts";
+import { createBootstrapMesh } from "./geometry/createBootstrapMesh";
+import { MESH_VERTEX_LAYOUT } from "./geometry/VertexLayout";
+import { createColorResources } from "./pipelines/createColorResources";
+import { configureRenderGraph } from "./graph/configureRenderGraph";
 import { GeometryOptimization } from "./geometry/GeometryOptimization";
 import { RendererStreaming } from "./RendererStreaming";
 import { TemporalVisibility } from "./visibility/TemporalVisibility";
@@ -12,12 +24,8 @@ import { CPUProfiler, CPUStage } from "../profiling/CPUProfiler";
 import { GPUProfiler, GPUPass } from "../profiling/GPUProfiler";
 import { RenderGraph } from "./graph/RenderGraph";
 import { ShadowManager } from "./shadows/ShadowManager";
-import shadowShader from "../shaders/shadows.wgsl?raw";
-import geometryShader from "../shaders/geometry.wgsl?raw";
 import { ClusteredLighting } from "./lighting/ClusteredLighting";
-import frameShader from "../shaders/frame.wgsl?raw";
 import { LightBuffer } from "./LightBuffer";
-import lightingShader from "../shaders/lighting.wgsl?raw";
 import { LODGroups } from "./lod/LODGroups";
 import { LODSelector } from "./lod/LODSelector";
 import { MorphDeltaBuffers } from "./MorphDeltaBuffers";
@@ -39,20 +47,6 @@ import { FrustumCuller } from "../visibility/FrustumCuller";
 import { BVH } from "../visibility/BVH";
 import { MeshManager } from "./MeshManager";
 
-import pbrShader from "../shaders/pbr.wgsl?raw";
-import commonShader from "../shaders/common.wgsl?raw";
-import morphShader from "../shaders/morphing.wgsl?raw";
-import skinShader from "../shaders/skinning.wgsl?raw";
-const shader = [
-  frameShader,
-  geometryShader,
-  commonShader,
-  morphShader,
-  skinShader,
-  shadowShader,
-  lightingShader,
-  pbrShader,
-].join("\n");
 import { MaterialTextures } from "./materials/MaterialTextures";
 
 export class Renderer {
@@ -104,7 +98,7 @@ export class Renderer {
     "deformation",
   ]);
   private colorInstanceOffset = 0;
-  private readonly frameData = new Float32Array(48);
+  private readonly frameUniforms = new FrameUniforms();
   readonly pipelines: readonly GPURenderPipeline[];
   private readonly frameGroups: GPUBindGroup[];
   private frameNumber = 0;
@@ -168,39 +162,9 @@ export class Renderer {
     this.bvh = new BVH(world.capacity);
     this.instances = new InstanceManager(world.capacity);
     this.batches = new BatchBuilder(world.capacity);
-    const vertices = new Float32Array([
-      -1, -1, 1, 0.2, 0.65, 1, 1, -1, 1, 0.2, 0.65, 1, 1, 1, 1, 0.2, 0.65, 1,
-      -1, 1, 1, 0.2, 0.65, 1, 1, -1, -1, 0.9, 0.4, 0.2, -1, -1, -1, 0.9, 0.4,
-      0.2, -1, 1, -1, 0.9, 0.4, 0.2, 1, 1, -1, 0.9, 0.4, 0.2, 1, -1, 1, 0.2,
-      0.9, 0.5, 1, -1, -1, 0.2, 0.9, 0.5, 1, 1, -1, 0.2, 0.9, 0.5, 1, 1, 1, 0.2,
-      0.9, 0.5, -1, -1, -1, 0.8, 0.3, 0.8, -1, -1, 1, 0.8, 0.3, 0.8, -1, 1, 1,
-      0.8, 0.3, 0.8, -1, 1, -1, 0.8, 0.3, 0.8, -1, 1, 1, 1, 0.8, 0.2, 1, 1, 1,
-      1, 0.8, 0.2, 1, 1, -1, 1, 0.8, 0.2, -1, 1, -1, 1, 0.8, 0.2, -1, -1, -1,
-      0.4, 0.3, 0.8, 1, -1, -1, 0.4, 0.3, 0.8, 1, -1, 1, 0.4, 0.3, 0.8, -1, -1,
-      1, 0.4, 0.3, 0.8,
-    ]);
-    const indices = new Uint16Array(36);
-    for (let face = 0; face < 6; face++)
-      indices.set(
-        [0, 1, 2, 0, 2, 3].map((i) => face * 4 + i),
-        face * 6,
-      );
-    const positions = new Float32Array(24 * 3),
-      colors = new Float32Array(24 * 3);
-    for (let i = 0; i < 24; i++)
-      for (let j = 0; j < 3; j++) {
-        positions[i * 3 + j] = vertices[i * 6 + j]!;
-        colors[i * 3 + j] = vertices[i * 6 + 3 + j]!;
-      }
-    this.meshes.upload({
-      attributes: { POSITION: positions, COLOR_0: colors },
-      indices: new Uint32Array(indices),
-      mode: 4,
-      material: 0,
-      targets: [],
-    });
-    this.vertexBuffer = this.meshes.get(0).vertex;
-    this.indexBuffer = this.meshes.get(0).index;
+    const bootstrapMesh = createBootstrapMesh(this.meshes);
+    this.vertexBuffer = this.meshes.get(bootstrapMesh).vertex;
+    this.indexBuffer = this.meshes.get(bootstrapMesh).index;
     this.dynamic = new DynamicBufferAllocator(
       this.resources.buffers,
       4 * 1024 * 1024,
@@ -247,23 +211,8 @@ export class Renderer {
       gpu.canvas.width,
       gpu.canvas.height,
     );
-    const module = this.resources.shaders.get(shader, "PBR shader");
+
     this.materialBuffer = materials.createBuffer(this.resources.buffers);
-    const vertexBuffers: GPUVertexBufferLayout[] = [
-      {
-        arrayStride: 104,
-        attributes: [
-          { shaderLocation: 0, offset: 0, format: "float32x3" },
-          { shaderLocation: 1, offset: 12, format: "float32x4" },
-          { shaderLocation: 2, offset: 28, format: "float32x3" },
-          { shaderLocation: 3, offset: 40, format: "float32x2" },
-          { shaderLocation: 4, offset: 48, format: "float32x4" },
-          { shaderLocation: 5, offset: 64, format: "float32x2" },
-          { shaderLocation: 6, offset: 72, format: "uint32x4" },
-          { shaderLocation: 7, offset: 88, format: "float32x4" },
-        ],
-      },
-    ];
     this.shadows = new ShadowManager(
       device,
       this.resources,
@@ -283,7 +232,7 @@ export class Renderer {
       this.meshes,
       materials,
       this.textures,
-      vertexBuffers,
+      MESH_VERTEX_LAYOUT,
     );
     this.depthPrepass = new DepthPrepass(
       this.resources,
@@ -292,227 +241,44 @@ export class Renderer {
       materials,
       this.textures,
     );
-    const groupLayout = device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-          buffer: { type: "uniform", minBindingSize: 192 },
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "read-only-storage", minBindingSize: 64 },
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { type: "read-only-storage", minBindingSize: 80 },
-        },
-        {
-          binding: 3,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {
-            type: "read-only-storage",
-            hasDynamicOffset: true,
-            minBindingSize: 48,
-          },
-        },
-        {
-          binding: 4,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "read-only-storage", minBindingSize: 64 },
-        },
-        ...[5, 6, 7, 8].map((binding) => ({
-          binding,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {
-            type: "read-only-storage" as const,
-            minBindingSize: binding === 5 ? 4 : 16,
-          },
-        })),
-        {
-          binding: 9,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { type: "read-only-storage", minBindingSize: 64 },
-        },
-        ...[10, 11].map((binding) => ({
-          binding,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {
-            type: "read-only-storage" as const,
-            minBindingSize: binding === 10 ? 8 : 4,
-          },
-        })),
-        {
-          binding: 12,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: { type: "read-only-storage", minBindingSize: 80 },
-        },
-        {
-          binding: 13,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "depth", viewDimension: "2d-array" },
-        },
-        {
-          binding: 15,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "read-only-storage", minBindingSize: 16 },
-        },
-        {
-          binding: 14,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "comparison" },
-        },
-      ],
-    });
     this.geometryOptimization = new GeometryOptimization(
       device,
       this.resources,
       this.dynamic,
       world.capacity,
     );
-    this.pipelineDescriptor = {
-      label: "Cube pipeline",
-      layout: device.createPipelineLayout({
-        bindGroupLayouts: [groupLayout, this.textures.layout],
-      }),
-      vertex: {
-        module,
-        entryPoint: "vs",
-        buffers: vertexBuffers,
-      },
-      fragment: {
-        module,
-        entryPoint: "fs",
-        targets: [{ format: gpu.renderFormat }],
-      },
-      primitive: { topology: "triangle-list", cullMode: "back" },
-      depthStencil: {
-        format: "depth24plus",
-        depthWriteEnabled: true,
-        depthCompare: "less",
-      },
-    };
-    this.pipeline = this.resources.pipelines.get(this.pipelineDescriptor);
-    this.pipelines = Array.from({ length: 72 }, (_, variant) => {
-      const index = variant % 18;
-      return this.resources.pipelines.get({
-        ...this.pipelineDescriptor,
-        vertex: {
-          ...this.pipelineDescriptor.vertex,
-          entryPoint: variant >= 36 ? "vsIndirect" : "vs",
-        },
-        primitive: {
-          ...this.pipelineDescriptor.primitive,
-          topology:
-            index % 3 === 0
-              ? "triangle-list"
-              : index % 3 === 1
-                ? "line-list"
-                : "point-list",
-          cullMode:
-            index % 3 !== 0 || Math.floor(index / 3) % 2 ? "none" : "back",
-        },
-        depthStencil: {
-          ...this.pipelineDescriptor.depthStencil!,
-          depthWriteEnabled: (variant >= 36 || variant % 36 < 18) && index < 12,
-          depthCompare: variant % 36 < 18 ? "less" : "less-equal",
-        },
-        fragment: {
-          ...this.pipelineDescriptor.fragment!,
-          targets: [
-            {
-              format: gpu.renderFormat,
-              ...(index >= 12
-                ? {
-                    blend: {
-                      color: {
-                        srcFactor: "src-alpha",
-                        dstFactor: "one-minus-src-alpha",
-                        operation: "add",
-                      },
-                      alpha: {
-                        srcFactor: "one",
-                        dstFactor: "one-minus-src-alpha",
-                        operation: "add",
-                      },
-                    } as GPUBlendState,
-                  }
-                : {}),
-            },
-          ],
-        },
-      });
+    const color = createColorResources({
+      gpu,
+      world,
+      resources: this.resources,
+      dynamic: this.dynamic,
+      materialBuffer: this.materialBuffer,
+      textures: this.textures,
+      joints: this.joints,
+      morphWeights: this.morphWeights,
+      morphDeltas: this.morphDeltas,
+      lights: this.lights,
+      clusters: this.clusters,
+      shadows: this.shadows,
+      gpuDraws: this.gpuDraws,
     });
-    const alignment = this.dynamic.alignment;
-    this.frameGroups = this.dynamic.buffers.map((buffer) =>
-      device.createBindGroup({
-        layout: groupLayout,
-        entries: [
-          { binding: 0, resource: { buffer, offset: 0, size: 192 } },
-          {
-            binding: 1,
-            resource: { buffer, offset: alignment, size: world.capacity * 64 },
-          },
-          { binding: 2, resource: { buffer: this.materialBuffer } },
-          { binding: 4, resource: { buffer: this.joints.buffer } },
-          { binding: 5, resource: { buffer: this.morphWeights.buffer } },
-          { binding: 6, resource: { buffer: this.morphDeltas.position } },
-          { binding: 7, resource: { buffer: this.morphDeltas.normal } },
-          { binding: 8, resource: { buffer: this.morphDeltas.tangent } },
-          { binding: 9, resource: { buffer: this.lights.buffer } },
-          { binding: 10, resource: { buffer: this.clusters.counts } },
-          { binding: 11, resource: { buffer: this.clusters.indices } },
-          { binding: 12, resource: { buffer: this.shadows.buffer } },
-          { binding: 13, resource: this.shadows.view },
-          { binding: 14, resource: this.shadows.sampler },
-          { binding: 15, resource: { buffer: this.gpuDraws.visibleRecords } },
-          {
-            binding: 3,
-            resource: { buffer, offset: 0, size: world.capacity * 48 },
-          },
-        ],
-      }),
-    );
+    this.pipelineDescriptor = color.pipelineDescriptor;
+    this.pipeline = color.pipeline;
+    this.pipelines = color.pipelines;
+    this.frameGroups = color.frameGroups;
     this.frameGroup = this.frameGroups[0]!;
-    this.graph.add({
-      name: "gpu-frustum",
-      reads: ["frame", "geometry"],
-      writes: ["gpuVisibility"],
-      execute: (encoder) =>
+    configureRenderGraph(this.graph, {
+      gpuFrustum: (encoder) =>
         this.gpuFrustum.encode(
           encoder,
           this.dynamic.frameSlot,
           this.gpuProfiler,
         ),
-    });
-    this.graph.add({
-      name: "shadows",
-      reads: [
-        "geometry",
-        "instances",
-        "materials",
-        "deformation",
-        "lights",
-        "frame",
-      ],
-      writes: ["shadowDepth"],
-      execute: (encoder) =>
+      shadows: (encoder) =>
         this.shadows.encode(encoder, this.world, this.stats, this.gpuProfiler),
-    });
-    this.graph.add({
-      name: "light-clusters",
-      reads: ["lights", "frame"],
-      writes: ["clusterMetadata", "clusterIndices"],
-      execute: (encoder) =>
+      lightClusters: (encoder) =>
         this.clusters.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
-    });
-    this.graph.add({
-      name: "depth",
-      reads: ["geometry", "materials", "instances", "deformation", "frame"],
-      writes: ["prepassDepth"],
-      execute: (encoder) =>
+      depth: (encoder) =>
         this.depthPrepass.encode(
           encoder,
           this.depthView!,
@@ -522,58 +288,20 @@ export class Renderer {
           this.stats,
           this.gpuProfiler,
         ),
-    });
-    this.graph.add({
-      name: "geometry-clusters",
-      reads: ["frame", "geometry", "instances"],
-      writes: ["geometryArguments"],
-      execute: (encoder) =>
+      geometryClusters: (encoder) =>
         this.geometryOptimization.encode(
           encoder,
           this.dynamic.frameSlot,
           this.colorInstanceOffset,
           this.gpuProfiler,
         ),
-    });
-    this.graph.add({
-      name: "color",
-      reads: [
-        "geometry",
-        "materials",
-        "instances",
-        "deformation",
-        "lights",
-        "frame",
-        "drawArguments",
-        "geometryArguments",
-        "prepassDepth",
-        "shadowDepth",
-        "clusterMetadata",
-        "clusterIndices",
-      ],
-      writes: ["mainDepth", "swapchain"],
-      execute: (encoder, view) => this.encodeColor(encoder, view),
-    });
-    this.graph.add({
-      name: "hiz",
-      reads: ["prepassDepth"],
-      writes: ["hizDepth"],
-      execute: (encoder) => {
+      color: (encoder, view) => this.encodeColor(encoder, view),
+      hiz: (encoder) => {
         if (!this.temporal.reuse) this.hiz.encode(encoder, this.gpuProfiler);
         else this.hiz.passes = 0;
       },
-    });
-    this.graph.add({
-      name: "hiz-debug",
-      reads: ["hizDepth", "swapchain"],
-      writes: ["finalSwapchain"],
-      execute: (encoder, view) => this.hiz.debug(encoder, view),
-    });
-    this.graph.add({
-      name: "gpu-occlusion",
-      reads: ["gpuVisibility", "hizDepth", "frame", "geometry"],
-      writes: ["gpuOcclusionVisibility"],
-      execute: (encoder) => {
+      hizDebug: (encoder, view) => this.hiz.debug(encoder, view),
+      gpuOcclusion: (encoder) => {
         this.gpuOcclusion.dispatches = 0;
         if (this.gpuOcclusion.enabled) {
           const bytes = this.gpuFrustum.count * 4;
@@ -601,28 +329,12 @@ export class Renderer {
             );
         }
       },
-    });
-    this.graph.add({
-      name: "gpu-compaction",
-      reads: ["gpuLODVisibility"],
-      writes: ["visibleInstances", "visibleCounter"],
-      execute: (encoder) =>
+      gpuCompaction: (encoder) =>
         this.gpuCompaction.encode(encoder, this.gpuProfiler),
-    });
-    this.graph.add({
-      name: "gpu-indirect",
-      reads: ["visibleInstances", "visibleCounter"],
-      writes: ["drawArguments"],
-      execute: (encoder) => this.gpuDraws.encode(encoder, this.gpuProfiler),
-    });
-    this.graph.add({
-      name: "gpu-lod",
-      reads: ["gpuOcclusionVisibility", "frame", "geometry"],
-      writes: ["gpuLODVisibility", "gpuLODSelections"],
-      execute: (encoder) =>
+      gpuIndirect: (encoder) => this.gpuDraws.encode(encoder, this.gpuProfiler),
+      gpuLod: (encoder) =>
         this.gpuLOD.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
     });
-    this.graph.compile();
     this.resize();
   }
 
@@ -647,12 +359,40 @@ export class Renderer {
 
   encode(encoder: GPUCommandEncoder, view: GPUTextureView): void {
     this.resize();
+    const indirect = this.submissionMode === "gpu-indirect";
+    this.configureFeatureDependencies(indirect);
+    const visible = this.prepareVisibility(indirect);
+    this.prepareBatches(indirect, visible);
+    this.uploadFrameState(indirect);
+    this.streaming.touch(this.frameNumber);
+    this.graph.execute(encoder, view);
+    this.gpuProfiler.resolveFrame(encoder);
+    this.profiler.end(CPUStage.encoding);
+    if (this.geometryOptimization.count)
+      this.stats.triangles = this.stats.instances = -1;
+    if (indirect) {
+      this.stats.lod0 =
+        this.stats.lod1 =
+        this.stats.lod2 =
+        this.stats.lodOther =
+        this.stats.lodCulled =
+          -1;
+      this.stats.visibleObjects =
+        this.stats.frustumRejected =
+        this.stats.culledObjects =
+        this.stats.instances =
+        this.stats.triangles =
+          -1;
+    }
+  }
+
+  /** Optional GPU paths enable their prerequisites before any visibility work. */
+  private configureFeatureDependencies(indirect: boolean): void {
     if (this.gpuOcclusion.enabled) {
       this.gpuFrustum.enabled = true;
       this.hiz.enabled = true;
     }
     if (this.gpuCompaction.enabled) this.gpuFrustum.enabled = true;
-    const indirect = this.submissionMode === "gpu-indirect";
     this.gpuDraws.enabled = indirect;
     if (indirect) {
       if (!this.gpuDraws.supported)
@@ -670,6 +410,10 @@ export class Renderer {
     if (this.gpuLOD.enabled) this.gpuFrustum.enabled = true;
     if (this.hiz.enabled || this.hiz.debugEnabled || this.gpuOcclusion.enabled)
       this.depthPrepass.enabled = true;
+  }
+
+  /** CPU culling and LOD produce the queue input; indirect mode leaves selection to the GPU. */
+  private prepareVisibility(indirect: boolean): number {
     this.camera.update(this.width / this.height);
     this.stats.reset();
     this.profiler.start(CPUStage.culling);
@@ -724,6 +468,11 @@ export class Renderer {
     this.stats.culledObjects = this.world.count - visible;
     this.stats.frustumRejected = this.world.count - frustumVisible;
     this.profiler.end(CPUStage.culling);
+    return visible;
+  }
+
+  /** Sorting establishes stable pipeline/material/mesh runs before shared instance packing. */
+  private prepareBatches(indirect: boolean, visible: number): void {
     this.profiler.start(CPUStage.sorting);
     this.queue.build(
       this.world,
@@ -749,39 +498,46 @@ export class Renderer {
       indirect,
     );
     this.profiler.end(CPUStage.sorting);
+  }
+
+  /** Reuse arena slots and persistent staging arrays. No GPU objects are created here. */
+  private uploadFrameState(indirect: boolean): void {
     this.profiler.start(CPUStage.encoding);
     this.gpuProfiler.beginFrame(this.frameNumber);
     this.dynamic.beginFrame(this.frameNumber++);
-    this.frameData.set(this.camera.viewProjection);
-    this.frameData.set(this.camera.position, 16);
-    this.frameData[19] = this.world.lightCount;
-    this.frameData.set(this.camera.view, 20);
     const clustered = this.clusters.choose(this.world);
-    this.frameData[36] = this.clusters.tilesX;
-    this.frameData[37] = this.clusters.tilesY;
-    this.frameData[38] = this.clusters.tileSize;
-    this.frameData[39] = this.clusters.slices;
-    this.frameData[40] = 0.1;
-    this.frameData[41] = 100;
-    this.frameData[42] = clustered ? 1 : 0;
-    this.frameData[43] = this.clusters.maxLights;
-    this.frameData[44] = this.gpu.canvas.width;
-    this.frameData[45] = this.gpu.canvas.height;
-    this.frameData[46] = this.camera.projection[0]!;
-    this.frameData[47] = this.camera.projection[5]!;
-    this.dynamic.write(this.dynamic.allocate(192), this.frameData);
+    this.frameUniforms.update(
+      this.camera,
+      this.world.lightCount,
+      this.clusters,
+      clustered,
+      this.width,
+      this.height,
+    );
     this.dynamic.write(
-      this.dynamic.allocate(Math.max(64, this.world.count * 64)),
-      this.world.matrices.subarray(0, Math.max(16, this.world.count * 16)),
+      this.dynamic.allocate(FRAME_BYTES),
+      this.frameUniforms.data,
+    );
+    this.dynamic.write(
+      this.dynamic.allocate(
+        Math.max(MATRIX_BYTES, this.world.count * MATRIX_BYTES),
+      ),
+      this.world.matrices.subarray(
+        0,
+        Math.max(MATRIX_WORDS, this.world.count * MATRIX_WORDS),
+      ),
     );
     this.instances.update(this.queue, this.world, this.meshes);
     const instanceOffset = this.dynamic.allocate(
-      Math.max(48, this.queue.count * 48),
+      Math.max(INSTANCE_BYTES, this.queue.count * INSTANCE_BYTES),
       this.gpu.device.limits.minStorageBufferOffsetAlignment,
     );
     this.dynamic.write(
       instanceOffset,
-      this.instances.data.subarray(0, Math.max(12, this.queue.count * 12)),
+      this.instances.data.subarray(
+        0,
+        Math.max(INSTANCE_WORDS, this.queue.count * INSTANCE_WORDS),
+      ),
     );
     this.shadows.prepare(this.world, this.camera, this.gpu.queue, this.stats);
     this.dynamic.flush(this.gpu.queue);
@@ -855,26 +611,6 @@ export class Renderer {
       ? this.clusters.tilesX * this.clusters.tilesY * this.clusters.slices
       : 0;
     this.colorInstanceOffset = instanceOffset;
-    this.streaming.touch(this.frameNumber);
-    this.graph.execute(encoder, view);
-    this.gpuProfiler.resolveFrame(encoder);
-    this.profiler.end(CPUStage.encoding);
-    if (this.geometryOptimization.count)
-      this.stats.triangles = this.stats.instances = -1;
-    if (indirect) {
-      this.stats.lod0 =
-        this.stats.lod1 =
-        this.stats.lod2 =
-        this.stats.lodOther =
-        this.stats.lodCulled =
-          -1;
-      this.stats.visibleObjects =
-        this.stats.frustumRejected =
-        this.stats.culledObjects =
-        this.stats.instances =
-        this.stats.triangles =
-          -1;
-    }
   }
 
   private encodeColor(encoder: GPUCommandEncoder, view: GPUTextureView): void {

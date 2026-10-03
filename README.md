@@ -9,6 +9,15 @@ npm run dev
 
 Open the displayed localhost URL in a WebGPU-capable browser. The initial scene is an indexed cube. Resize handling uses physical pixel dimensions and device limits; device loss stops rendering and reports the loss.
 
+## Code organization
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, asset upload, shader code, and GPU validation have separate responsibilities with comments around their invariants.
+
+```sh
+npm run format
+npm run format:check
+```
+
 ## Validation
 
 ```sh
@@ -31,9 +40,9 @@ Historical and final evidence is saved in `benchmarks/results/`; fresh local res
 In the browser console after initialization:
 
 ```js
-await window.rendererApp.loadAsset('/regression/triangle.glb');
+await window.rendererApp.loadAsset("/regression/triangle.glb");
 window.rendererApp.renderer.camera.setPosition(0, 0, 5);
-window.rendererApp.renderer.visibilityMode = 'bvh';
+window.rendererApp.renderer.visibilityMode = "bvh";
 ```
 
 The loader uses [glTF Transform core](https://gltf-transform.dev/) for container/accessor decoding and converts the decoded document to engine-owned data. Render passes read `RenderWorld`; shared GPU assets are addressed by numeric mesh/material IDs. Loading adds the selected scene to the world. The synthetic GLB fixture can be regenerated with `node scripts/create-regression-assets.mjs`.

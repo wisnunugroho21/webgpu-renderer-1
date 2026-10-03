@@ -1,6 +1,8 @@
+import { MATERIAL_WORDS, MATERIAL_BYTES } from "../layouts";
 import { Material } from "./Material";
 import { MaterialFlags } from "./MaterialFlags";
 import { BufferManager } from "../../gpu/BufferManager";
+/** CPU material table and shader ABI; revisions invalidate temporal/shadow assumptions. */
 export class MaterialManager {
   readonly data: Float32Array;
   readonly flags: Uint32Array;
@@ -12,7 +14,7 @@ export class MaterialManager {
   private dirtyStart = Infinity;
   private dirtyEnd = 0;
   constructor(readonly capacity = 2048) {
-    this.data = new Float32Array(capacity * 20);
+    this.data = new Float32Array(capacity * MATERIAL_WORDS);
     this.flags = new Uint32Array(capacity);
     this.alphaMode = new Uint8Array(capacity);
     this.doubleSided = new Uint8Array(capacity);
@@ -51,7 +53,7 @@ export class MaterialManager {
       alpha =
         mode === "OPAQUE" ? 0 : mode === "MASK" ? 1 : mode === "BLEND" ? 2 : -1;
     if (alpha < 0) throw new Error("Invalid alpha mode");
-    const offset = id * 20;
+    const offset = id * MATERIAL_WORDS;
     const emissive = material.emissive ?? [0, 0, 0],
       normalScale = material.normalScale ?? 1,
       occlusion = material.occlusionStrength ?? 1;
@@ -103,7 +105,7 @@ export class MaterialManager {
   textureLayout(id: number): Float32Array {
     if (!Number.isInteger(id) || id < 0 || id >= this.count)
       throw new Error("Unknown material");
-    const o = id * 20;
+    const o = id * MATERIAL_WORDS;
     return new Float32Array([
       this.data[o + 13]!,
       this.data[o + 14]!,
@@ -120,7 +122,7 @@ export class MaterialManager {
     for (let i = 0; i < 6; i++)
       if (layout[i] !== 0 && layout[i] !== 1)
         throw new Error("Only TEXCOORD_0/1 are supported");
-    const o = id * 20;
+    const o = id * MATERIAL_WORDS;
     this.data[o + 13] = layout[0]!;
     this.data[o + 14] = layout[1]!;
     for (let i = 2; i < 6; i++) this.data[o + 14 + i] = layout[i]!;
@@ -154,8 +156,8 @@ export class MaterialManager {
   upload(queue: GPUQueue, buffer: GPUBuffer): void {
     this.uploadBytes = 0;
     if (this.dirtyStart === Infinity) return;
-    const byteOffset = this.dirtyStart * 80,
-      byteLength = (this.dirtyEnd - this.dirtyStart) * 80;
+    const byteOffset = this.dirtyStart * MATERIAL_BYTES,
+      byteLength = (this.dirtyEnd - this.dirtyStart) * MATERIAL_BYTES;
     queue.writeBuffer(
       buffer,
       byteOffset,

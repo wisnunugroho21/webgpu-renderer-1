@@ -20,6 +20,8 @@ export interface RuntimeMaterial extends Material {
   normalScale: number;
   occlusionStrength: number;
 }
+/** Engine-owned decoded data: serializable metadata plus transferable typed arrays.
+ * GPU uploads and scene instantiation are separate steps; this object owns no GPU resources. */
 export interface RuntimeAsset {
   meshes: {
     name: string;

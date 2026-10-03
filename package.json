@@ -10,7 +10,9 @@
     "test": "vitest run",
     "benchmark": "vitest bench --run",
     "validate:gpu": "node scripts/validate-gpu.mjs",
-    "benchmark:gpu": "node scripts/benchmark-matrix.mjs"
+    "benchmark:gpu": "node scripts/benchmark-matrix.mjs",
+    "format": "prettier --write . && node scripts/format-shaders.mjs",
+    "format:check": "prettier --check . && node scripts/format-shaders.mjs --check"
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.74",

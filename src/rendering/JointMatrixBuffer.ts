@@ -1,5 +1,9 @@
+import { MATRIX_BYTES } from "./layouts";
 import { BufferManager } from "../gpu/BufferManager";
 import { RenderWorld } from "./RenderWorld";
+// Capture the shared ABI stride once so upload loops use an immutable local binding.
+const matrixBytes = MATRIX_BYTES;
+
 /** One persistent GPU palette for all characters; changed adjacent joints share writes. */
 export class JointMatrixBuffer {
   readonly buffer: GPUBuffer;
@@ -9,7 +13,7 @@ export class JointMatrixBuffer {
   constructor(manager: BufferManager, capacity: number) {
     this.buffer = manager.create({
       label: "Shared joint matrices",
-      size: Math.max(64, capacity * 64),
+      size: Math.max(MATRIX_BYTES, capacity * MATRIX_BYTES),
       usage:
         GPUBufferUsage.STORAGE |
         GPUBufferUsage.COPY_DST |
@@ -18,6 +22,7 @@ export class JointMatrixBuffer {
   }
   upload(queue: GPUQueue, world: RenderWorld): void {
     this.uploadBytes = this.updatedJoints = this.writes = 0;
+    // The extra sentinel iteration flushes a dirty run ending at the last record.
     let start = -1;
     for (let j = 0; j <= world.jointCount; j++) {
       if (j < world.jointCount && world.jointDirty[j]) {
@@ -25,12 +30,12 @@ export class JointMatrixBuffer {
         continue;
       }
       if (start === -1) continue;
-      const size = (j - start) * 64;
+      const size = (j - start) * matrixBytes;
       queue.writeBuffer(
         this.buffer,
-        start * 64,
+        start * matrixBytes,
         world.jointMatrices.buffer,
-        start * 64,
+        start * matrixBytes,
         size,
       );
       world.jointDirty.fill(0, start, j);

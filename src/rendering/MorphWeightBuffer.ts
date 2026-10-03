@@ -1,5 +1,6 @@
 import { BufferManager } from "../gpu/BufferManager";
 import { RenderWorld } from "./RenderWorld";
+/** Shared scalar weights; coalesce adjacent dirty values instead of rewriting every object. */
 export class MorphWeightBuffer {
   readonly buffer: GPUBuffer;
   uploadBytes = 0;
@@ -17,6 +18,7 @@ export class MorphWeightBuffer {
   }
   upload(queue: GPUQueue, world: RenderWorld): void {
     this.uploadBytes = this.writes = this.updatedWeights = 0;
+    // Visit one past the last weight to flush the final dirty run.
     let start = -1;
     for (let w = 0; w <= world.morphWeightCount; w++) {
       if (w < world.morphWeightCount && world.morphDirty[w]) {

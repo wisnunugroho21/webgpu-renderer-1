@@ -1,3 +1,4 @@
+import { uploadAsset } from "../assets/uploadAsset";
 import { AssetDecoder } from "../assets/workers/AssetDecoder";
 import { AssetLoader } from "../assets/AssetLoader";
 import { GLTFLoader } from "../assets/gltf/GLTFLoader";
@@ -17,6 +18,7 @@ import { RenderWorld } from "../rendering/RenderWorld";
 import { RenderExtractor } from "../rendering/RenderExtractor";
 import { MaterialManager } from "../rendering/materials/MaterialManager";
 
+/** Owns browser lifecycle and simulation order; the renderer consumes only the extracted snapshot. */
 export class Application {
   gpu!: GPUContext;
   renderer!: Renderer;
@@ -125,6 +127,7 @@ export class Application {
       ? Math.max(0, (timestamp - this.lastFrameTime) / 1000)
       : 0;
     this.lastFrameTime = timestamp;
+    // Bounds and extraction must follow deformation and world-transform updates.
     this.profiler.start(CPUStage.animation);
     this.animations.update(delta);
     this.profiler.end(CPUStage.animation);
@@ -161,6 +164,7 @@ export class Application {
         .getCurrentTexture()
         .createView({ format: this.gpu.renderFormat }),
     );
+    // Submit once after every graph pass has encoded into the same command buffer.
     this.gpu.queue.submit([encoder.finish()]);
     this.renderer.stats.frameTimeMs = delta * 1000;
     this.renderer.stats.fps = delta > 0 ? 1 / delta : 0;
@@ -184,33 +188,13 @@ export class Application {
   }
   private async uploadAsset(asset: RuntimeAsset): Promise<UploadedAsset> {
     this.checkLoadingDevice();
-    const groups = await this.renderer.textures.prepare(asset);
-    this.checkLoadingDevice();
-    if (
-      this.materials.count + asset.materials.length + 1 >
-      this.materials.capacity
-    )
-      throw new Error("Material capacity exceeded by asset");
-    const materialIds = asset.materials.map((material) =>
-      this.materials.create(material),
+    return uploadAsset(
+      asset,
+      this.renderer.meshes,
+      this.materials,
+      this.renderer.textures,
+      () => this.checkLoadingDevice(),
     );
-    const defaultMaterial = this.materials.create({
-      metallic: 1,
-      roughness: 1,
-    });
-    for (let i = 0; i < groups.length; i++)
-      this.renderer.textures.groups[materialIds[i]!] = groups[i]!;
-    const meshIds: number[][] = [];
-    for (const mesh of asset.meshes) {
-      const ids: number[] = [];
-      meshIds.push(ids);
-      for (const primitive of mesh.primitives) {
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
-        this.checkLoadingDevice();
-        ids.push(this.renderer.meshes.upload(primitive));
-      }
-    }
-    return { materialIds, defaultMaterial, meshIds };
   }
   async loadAsset(url: string): Promise<Uint32Array> {
     const uploaded = await this.assetLoader.load(url);

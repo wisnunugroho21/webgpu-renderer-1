@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vite/
+artifacts/
+public/
+benchmarks/results/
+IMPLEMENTATION_PLAN.md
+PROGRESS.md
+package-lock.json
+src/shaders/

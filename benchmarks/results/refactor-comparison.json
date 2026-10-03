@@ -1,0 +1,517 @@
+{
+  "date": "2026-10-03T14:34:59.251Z",
+  "validation": {
+    "tests": 129,
+    "testFiles": 40,
+    "shaderCodeUnchanged": 20,
+    "graphOrderUnchanged": true,
+    "warmResourceCountsUnchanged": true,
+    "matrixWorkCountersUnchanged": true,
+    "drawImageHashesUnchanged": true,
+    "gpuErrors": 0
+  },
+  "cpu": [
+    {
+      "file": "animated-bounds.bench.ts",
+      "name": "100 objects x 64 joint boxes; independent of vertex count",
+      "beforeMeanMs": 0.1281355903151421,
+      "afterMeanMs": 0.12815561711942605,
+      "ratio": 1.0001562938465003
+    },
+    {
+      "file": "animation.bench.ts",
+      "name": "100 independent animators, shared TRS clip",
+      "beforeMeanMs": 0.03929959883675278,
+      "afterMeanMs": 0.03903076582624255,
+      "ratio": 0.9931593955544701
+    },
+    {
+      "file": "animation.bench.ts",
+      "name": "1000 independent animators, shared TRS clip",
+      "beforeMeanMs": 0.3971952343129527,
+      "afterMeanMs": 0.3966900222045964,
+      "ratio": 0.9987280509313508
+    },
+    {
+      "file": "animation.bench.ts",
+      "name": "10000 independent animators, shared TRS clip",
+      "beforeMeanMs": 7.440541058823542,
+      "afterMeanMs": 7.400300838235279,
+      "ratio": 0.994591761503615
+    },
+    {
+      "file": "asset-loading.bench.ts",
+      "name": "parse and convert 100000 glTF vertices",
+      "beforeMeanMs": 27.958756777777783,
+      "afterMeanMs": 27.730530631578947,
+      "ratio": 0.9918370423973846
+    },
+    {
+      "file": "asset-loading.bench.ts",
+      "name": "preprocess and pack 100000 mesh vertices (no GPU upload)",
+      "beforeMeanMs": 5.525710186813196,
+      "afterMeanMs": 5.475603739130438,
+      "ratio": 0.990932125285482
+    },
+    {
+      "file": "blending.bench.ts",
+      "name": "10,000 persistent quaternion crossfade poses",
+      "beforeMeanMs": 0.829887565505805,
+      "afterMeanMs": 0.8300703117744617,
+      "ratio": 1.0002202060571246
+    },
+    {
+      "file": "dynamic-buffer.bench.ts",
+      "name": "10,000 shared transform records",
+      "beforeMeanMs": 0.3106058118012418,
+      "afterMeanMs": 0.3091403943139676,
+      "ratio": 0.995282066749569
+    },
+    {
+      "file": "dynamic-buffer.bench.ts",
+      "name": "10,000 separate CPU allocations baseline",
+      "beforeMeanMs": 0.23716640872451558,
+      "afterMeanMs": 0.2265227925724648,
+      "ratio": 0.9551217383216607
+    },
+    {
+      "file": "ecs.bench.ts",
+      "name": "100 dirty transforms",
+      "beforeMeanMs": 0.007863389865693553,
+      "afterMeanMs": 0.00787495733387952,
+      "ratio": 1.001471053627448
+    },
+    {
+      "file": "ecs.bench.ts",
+      "name": "10,000 full update baseline",
+      "beforeMeanMs": 0.7778084090202148,
+      "afterMeanMs": 0.7739807511591945,
+      "ratio": 0.9950789194143043
+    },
+    {
+      "file": "extraction.bench.ts",
+      "name": "Phase 7: extract 10,000 renderables into persistent arrays",
+      "beforeMeanMs": 0.9101407345454574,
+      "afterMeanMs": 0.9147851645338198,
+      "ratio": 1.0051029800250417
+    },
+    {
+      "file": "geometry.bench.ts",
+      "name": "200,000 triangles into conservative 256-triangle clusters",
+      "beforeMeanMs": 3.69986944852941,
+      "afterMeanMs": 3.6899179338235295,
+      "ratio": 0.9973103065272111
+    },
+    {
+      "file": "gltf.bench.ts",
+      "name": "Phase 13 decode GLB with 10,000 vertices",
+      "beforeMeanMs": 1.7024393333333316,
+      "afterMeanMs": 1.7285458448275839,
+      "ratio": 1.0153347675791398
+    },
+    {
+      "file": "joint-buffer.bench.ts",
+      "name": "unchanged ranges",
+      "beforeMeanMs": 0.006656004872139574,
+      "afterMeanMs": 0.006561116734683221,
+      "ratio": 0.9857439801684142
+    },
+    {
+      "file": "joint-buffer.bench.ts",
+      "name": "all joints changed",
+      "beforeMeanMs": 0.011062512810301425,
+      "afterMeanMs": 0.0111779620844606,
+      "ratio": 1.0104360804944486
+    },
+    {
+      "file": "joint-buffer.bench.ts",
+      "name": "100 sparse changes",
+      "beforeMeanMs": 0.013996404545963785,
+      "afterMeanMs": 0.014179214899469016,
+      "ratio": 1.0130612367558316
+    },
+    {
+      "file": "lights.bench.ts",
+      "name": "extract/compare 1,000 light records",
+      "beforeMeanMs": 0.06846538354100994,
+      "afterMeanMs": 0.0685691130005496,
+      "ratio": 1.0015150643168096
+    },
+    {
+      "file": "lod.bench.ts",
+      "name": "10,000 candidates with persistent hysteresis",
+      "beforeMeanMs": 0.2042652593954245,
+      "afterMeanMs": 0.20176572972973017,
+      "ratio": 0.9877633148529891
+    },
+    {
+      "file": "materials.bench.ts",
+      "name": "1 material records",
+      "beforeMeanMs": 0.0004788244993411298,
+      "afterMeanMs": 0.0004942689275165503,
+      "ratio": 1.0322548829407692
+    },
+    {
+      "file": "materials.bench.ts",
+      "name": "100 material records",
+      "beforeMeanMs": 0.022025162584794273,
+      "afterMeanMs": 0.023159497776747726,
+      "ratio": 1.0515017851780388
+    },
+    {
+      "file": "materials.bench.ts",
+      "name": "1000 material records",
+      "beforeMeanMs": 0.21313562702472233,
+      "afterMeanMs": 0.22451077468582434,
+      "ratio": 1.0533704656508813
+    },
+    {
+      "file": "math.bench.ts",
+      "name": "10,000 persistent-output matrix multiplies",
+      "beforeMeanMs": 0.23069337500000012,
+      "afterMeanMs": 0.23077787724965326,
+      "ratio": 1.000366296819981
+    },
+    {
+      "file": "math.bench.ts",
+      "name": "1,000 dirty camera updates",
+      "beforeMeanMs": 0.12441150510077259,
+      "afterMeanMs": 0.12477753043912303,
+      "ratio": 1.0029420537759266
+    },
+    {
+      "file": "morph.bench.ts",
+      "name": "validate 4 targets x 10,000 vertices, all three streams",
+      "beforeMeanMs": 2.0068879799999997,
+      "afterMeanMs": 1.9983049800796822,
+      "ratio": 0.9957232291957234
+    },
+    {
+      "file": "morph.bench.ts",
+      "name": "allocate 1,000 independent four-weight states",
+      "beforeMeanMs": 0.03695264119429376,
+      "afterMeanMs": 0.03532129506922791,
+      "ratio": 0.955853057526027
+    },
+    {
+      "file": "morph.bench.ts",
+      "name": "4,000 unchanged weights",
+      "beforeMeanMs": 0.003978424004201278,
+      "afterMeanMs": 0.003956425916108324,
+      "ratio": 0.994470652683142
+    },
+    {
+      "file": "morph.bench.ts",
+      "name": "4,000 changed weights",
+      "beforeMeanMs": 0.006619223874076771,
+      "afterMeanMs": 0.006717501269597405,
+      "ratio": 1.0148472687115968
+    },
+    {
+      "file": "profiling.bench.ts",
+      "name": "record 9 CPU stages x 10,000 frames",
+      "beforeMeanMs": 5.563900888888885,
+      "afterMeanMs": 5.631672786516861,
+      "ratio": 1.0121806442963996
+    },
+    {
+      "file": "queues.bench.ts",
+      "name": "1 materials",
+      "beforeMeanMs": 1.4644128859649095,
+      "afterMeanMs": 1.4795998698224848,
+      "ratio": 1.0103706980477494
+    },
+    {
+      "file": "queues.bench.ts",
+      "name": "100 materials",
+      "beforeMeanMs": 1.2135581283292975,
+      "afterMeanMs": 1.2338658719211815,
+      "ratio": 1.0167340509843081
+    },
+    {
+      "file": "queues.bench.ts",
+      "name": "1000 materials",
+      "beforeMeanMs": 1.03180016082474,
+      "afterMeanMs": 1.0347325103305816,
+      "ratio": 1.0028419742670884
+    },
+    {
+      "file": "render-graph.bench.ts",
+      "name": "execute eight compiled passes 10,000 times",
+      "beforeMeanMs": 0.21567550021561027,
+      "afterMeanMs": 0.21895824562171648,
+      "ratio": 1.0152207617593303
+    },
+    {
+      "file": "shadows.bench.ts",
+      "name": "compare 10,000 unchanged shadow casters",
+      "beforeMeanMs": 0.7947691269841302,
+      "afterMeanMs": 0.7918948544303832,
+      "ratio": 0.9963835125747098
+    },
+    {
+      "file": "shadows.bench.ts",
+      "name": "cull 10,000 shadow caster bounds",
+      "beforeMeanMs": 0.31346033270676915,
+      "afterMeanMs": 0.30961376842104904,
+      "ratio": 0.9877287047694215
+    },
+    {
+      "file": "shadows.bench.ts",
+      "name": "fit 10,000 caster bounds",
+      "beforeMeanMs": 0.047492785144376104,
+      "afterMeanMs": 0.048029549610988195,
+      "ratio": 1.0113020212434447
+    },
+    {
+      "file": "skinning.bench.ts",
+      "name": "validate/copy/normalize 10,000 four-weight vertices",
+      "beforeMeanMs": 0.5401281987041054,
+      "afterMeanMs": 0.5421947854821232,
+      "ratio": 1.0038261042155843
+    },
+    {
+      "file": "skinning.bench.ts",
+      "name": "unchanged poses",
+      "beforeMeanMs": 0.10855008508791045,
+      "afterMeanMs": 0.11014724295153952,
+      "ratio": 1.0147135569938577
+    },
+    {
+      "file": "skinning.bench.ts",
+      "name": "all poses changed",
+      "beforeMeanMs": 0.6295211911949674,
+      "afterMeanMs": 0.6005039087635097,
+      "ratio": 0.9539057892930075
+    },
+    {
+      "file": "temporal.bench.ts",
+      "name": "compare exact temporal snapshots for 100000 objects",
+      "beforeMeanMs": 5.241676656249996,
+      "afterMeanMs": 5.37696280645161,
+      "ratio": 1.0258097091968281
+    },
+    {
+      "file": "visibility.bench.ts",
+      "name": "no culling enumeration baseline",
+      "beforeMeanMs": 0.03531452821526965,
+      "afterMeanMs": 0.03529116078486714,
+      "ratio": 0.9993383054628376
+    },
+    {
+      "file": "visibility.bench.ts",
+      "name": "linear CPU sphere frustum",
+      "beforeMeanMs": 0.7636707435114531,
+      "afterMeanMs": 0.7776634183514828,
+      "ratio": 1.0183229159410894
+    },
+    {
+      "file": "visibility.bench.ts",
+      "name": "linear CPU AABB frustum",
+      "beforeMeanMs": 0.9630111038461564,
+      "afterMeanMs": 0.9794009569471541,
+      "ratio": 1.01701938122576
+    },
+    {
+      "file": "visibility.bench.ts",
+      "name": "Phase 12 static BVH frustum",
+      "beforeMeanMs": 0.023289894452465276,
+      "afterMeanMs": 0.023253862617429715,
+      "ratio": 0.9984528983113641
+    }
+  ],
+  "matrix": [
+    {
+      "group": "materials",
+      "mode": "individual",
+      "materials": 1,
+      "beforeCpuFrameMs": 0.5,
+      "afterCpuFrameMs": 0.4000000059604645,
+      "beforeCompletionMs": 1.5999999940395355,
+      "afterCompletionMs": 1.3999999910593033
+    },
+    {
+      "group": "materials",
+      "mode": "sorted",
+      "materials": 1,
+      "beforeCpuFrameMs": 0.5,
+      "afterCpuFrameMs": 0.29999999701976776,
+      "beforeCompletionMs": 1.5999999940395355,
+      "afterCompletionMs": 1.2999999970197678
+    },
+    {
+      "group": "materials",
+      "mode": "instanced",
+      "materials": 1,
+      "beforeCpuFrameMs": 0.29999999701976776,
+      "afterCpuFrameMs": 0.30000001192092896,
+      "beforeCompletionMs": 1.0999999940395355,
+      "afterCompletionMs": 1.2000000029802322
+    },
+    {
+      "group": "materials",
+      "mode": "individual",
+      "materials": 100,
+      "beforeCpuFrameMs": 0.3999999910593033,
+      "afterCpuFrameMs": 0.3999999910593033,
+      "beforeCompletionMs": 1.5,
+      "afterCompletionMs": 1.4000000059604645
+    },
+    {
+      "group": "materials",
+      "mode": "sorted",
+      "materials": 100,
+      "beforeCpuFrameMs": 0.5,
+      "afterCpuFrameMs": 0.4000000059604645,
+      "beforeCompletionMs": 1.4000000059604645,
+      "afterCompletionMs": 1.3999999910593033
+    },
+    {
+      "group": "materials",
+      "mode": "instanced",
+      "materials": 100,
+      "beforeCpuFrameMs": 0.5,
+      "afterCpuFrameMs": 0.4000000059604645,
+      "beforeCompletionMs": 1.2999999970197678,
+      "afterCompletionMs": 1.2999999970197678
+    },
+    {
+      "group": "materials",
+      "mode": "individual",
+      "materials": 1000,
+      "beforeCpuFrameMs": 0.3999999910593033,
+      "afterCpuFrameMs": 0.4000000059604645,
+      "beforeCompletionMs": 1.5999999940395355,
+      "afterCompletionMs": 1.5
+    },
+    {
+      "group": "materials",
+      "mode": "sorted",
+      "materials": 1000,
+      "beforeCpuFrameMs": 0.4000000059604645,
+      "afterCpuFrameMs": 0.4000000059604645,
+      "beforeCompletionMs": 1.7000000029802322,
+      "afterCompletionMs": 1.5
+    },
+    {
+      "group": "materials",
+      "mode": "instanced",
+      "materials": 1000,
+      "beforeCpuFrameMs": 0.4000000059604645,
+      "afterCpuFrameMs": 0.4000000059604645,
+      "beforeCompletionMs": 1.5999999940395355,
+      "afterCompletionMs": 1.5999999940395355
+    },
+    {
+      "group": "animation",
+      "characters": 1,
+      "beforeCpuFrameMs": 0.10000000894069672,
+      "afterCpuFrameMs": 0.10000000894069672,
+      "beforeCompletionMs": 0.9000000059604645,
+      "afterCompletionMs": 0.8999999910593033
+    },
+    {
+      "group": "animation",
+      "characters": 100,
+      "beforeCpuFrameMs": 4.200000002980232,
+      "afterCpuFrameMs": 3.7000000029802322,
+      "beforeCompletionMs": 5.399999991059303,
+      "afterCompletionMs": 5.0999999940395355
+    },
+    {
+      "group": "animation",
+      "characters": 500,
+      "beforeCpuFrameMs": 19.700000002980232,
+      "afterCpuFrameMs": 19.5,
+      "beforeCompletionMs": 22,
+      "afterCompletionMs": 21.799999997019768
+    },
+    {
+      "group": "animation",
+      "characters": 1000,
+      "beforeCpuFrameMs": 38.900000005960464,
+      "afterCpuFrameMs": 38.29999999701977,
+      "beforeCompletionMs": 42.6000000089407,
+      "afterCompletionMs": 41.900000005960464
+    },
+    {
+      "group": "morph",
+      "characters": 1000,
+      "activeTargets": 0,
+      "beforeCpuFrameMs": 0.7999999970197678,
+      "afterCpuFrameMs": 0.7000000029802322,
+      "beforeCompletionMs": 3.7999999970197678,
+      "afterCompletionMs": 3.800000011920929
+    },
+    {
+      "group": "morph",
+      "characters": 1000,
+      "activeTargets": 1,
+      "beforeCpuFrameMs": 0.7999999970197678,
+      "afterCpuFrameMs": 0.7999999970197678,
+      "beforeCompletionMs": 4.700000002980232,
+      "afterCompletionMs": 5
+    },
+    {
+      "group": "morph",
+      "characters": 1000,
+      "activeTargets": 4,
+      "beforeCpuFrameMs": 0.8999999910593033,
+      "afterCpuFrameMs": 0.9000000059604645,
+      "beforeCompletionMs": 5.0999999940395355,
+      "afterCompletionMs": 5.200000002980232
+    },
+    {
+      "group": "morph",
+      "characters": 1000,
+      "activeTargets": 8,
+      "beforeCpuFrameMs": 0.8999999910593033,
+      "afterCpuFrameMs": 1,
+      "beforeCompletionMs": 5,
+      "afterCompletionMs": 5.799999997019768
+    },
+    {
+      "group": "morph",
+      "characters": 1000,
+      "activeTargets": 16,
+      "beforeCpuFrameMs": 0.800000011920929,
+      "afterCpuFrameMs": 1.1000000089406967,
+      "beforeCompletionMs": 4.800000011920929,
+      "afterCompletionMs": 4.800000011920929
+    },
+    {
+      "group": "occlusion",
+      "beforeCpuFrameMs": 4.799999997019768,
+      "afterCpuFrameMs": 5,
+      "beforeCompletionMs": 7.399999991059303,
+      "afterCompletionMs": 7.5
+    },
+    {
+      "group": "occlusion",
+      "beforeCpuFrameMs": 5.0999999940395355,
+      "afterCpuFrameMs": 5,
+      "beforeCompletionMs": 7.700000002980232,
+      "afterCompletionMs": 7.699999988079071
+    },
+    {
+      "group": "combined",
+      "beforeCpuFrameMs": 38.900000005960464,
+      "afterCpuFrameMs": 38.70000000298023
+    }
+  ],
+  "initialSceneEncoding": {
+    "before": {
+      "median": 0.29999999701976776,
+      "p95": 0.5
+    },
+    "after": {
+      "median": 0.29999999701976776,
+      "p95": 0.5
+    }
+  },
+  "caveats": [
+    "Sequential local measurements, not a universal performance guarantee.",
+    "Browser matrix medians use a small warm sample and 0.1 ms timer quantization.",
+    "Benchmark timing changes must be considered alongside identical work, resource counts and image correctness."
+  ]
+}

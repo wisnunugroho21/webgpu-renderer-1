@@ -26,7 +26,10 @@ describe("mesh asset uploads", () => {
       const resources = new Resources(device),
         meshes = new MeshManager(resources, queue);
       const primitive: RuntimePrimitive = {
-        attributes: { POSITION: new Float32Array(12) },
+        attributes: {
+          POSITION: new Float32Array(12),
+          NORMAL: new Float32Array(12),
+        },
         indices: new Uint32Array(mode === 4 ? [0, 1, 2] : [0, 1, 2, 3]),
         mode,
         material: -1,

@@ -1,8 +1,93 @@
+import { MorphStatePool } from "../animation/MorphStatePool";
+import { SkeletonRegistry } from "../animation/skinning/SkeletonRegistry";
 import { World } from "../ecs/World";
 import { RenderWorld } from "./RenderWorld";
 import { RenderFlags } from "./RenderFlags";
 export class RenderExtractor {
-  extract(world: World, out: RenderWorld): number {
+  private readonly lightScratch = new Float32Array(16);
+  extract(
+    world: World,
+    out: RenderWorld,
+    skeletons?: SkeletonRegistry,
+    morphs?: MorphStatePool,
+  ): number {
+    out.lightCount = 0;
+    const lights = world.lights,
+      matrices = world.transforms.worldMatrices;
+    for (let e = 0; e < world.nextEntity; e++)
+      if (world.alive[e] && world.transforms.has[e] && lights.has[e]) {
+        if (out.lightCount === out.lightCapacity)
+          throw new Error("Shared light capacity exceeded");
+        const id = out.lightCount++,
+          o = e * 16,
+          p = e * 3,
+          d = this.lightScratch;
+        for (let axis = 0; axis < 3; axis++) {
+          d[axis] = matrices[o + 12 + axis]!;
+          d[4 + axis] = lights.color[p + axis]!;
+          d[8 + axis] =
+            matrices[o + axis]! * lights.direction[p]! +
+            matrices[o + 4 + axis]! * lights.direction[p + 1]! +
+            matrices[o + 8 + axis]! * lights.direction[p + 2]!;
+        }
+        const length = Math.hypot(d[8]!, d[9]!, d[10]!);
+        if (length === 0) throw new Error("Singular light transform");
+        for (let axis = 8; axis < 11; axis++) d[axis]! /= length;
+        d[3] = lights.range[e]!;
+        d[7] = lights.intensity[e]!;
+        d[11] = lights.type[e]!;
+        d[12] = Math.cos(lights.innerCone[e]!);
+        d[13] = Math.cos(lights.outerCone[e]!);
+        // Preserve renderer-owned shadow metadata until the shadow manager updates it.
+        const sameLight = out.lightEntity[id] === e;
+        d[14] = sameLight ? out.lightData[id * 16 + 14]! : 0;
+        d[15] = sameLight ? out.lightData[id * 16 + 15]! : 0;
+        out.lightEntity[id] = e;
+        out.lightShadow[id] = lights.castShadow[e]!;
+        for (let k = 0; k < 16; k++)
+          if (out.lightData[id * 16 + k] !== d[k]) {
+            out.lightData[id * 16 + k] = d[k]!;
+            out.lightDirty[id] = 1;
+          }
+      }
+    out.activeMorphStates = out.activeMorphTargets = out.morphTargets = 0;
+    if (morphs) {
+      if (morphs.count > out.morphCapacity)
+        throw new Error("Render morph capacity exceeded");
+      out.morphWeightCount = morphs.count;
+      out.morphActive.fill(0, 0, morphs.states.length);
+      for (const state of morphs.states)
+        if (state.dirty) {
+          for (let w = 0; w < state.targetCount; w++) {
+            const dst = state.weightOffset + w;
+            if (out.morphWeights[dst] !== state.weights[w]) {
+              out.morphWeights[dst] = state.weights[w]!;
+              out.morphDirty[dst] = 1;
+            }
+          }
+          state.dirty = false;
+        }
+    }
+    out.activeSkeletons = out.activeJoints = 0;
+    if (skeletons) {
+      if (skeletons.jointCount > out.jointCapacity)
+        throw new Error("Render joint capacity exceeded");
+      out.jointCount = skeletons.jointCount;
+      for (const instance of skeletons.instances) {
+        if (!world.alive[instance.meshEntity]) continue;
+        out.activeSkeletons++;
+        out.activeJoints += instance.jointCount;
+        for (let j = 0; j < instance.jointCount; j++)
+          if (instance.dirtyJoints[j]) {
+            const dst = (instance.jointOffset + j) * 16,
+              src = j * 16;
+            for (let k = 0; k < 16; k++)
+              out.jointMatrices[dst + k] = instance.matrices[src + k]!;
+            out.jointDirty[instance.jointOffset + j] = 1;
+            instance.dirtyJoints[j] = 0;
+          }
+      }
+    }
     const previousCount = out.count;
     let staticChanged = false;
     out.count = 0;
@@ -27,13 +112,35 @@ export class RenderExtractor {
         staticChanged = true;
       out.entityId[i] = e;
       out.meshId[i] = m.meshId[e]!;
+      out.lodGroup[i] = m.lodGroup[e]!;
       out.materialId[i] = m.materialId[e]!;
       out.flags[i] = m.flags[e]!;
       out.transformIndex[i] = out.boundsIndex[i] = i;
       out.skinInstanceId[i] = world.skins.has[e]
         ? world.skins.instanceId[e]!
         : -1;
+      const skeleton = skeletons?.instances[out.skinInstanceId[i]!];
+      out.jointOffset[i] = skeleton?.jointOffset ?? 0;
+      out.jointCounts[i] = skeleton?.jointCount ?? 0;
       out.morphStateId[i] = world.morphs.has[e] ? world.morphs.stateId[e]! : -1;
+      const morph = morphs?.states[out.morphStateId[i]!];
+      out.morphOffset[i] = morph?.weightOffset ?? 0;
+      out.morphCounts[i] = morph?.targetCount ?? 0;
+      if (morph && !out.morphActive[out.morphStateId[i]!]) {
+        out.morphActive[out.morphStateId[i]!] = 1;
+        out.activeMorphStates++;
+        out.morphTargets += morph.targetCount;
+        let nonzero = 0;
+        for (let target = 0; target < morph.targetCount; target++)
+          if (morph.weights[target] !== 0) nonzero++;
+        out.morphNonzeroCounts[out.morphStateId[i]!] = nonzero;
+        out.activeMorphTargets += nonzero;
+      }
+      out.morphDense[i] =
+        morph &&
+        out.morphNonzeroCounts[out.morphStateId[i]!] === morph.targetCount
+          ? 1
+          : 0;
       for (let k = 0; k < 16; k++)
         out.matrices[destination + k] = t.worldMatrices[offset + k]!;
       const x = b.centerX[e]!,

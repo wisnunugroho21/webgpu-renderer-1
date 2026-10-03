@@ -1,0 +1,1213 @@
+{
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "device": "",
+    "description": ""
+  },
+  "format": "bgra8unorm",
+  "frames": 155,
+  "size": [
+    1280,
+    960
+  ],
+  "pixel": [
+    36,
+    20,
+    10,
+    255
+  ],
+  "centerPixel": [
+    229,
+    190,
+    113,
+    255
+  ],
+  "materialChecks": {
+    "tint": [
+      229,
+      25,
+      113,
+      255
+    ],
+    "mask": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "blend": [
+      170,
+      139,
+      82,
+      255
+    ],
+    "offscreen": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "offscreenStats": {
+      "lod0": 0,
+      "lod1": 0,
+      "lod2": 0,
+      "lodOther": 0,
+      "lodCulled": 0,
+      "activeMorphStates": 0,
+      "activeMorphTargets": 0,
+      "morphUploadBytes": 0,
+      "activeSkeletons": 0,
+      "jointCount": 0,
+      "updatedJoints": 0,
+      "jointUploadBytes": 0,
+      "drawCalls": 0,
+      "triangles": 0,
+      "instances": 0,
+      "pipelineSwitches": 0,
+      "materialSwitches": 0,
+      "meshSwitches": 0,
+      "bufferUploadBytes": 640,
+      "totalRenderables": 1,
+      "frustumTested": 1,
+      "frustumRejected": 1,
+      "visibleObjects": 0,
+      "bvhNodesTested": 0
+    }
+  },
+  "assetPixel": [
+    127,
+    58,
+    108,
+    255
+  ],
+  "pbrChecks": {
+    "emissive": [
+      32,
+      64,
+      128,
+      255
+    ],
+    "uv1": [
+      64,
+      128,
+      32,
+      255
+    ],
+    "flat": [
+      122,
+      122,
+      122,
+      255
+    ],
+    "normal": [
+      115,
+      115,
+      115,
+      255
+    ],
+    "metal": [
+      105,
+      105,
+      105,
+      255
+    ],
+    "smooth": [
+      114,
+      114,
+      114,
+      255
+    ],
+    "ao": [
+      120,
+      120,
+      120,
+      255
+    ],
+    "culled": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "doubleSided": [
+      32,
+      64,
+      128,
+      255
+    ]
+  },
+  "textureChecks": {
+    "coldMs": 0.5,
+    "warmMs": 0,
+    "cachedMedianMs": 0,
+    "cachedP95Ms": 0.10000000894069672,
+    "samplerCreations": 0,
+    "misses": 2,
+    "decodes": 1,
+    "hits": 4,
+    "warmDecodes": 0,
+    "warmMisses": 0,
+    "creations": 2,
+    "mips": {
+      "rgba8unorm": {
+        "levels": 3,
+        "pixel": [
+          85,
+          85,
+          85,
+          255
+        ]
+      },
+      "rgba8unorm-srgb": {
+        "levels": 3,
+        "pixel": [
+          156,
+          156,
+          156,
+          255
+        ]
+      }
+    },
+    "decodeFailures": 2,
+    "failedCacheEntries": 0
+  },
+  "animationChecks": {
+    "time": 0.5,
+    "position": 5,
+    "scale": 0.75,
+    "rotation": [
+      0.7071067690849304,
+      0.7071067690849304
+    ],
+    "weights": [
+      0.5
+    ],
+    "renderMorphId": 0,
+    "morphId": 0,
+    "endTime": 1,
+    "playing": false,
+    "drawCalls": 0
+  },
+  "skinChecks": {
+    "instances": 2,
+    "initialMatrices": [
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        -4,
+        0,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        -4,
+        0,
+        0,
+        1
+      ]
+    ],
+    "changed": 4,
+    "unchanged": 0,
+    "sharedAsset": true,
+    "independentMatrices": true,
+    "jointCount": 2,
+    "parents": [
+      -1,
+      0
+    ],
+    "renderIds": [
+      1,
+      0
+    ],
+    "weights": [
+      0.501960813999176,
+      0.49803921580314636,
+      0,
+      0
+    ]
+  },
+  "jointChecks": {
+    "full": {
+      "lod0": 0,
+      "lod1": 0,
+      "lod2": 0,
+      "lodOther": 0,
+      "lodCulled": 0,
+      "activeMorphStates": 2,
+      "activeMorphTargets": 2,
+      "morphUploadBytes": 8,
+      "activeSkeletons": 2,
+      "jointCount": 4,
+      "updatedJoints": 4,
+      "jointUploadBytes": 256,
+      "drawCalls": 1,
+      "triangles": 2,
+      "instances": 2,
+      "pipelineSwitches": 1,
+      "materialSwitches": 1,
+      "meshSwitches": 1,
+      "bufferUploadBytes": 1032,
+      "totalRenderables": 2,
+      "frustumTested": 2,
+      "frustumRejected": 0,
+      "visibleObjects": 2,
+      "bvhNodesTested": 0
+    },
+    "unchanged": {
+      "lod0": 0,
+      "lod1": 0,
+      "lod2": 0,
+      "lodOther": 0,
+      "lodCulled": 0,
+      "activeMorphStates": 2,
+      "activeMorphTargets": 2,
+      "morphUploadBytes": 0,
+      "activeSkeletons": 2,
+      "jointCount": 4,
+      "updatedJoints": 0,
+      "jointUploadBytes": 0,
+      "drawCalls": 1,
+      "triangles": 2,
+      "instances": 2,
+      "pipelineSwitches": 1,
+      "materialSwitches": 1,
+      "meshSwitches": 1,
+      "bufferUploadBytes": 608,
+      "totalRenderables": 2,
+      "frustumTested": 2,
+      "frustumRejected": 0,
+      "visibleObjects": 2,
+      "bvhNodesTested": 0
+    },
+    "partial": {
+      "lod0": 0,
+      "lod1": 0,
+      "lod2": 0,
+      "lodOther": 0,
+      "lodCulled": 0,
+      "activeMorphStates": 2,
+      "activeMorphTargets": 2,
+      "morphUploadBytes": 0,
+      "activeSkeletons": 2,
+      "jointCount": 4,
+      "updatedJoints": 2,
+      "jointUploadBytes": 128,
+      "drawCalls": 1,
+      "triangles": 2,
+      "instances": 2,
+      "pipelineSwitches": 1,
+      "materialSwitches": 1,
+      "meshSwitches": 1,
+      "bufferUploadBytes": 736,
+      "totalRenderables": 2,
+      "frustumTested": 2,
+      "frustumRejected": 0,
+      "visibleObjects": 2,
+      "bvhNodesTested": 0
+    },
+    "gpuJointX": [
+      0,
+      -4
+    ],
+    "offsets": [
+      0,
+      2
+    ],
+    "writes": 2,
+    "resourcesBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 19,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 19,
+      "textures": 10,
+      "bufferBytes": 34916928,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    },
+    "resourcesAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 19,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 19,
+      "textures": 10,
+      "bufferBytes": 34916928,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    }
+  },
+  "gpuSkinChecks": {
+    "skinPixel": [
+      101,
+      101,
+      101,
+      255
+    ],
+    "referencePixel": [
+      101,
+      101,
+      101,
+      255
+    ],
+    "movedPixel": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "vertexWrites": 0,
+    "medianCpuMs": 0.20000000298023224,
+    "p95CpuMs": 0.20000000298023224,
+    "stats": {
+      "lod0": 0,
+      "lod1": 0,
+      "lod2": 0,
+      "lodOther": 0,
+      "lodCulled": 0,
+      "activeMorphStates": 2,
+      "activeMorphTargets": 2,
+      "morphUploadBytes": 0,
+      "activeSkeletons": 2,
+      "jointCount": 4,
+      "updatedJoints": 0,
+      "jointUploadBytes": 0,
+      "drawCalls": 1,
+      "triangles": 1000,
+      "instances": 1000,
+      "pipelineSwitches": 1,
+      "materialSwitches": 1,
+      "meshSwitches": 1,
+      "bufferUploadBytes": 112256,
+      "totalRenderables": 1000,
+      "frustumTested": 0,
+      "frustumRejected": 0,
+      "visibleObjects": 1000,
+      "bvhNodesTested": 0
+    },
+    "resourcesBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 21,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 21,
+      "textures": 10,
+      "bufferBytes": 34917252,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    },
+    "resourcesAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 21,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 21,
+      "textures": 10,
+      "bufferBytes": 34917252,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    }
+  },
+  "morphChecks": {
+    "states": [
+      {
+        "offset": 2,
+        "count": 1,
+        "weights": [
+          0.20000000298023224
+        ],
+        "shared": true
+      },
+      {
+        "offset": 1,
+        "count": 1,
+        "weights": [
+          0.10000000149011612
+        ],
+        "shared": true
+      }
+    ],
+    "targets": [
+      {
+        "count": 1,
+        "vertices": 3,
+        "position": [
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "count": 1,
+        "vertices": 3,
+        "position": [
+          0,
+          0,
+          1
+        ]
+      }
+    ]
+  },
+  "morphBufferChecks": {
+    "position": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "normal": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "tangent": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "weight": 0.20000000298023224,
+    "expectedWeight": 0.20000000298023224,
+    "deltaRecords": 6,
+    "changedBytes": 4,
+    "unchangedBytes": 0
+  },
+  "gpuMorphChecks": {
+    "morphedPixel": [
+      109,
+      109,
+      109,
+      255
+    ],
+    "referencePixel": [
+      109,
+      109,
+      109,
+      255
+    ],
+    "movedPixel": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "vertexWrites": 0,
+    "medianCpuMs": 0.10000000894069672,
+    "p95CpuMs": 0.20000000298023224,
+    "stats": {
+      "lod0": 0,
+      "lod1": 0,
+      "lod2": 0,
+      "lodOther": 0,
+      "lodCulled": 0,
+      "activeMorphStates": 2,
+      "activeMorphTargets": 3,
+      "morphUploadBytes": 0,
+      "activeSkeletons": 2,
+      "jointCount": 4,
+      "updatedJoints": 0,
+      "jointUploadBytes": 0,
+      "drawCalls": 1,
+      "triangles": 1000,
+      "instances": 1000,
+      "pipelineSwitches": 1,
+      "materialSwitches": 1,
+      "meshSwitches": 1,
+      "bufferUploadBytes": 112256,
+      "totalRenderables": 1000,
+      "frustumTested": 0,
+      "frustumRejected": 0,
+      "visibleObjects": 1000,
+      "bvhNodesTested": 0
+    },
+    "resourcesBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 25,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 25,
+      "textures": 10,
+      "bufferBytes": 34917900,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    },
+    "resourcesAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 25,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 25,
+      "textures": 10,
+      "bufferBytes": 34917900,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    }
+  },
+  "combinedChecks": {
+    "medianCpuMs": 0.09999999403953552,
+    "p95CpuMs": 0.20000000298023224,
+    "stats": {
+      "lod0": 0,
+      "lod1": 0,
+      "lod2": 0,
+      "lodOther": 0,
+      "lodCulled": 0,
+      "activeMorphStates": 2,
+      "activeMorphTargets": 3,
+      "morphUploadBytes": 0,
+      "activeSkeletons": 2,
+      "jointCount": 4,
+      "updatedJoints": 0,
+      "jointUploadBytes": 0,
+      "drawCalls": 1,
+      "triangles": 1000,
+      "instances": 1000,
+      "pipelineSwitches": 1,
+      "materialSwitches": 1,
+      "meshSwitches": 1,
+      "bufferUploadBytes": 112256,
+      "totalRenderables": 1000,
+      "frustumTested": 0,
+      "frustumRejected": 0,
+      "visibleObjects": 1000,
+      "bvhNodesTested": 0
+    },
+    "resourcesBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 27,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 27,
+      "textures": 10,
+      "bufferBytes": 34918224,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    },
+    "resourcesAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 27,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 27,
+      "textures": 10,
+      "bufferBytes": 34918224,
+      "cacheHits": 299,
+      "cacheMisses": 14
+    },
+    "pixel": [
+      94,
+      94,
+      94,
+      255
+    ],
+    "reference": [
+      94,
+      94,
+      94,
+      255
+    ]
+  },
+  "boundsChecks": {
+    "results": {
+      "none": {
+        "pixel": [
+          94,
+          94,
+          94,
+          255
+        ],
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 2,
+          "activeMorphTargets": 3,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 2,
+          "jointCount": 4,
+          "updatedJoints": 2,
+          "jointUploadBytes": 128,
+          "drawCalls": 2,
+          "triangles": 2,
+          "instances": 2,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 2,
+          "bufferUploadBytes": 736,
+          "totalRenderables": 2,
+          "frustumTested": 0,
+          "frustumRejected": 0,
+          "visibleObjects": 2,
+          "bvhNodesTested": 0
+        }
+      },
+      "linear": {
+        "pixel": [
+          94,
+          94,
+          94,
+          255
+        ],
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 2,
+          "activeMorphTargets": 3,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 2,
+          "jointCount": 4,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 2,
+          "triangles": 2,
+          "instances": 2,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 2,
+          "bufferUploadBytes": 608,
+          "totalRenderables": 2,
+          "frustumTested": 2,
+          "frustumRejected": 0,
+          "visibleObjects": 2,
+          "bvhNodesTested": 0
+        }
+      },
+      "bvh": {
+        "pixel": [
+          94,
+          94,
+          94,
+          255
+        ],
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 2,
+          "activeMorphTargets": 3,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 2,
+          "jointCount": 4,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 2,
+          "triangles": 2,
+          "instances": 2,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 2,
+          "bufferUploadBytes": 608,
+          "totalRenderables": 2,
+          "frustumTested": 0,
+          "frustumRejected": 0,
+          "visibleObjects": 2,
+          "bvhNodesTested": 1
+        }
+      }
+    },
+    "offscreen": {
+      "pixel": [
+        36,
+        20,
+        10,
+        255
+      ],
+      "stats": {
+        "lod0": 0,
+        "lod1": 0,
+        "lod2": 0,
+        "lodOther": 0,
+        "lodCulled": 0,
+        "activeMorphStates": 2,
+        "activeMorphTargets": 3,
+        "morphUploadBytes": 0,
+        "activeSkeletons": 2,
+        "jointCount": 4,
+        "updatedJoints": 4,
+        "jointUploadBytes": 256,
+        "drawCalls": 0,
+        "triangles": 0,
+        "instances": 0,
+        "pipelineSwitches": 0,
+        "materialSwitches": 0,
+        "meshSwitches": 0,
+        "bufferUploadBytes": 816,
+        "totalRenderables": 2,
+        "frustumTested": 0,
+        "frustumRejected": 2,
+        "visibleObjects": 0,
+        "bvhNodesTested": 1
+      }
+    },
+    "jointBoxes": 4
+  },
+  "blendingChecks": {
+    "position": -2.5,
+    "scale": 0.5,
+    "rotation": 0.3826834261417389,
+    "weight": 0.75,
+    "crossfading": true
+  },
+  "lodChecks": {
+    "results": [
+      {
+        "distance": 5,
+        "selection": 0,
+        "stats": {
+          "lod0": 1,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 1,
+          "triangles": 12,
+          "instances": 1,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 560,
+          "totalRenderables": 1,
+          "frustumTested": 1,
+          "frustumRejected": 0,
+          "visibleObjects": 1,
+          "bvhNodesTested": 0
+        }
+      },
+      {
+        "distance": 20,
+        "selection": 1,
+        "stats": {
+          "lod0": 0,
+          "lod1": 1,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 1,
+          "triangles": 8,
+          "instances": 1,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 560,
+          "totalRenderables": 1,
+          "frustumTested": 1,
+          "frustumRejected": 0,
+          "visibleObjects": 1,
+          "bvhNodesTested": 0
+        }
+      },
+      {
+        "distance": 40,
+        "selection": 2,
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 1,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 1,
+          "triangles": 1,
+          "instances": 1,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 560,
+          "totalRenderables": 1,
+          "frustumTested": 1,
+          "frustumRejected": 0,
+          "visibleObjects": 1,
+          "bvhNodesTested": 0
+        }
+      },
+      {
+        "distance": 80,
+        "selection": -1,
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 1,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 0,
+          "triangles": 0,
+          "instances": 0,
+          "pipelineSwitches": 0,
+          "materialSwitches": 0,
+          "meshSwitches": 0,
+          "bufferUploadBytes": 560,
+          "totalRenderables": 1,
+          "frustumTested": 1,
+          "frustumRejected": 0,
+          "visibleObjects": 0,
+          "bvhNodesTested": 0
+        }
+      }
+    ],
+    "resourcesBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 33,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 33,
+      "textures": 10,
+      "bufferBytes": 34921464,
+      "cacheHits": 304,
+      "cacheMisses": 14
+    },
+    "resourcesAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 33,
+      "textureCreations": 11,
+      "samplerCreations": 2,
+      "buffers": 33,
+      "textures": 10,
+      "bufferBytes": 34921464,
+      "cacheHits": 304,
+      "cacheMisses": 14
+    }
+  },
+  "errors": [],
+  "validationError": null,
+  "cpuEncodingMs": {
+    "median": 0.29999999701976776,
+    "p95": 0.5
+  },
+  "lossHandled": true,
+  "environment": {
+    "mode": "production-preview",
+    "browser": "153.0.8010.53",
+    "timestamp": "2026-10-03T07:51:22.903Z"
+  },
+  "cameraCheck": {
+    "creations": 0,
+    "statsBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 11,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 11,
+      "textures": 3,
+      "bufferBytes": 34915632,
+      "cacheHits": 15,
+      "cacheMisses": 13
+    },
+    "statsAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 11,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 11,
+      "textures": 3,
+      "bufferBytes": 34915632,
+      "cacheHits": 15,
+      "cacheMisses": 13
+    },
+    "sameBuffer": true,
+    "moved": true
+  },
+  "resourceBenchmark": {
+    "count": 100,
+    "uncachedMs": 0.7999999970197678,
+    "cachedMs": 1.9000000059604645,
+    "stats": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 11,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 11,
+      "textures": 3,
+      "bufferBytes": 34915632,
+      "cacheHits": 115,
+      "cacheMisses": 13
+    }
+  },
+  "dynamicBenchmark": {
+    "count": 10000,
+    "individualMs": 15.200000002980232,
+    "sharedMs": 2.5,
+    "sharedBufferCreations": 0,
+    "arenaBuffers": 3,
+    "uploadBytes": 640000
+  },
+  "drawBenchmark": {
+    "objects": 10000,
+    "results": {
+      "individual": {
+        "medianCpuMs": 1.5,
+        "samples": [
+          1.4000000059604645,
+          1.4000000059604645,
+          1.5,
+          1.6000000089406967,
+          1.7000000029802322
+        ],
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 10000,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 1120256,
+          "totalRenderables": 10000,
+          "frustumTested": 10000,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 0
+        },
+        "imageHash": 254962746
+      },
+      "sorted": {
+        "medianCpuMs": 1.5999999940395355,
+        "samples": [
+          1.5,
+          1.5999999940395355,
+          1.5999999940395355,
+          1.6000000089406967,
+          1.7000000029802322
+        ],
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 10000,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 1120256,
+          "totalRenderables": 10000,
+          "frustumTested": 10000,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 0
+        },
+        "imageHash": 254962746
+      },
+      "instanced": {
+        "medianCpuMs": 1.300000011920929,
+        "samples": [
+          1.2999999970197678,
+          1.2999999970197678,
+          1.300000011920929,
+          1.4000000059604645,
+          1.5
+        ],
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 1,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 1120256,
+          "totalRenderables": 10000,
+          "frustumTested": 10000,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 0
+        },
+        "imageHash": 254962746
+      },
+      "instanced-bvh": {
+        "medianCpuMs": 2.300000011920929,
+        "samples": [
+          2.2000000029802322,
+          2.2999999970197678,
+          2.300000011920929,
+          2.4000000059604645,
+          2.4000000059604645
+        ],
+        "stats": {
+          "lod0": 0,
+          "lod1": 0,
+          "lod2": 0,
+          "lodOther": 0,
+          "lodCulled": 0,
+          "activeMorphStates": 0,
+          "activeMorphTargets": 0,
+          "morphUploadBytes": 0,
+          "activeSkeletons": 0,
+          "jointCount": 0,
+          "updatedJoints": 0,
+          "jointUploadBytes": 0,
+          "drawCalls": 1,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 1120256,
+          "totalRenderables": 10000,
+          "frustumTested": 0,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 1
+        },
+        "imageHash": 254962746
+      }
+    },
+    "resourceBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 11,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 11,
+      "textures": 3,
+      "bufferBytes": 34915632,
+      "cacheHits": 115,
+      "cacheMisses": 13
+    },
+    "resourceAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 11,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 11,
+      "textures": 3,
+      "bufferBytes": 34915632,
+      "cacheHits": 115,
+      "cacheMisses": 13
+    }
+  }
+}

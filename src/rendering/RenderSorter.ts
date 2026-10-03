@@ -1,12 +1,14 @@
 import { RenderQueue } from "./RenderQueue";
 import { RenderWorld } from "./RenderWorld";
 export class RenderSorter {
+  lodAware = false;
   private world!: RenderWorld;
   private queue!: RenderQueue;
   private readonly opaqueCompare = (a: number, b: number): number =>
     this.queue.pipeline[a]! - this.queue.pipeline[b]! ||
     this.world.materialId[a]! - this.world.materialId[b]! ||
     this.world.meshId[a]! - this.world.meshId[b]! ||
+    (this.lodAware ? this.world.lodGroup[a]! - this.world.lodGroup[b]! : 0) ||
     Math.floor(this.queue.depth[a]! / 4) -
       Math.floor(this.queue.depth[b]! / 4) ||
     a - b;

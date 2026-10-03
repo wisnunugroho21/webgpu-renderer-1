@@ -2,6 +2,7 @@ import { CacheKey } from "./CacheKey";
 import { ResourceStats } from "./ResourceStats";
 export class PipelineCache {
   private readonly keys = new CacheKey();
+  private readonly computeCache = new Map<string, GPUComputePipeline>();
   private readonly cache = new Map<string, GPURenderPipeline>();
   constructor(
     private readonly device: GPUDevice,
@@ -36,7 +37,21 @@ export class PipelineCache {
     this.cache.set(key, pipeline);
     return pipeline;
   }
+  getCompute(descriptor: GPUComputePipelineDescriptor): GPUComputePipeline {
+    const key = this.keys.encode(descriptor),
+      existing = this.computeCache.get(key);
+    if (existing) {
+      this.stats.cacheHits++;
+      return existing;
+    }
+    this.stats.cacheMisses++;
+    this.stats.pipelineCreations++;
+    const pipeline = this.device.createComputePipeline(descriptor);
+    this.computeCache.set(key, pipeline);
+    return pipeline;
+  }
   clear(): void {
     this.cache.clear();
+    this.computeCache.clear();
   }
 }

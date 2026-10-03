@@ -18,6 +18,21 @@ export const Quat = {
     out[3] = Math.cos(radians / 2);
     return out;
   },
+  multiply(out: Quat, a: ArrayLike<number>, b: ArrayLike<number>): Quat {
+    const ax = a[0]!,
+      ay = a[1]!,
+      az = a[2]!,
+      aw = a[3]!,
+      bx = b[0]!,
+      by = b[1]!,
+      bz = b[2]!,
+      bw = b[3]!;
+    out[0] = ax * bw + aw * bx + ay * bz - az * by;
+    out[1] = ay * bw + aw * by + az * bx - ax * bz;
+    out[2] = az * bw + aw * bz + ax * by - ay * bx;
+    out[3] = aw * bw - ax * bx - ay * by - az * bz;
+    return out;
+  },
   slerp(
     out: Quat,
     a: ArrayLike<number>,

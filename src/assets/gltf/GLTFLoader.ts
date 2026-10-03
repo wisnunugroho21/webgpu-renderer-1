@@ -10,6 +10,9 @@ import { RuntimeAsset, RuntimeTextureSlot } from "./RuntimeAsset";
 /** Mature container/accessor decoding is delegated to glTF Transform; output owns only engine data. */
 export class GLTFLoader {
   private readonly io = new WebIO();
+  async fetch(url: string): Promise<JSONDocument> {
+    return this.io.readAsJSON(url);
+  }
   async load(url: string): Promise<RuntimeAsset> {
     return this.convert(await this.io.read(url));
   }

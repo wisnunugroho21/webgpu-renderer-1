@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/temporal.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/temporal.bench.ts",
+          "benchmarks": [
+            {
+              "id": "-1026615333_0",
+              "name": "compare exact temporal snapshots for 100000 objects",
+              "rank": 1,
+              "rme": 1.5796449817431482,
+              "samples": [],
+              "totalTime": 504.3229180000001,
+              "min": 4.932000000000016,
+              "max": 7.939666999999986,
+              "hz": 196.30279820041807,
+              "period": 5.09417088888889,
+              "mean": 5.09417088888889,
+              "variance": 0.16276282693281224,
+              "sd": 0.4034387523934857,
+              "sem": 0.04054712022964511,
+              "df": 98,
+              "critical": 1.9846,
+              "moe": 0.08046981480775367,
+              "p75": 5.089833999999996,
+              "p99": 7.939666999999986,
+              "p995": 7.939666999999986,
+              "p999": 7.939666999999986,
+              "sampleCount": 99,
+              "median": 5.009374999999977
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

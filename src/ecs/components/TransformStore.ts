@@ -84,7 +84,10 @@ export class TransformStore extends ComponentStore {
     w: number,
   ): void {
     this.require(entity);
-    this.quaternion.set([x, y, z, w]);
+    this.quaternion[0] = x;
+    this.quaternion[1] = y;
+    this.quaternion[2] = z;
+    this.quaternion[3] = w;
     Quat.normalize(this.quaternion, this.quaternion);
     this.rotationX[entity] = this.quaternion[0]!;
     this.rotationY[entity] = this.quaternion[1]!;

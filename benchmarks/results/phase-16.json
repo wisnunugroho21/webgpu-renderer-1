@@ -1,0 +1,370 @@
+{
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "device": "",
+    "description": ""
+  },
+  "format": "bgra8unorm",
+  "frames": 153,
+  "size": [
+    1280,
+    960
+  ],
+  "pixel": [
+    36,
+    20,
+    10,
+    255
+  ],
+  "centerPixel": [
+    229,
+    190,
+    113,
+    255
+  ],
+  "materialChecks": {
+    "tint": [
+      229,
+      25,
+      113,
+      255
+    ],
+    "mask": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "blend": [
+      170,
+      139,
+      82,
+      255
+    ],
+    "offscreen": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "offscreenStats": {
+      "drawCalls": 0,
+      "triangles": 0,
+      "instances": 0,
+      "pipelineSwitches": 0,
+      "materialSwitches": 0,
+      "meshSwitches": 0,
+      "bufferUploadBytes": 624,
+      "totalRenderables": 1,
+      "frustumTested": 1,
+      "frustumRejected": 1,
+      "visibleObjects": 0,
+      "bvhNodesTested": 0
+    }
+  },
+  "assetPixel": [
+    127,
+    58,
+    108,
+    255
+  ],
+  "pbrChecks": {
+    "emissive": [
+      32,
+      64,
+      128,
+      255
+    ],
+    "uv1": [
+      64,
+      128,
+      32,
+      255
+    ],
+    "flat": [
+      122,
+      122,
+      122,
+      255
+    ],
+    "normal": [
+      115,
+      115,
+      115,
+      255
+    ],
+    "metal": [
+      105,
+      105,
+      105,
+      255
+    ],
+    "smooth": [
+      114,
+      114,
+      114,
+      255
+    ],
+    "ao": [
+      120,
+      120,
+      120,
+      255
+    ],
+    "culled": [
+      36,
+      20,
+      10,
+      255
+    ],
+    "doubleSided": [
+      32,
+      64,
+      128,
+      255
+    ]
+  },
+  "textureChecks": {
+    "coldMs": 0.4000000059604645,
+    "warmMs": 0,
+    "cachedMedianMs": 0,
+    "cachedP95Ms": 0.10000000894069672,
+    "samplerCreations": 0,
+    "misses": 2,
+    "decodes": 1,
+    "hits": 4,
+    "warmDecodes": 0,
+    "warmMisses": 0,
+    "creations": 2,
+    "mips": {
+      "rgba8unorm": {
+        "levels": 3,
+        "pixel": [
+          85,
+          85,
+          85,
+          255
+        ]
+      },
+      "rgba8unorm-srgb": {
+        "levels": 3,
+        "pixel": [
+          156,
+          156,
+          156,
+          255
+        ]
+      }
+    },
+    "decodeFailures": 2,
+    "failedCacheEntries": 0
+  },
+  "animationChecks": {
+    "time": 0.5,
+    "position": 5,
+    "scale": 0.75,
+    "rotation": [
+      0.7071067690849304,
+      0.7071067690849304
+    ],
+    "weights": [
+      0.5
+    ],
+    "renderMorphId": 0,
+    "morphId": 0,
+    "endTime": 1,
+    "playing": false,
+    "drawCalls": 0
+  },
+  "errors": [],
+  "validationError": null,
+  "cpuEncodingMs": {
+    "median": 0.09999999403953552,
+    "p95": 0.20000000298023224
+  },
+  "lossHandled": true,
+  "cameraCheck": {
+    "creations": 0,
+    "statsBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 6,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 6,
+      "textures": 3,
+      "bufferBytes": 6458032,
+      "cacheHits": 15,
+      "cacheMisses": 13
+    },
+    "statsAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 6,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 6,
+      "textures": 3,
+      "bufferBytes": 6458032,
+      "cacheHits": 15,
+      "cacheMisses": 13
+    },
+    "sameBuffer": true,
+    "moved": true
+  },
+  "resourceBenchmark": {
+    "count": 100,
+    "uncachedMs": 0.4000000059604645,
+    "cachedMs": 1.7000000029802322,
+    "stats": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 6,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 6,
+      "textures": 3,
+      "bufferBytes": 6458032,
+      "cacheHits": 115,
+      "cacheMisses": 13
+    }
+  },
+  "dynamicBenchmark": {
+    "count": 10000,
+    "individualMs": 11.5,
+    "sharedMs": 2.4000000059604645,
+    "sharedBufferCreations": 0,
+    "arenaBuffers": 3,
+    "uploadBytes": 640000
+  },
+  "drawBenchmark": {
+    "objects": 10000,
+    "results": {
+      "individual": {
+        "medianCpuMs": 1.6000000089406967,
+        "samples": [
+          1.5999999940395355,
+          1.5999999940395355,
+          1.6000000089406967,
+          2,
+          2.2000000029802322
+        ],
+        "stats": {
+          "drawCalls": 10000,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 960256,
+          "totalRenderables": 10000,
+          "frustumTested": 10000,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 0
+        },
+        "imageHash": 254962746
+      },
+      "sorted": {
+        "medianCpuMs": 1.5,
+        "samples": [
+          1.3999999910593033,
+          1.5,
+          1.5,
+          1.5,
+          1.5
+        ],
+        "stats": {
+          "drawCalls": 10000,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 960256,
+          "totalRenderables": 10000,
+          "frustumTested": 10000,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 0
+        },
+        "imageHash": 254962746
+      },
+      "instanced": {
+        "medianCpuMs": 1.2000000029802322,
+        "samples": [
+          1,
+          1.199999988079071,
+          1.2000000029802322,
+          1.2000000029802322,
+          1.2999999970197678
+        ],
+        "stats": {
+          "drawCalls": 1,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 960256,
+          "totalRenderables": 10000,
+          "frustumTested": 10000,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 0
+        },
+        "imageHash": 254962746
+      },
+      "instanced-bvh": {
+        "medianCpuMs": 2.0999999940395355,
+        "samples": [
+          2,
+          2.0999999940395355,
+          2.0999999940395355,
+          2.0999999940395355,
+          2.1000000089406967
+        ],
+        "stats": {
+          "drawCalls": 1,
+          "triangles": 120000,
+          "instances": 10000,
+          "pipelineSwitches": 1,
+          "materialSwitches": 1,
+          "meshSwitches": 1,
+          "bufferUploadBytes": 960256,
+          "totalRenderables": 10000,
+          "frustumTested": 0,
+          "frustumRejected": 0,
+          "visibleObjects": 10000,
+          "bvhNodesTested": 1
+        },
+        "imageHash": 254962746
+      }
+    },
+    "resourceBefore": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 6,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 6,
+      "textures": 3,
+      "bufferBytes": 6458032,
+      "cacheHits": 115,
+      "cacheMisses": 13
+    },
+    "resourceAfter": {
+      "pipelineCreations": 10,
+      "shaderModules": 2,
+      "bufferCreations": 6,
+      "textureCreations": 4,
+      "samplerCreations": 1,
+      "buffers": 6,
+      "textures": 3,
+      "bufferBytes": 6458032,
+      "cacheHits": 115,
+      "cacheMisses": 13
+    }
+  }
+}

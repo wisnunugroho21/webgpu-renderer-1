@@ -6,4 +6,8 @@ export interface Material {
   alphaMode?: AlphaMode;
   alphaCutoff?: number;
   doubleSided?: boolean;
+  emissive?: ArrayLike<number>;
+  normalScale?: number;
+  occlusionStrength?: number;
+  textures?: Record<string, { texCoord: number }>;
 }

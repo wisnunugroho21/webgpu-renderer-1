@@ -1,0 +1,379 @@
+import { GPUProfiler, GPUPass } from "../../profiling/GPUProfiler";
+import { ShadowSceneCache } from "./ShadowSceneCache";
+import { cascadeSplit } from "./CascadeSplits";
+import { Frustum } from "../../math/Frustum";
+import { FrustumCuller } from "../../visibility/FrustumCuller";
+import { Resources } from "../../gpu/Resources";
+import { DynamicBufferAllocator } from "../../gpu/DynamicBufferAllocator";
+import { RendererStats } from "../../profiling/RendererStats";
+import { RenderWorld } from "../RenderWorld";
+import { Camera } from "../Camera";
+import { MeshManager } from "../MeshManager";
+import { MaterialManager } from "../materials/MaterialManager";
+import { MaterialTextures } from "../materials/MaterialTextures";
+import { RenderQueue } from "../RenderQueue";
+import { RenderSorter } from "../RenderSorter";
+import { InstanceManager } from "../InstanceManager";
+import { ShadowCamera } from "./ShadowCamera";
+import frame from "../../shaders/frame.wgsl?raw";
+import geometry from "../../shaders/geometry.wgsl?raw";
+import common from "../../shaders/common.wgsl?raw";
+import morph from "../../shaders/morphing.wgsl?raw";
+import skin from "../../shaders/skinning.wgsl?raw";
+import shader from "../../shaders/shadow-pass.wgsl?raw";
+/** Cold fixed resources, compact numeric shadow metadata, shared caster instance pool. */
+export class ShadowManager {
+  readonly resolution = 1024;
+  readonly capacity = 16;
+  readonly texture: GPUTexture;
+  readonly view: GPUTextureView;
+  readonly sampler: GPUSampler;
+  readonly buffer: GPUBuffer;
+  readonly data = new Float32Array(16 * 20);
+  readonly uniforms = new Float32Array(16 * 64);
+  readonly queue: RenderQueue;
+  readonly instances: InstanceManager;
+  private readonly sorter = new RenderSorter();
+  private readonly camera = new ShadowCamera();
+  private readonly views: GPUTextureView[];
+  readonly groups: GPUBindGroup[];
+  readonly passGroups: GPUBindGroup[];
+  readonly descriptors: GPURenderPipelineDescriptor[];
+  private readonly pipelines: GPURenderPipeline[];
+  private readonly previous = new Float32Array(16 * 20).fill(NaN);
+  private layerCount = 0;
+  private instanceOffset = 0;
+  private uniformOffset = 0;
+  enabled = true;
+  cacheEnabled = true;
+  private readonly sceneCache: ShadowSceneCache;
+  private readonly valid = new Uint8Array(16);
+  private readonly drawLayer = new Uint8Array(16);
+  private cascadeCount = 1;
+  private distance = 30;
+  get cascades(): number {
+    return this.cascadeCount;
+  }
+  set cascades(value: number) {
+    if (!Number.isInteger(value) || value < 1 || value > 4)
+      throw new Error("Shadow cascades must be 1–4");
+    this.cascadeCount = value;
+  }
+  get shadowDistance(): number {
+    return this.distance;
+  }
+  set shadowDistance(value: number) {
+    if (!Number.isFinite(value) || value <= 0.1 || value > 100)
+      throw new Error("Shadow distance must be >0.1 and <=100");
+    this.distance = value;
+  }
+  cullingEnabled = true;
+  private readonly frustum = new Frustum();
+  private readonly culler: FrustumCuller;
+  private readonly visible: Uint8Array;
+  constructor(
+    private readonly device: GPUDevice,
+    resources: Resources,
+    private readonly dynamic: DynamicBufferAllocator,
+    world: RenderWorld,
+    bindings: readonly GPUBuffer[],
+    private readonly meshes: MeshManager,
+    private readonly materials: MaterialManager,
+    private readonly textures: MaterialTextures,
+    vertexBuffers: GPUVertexBufferLayout[],
+  ) {
+    this.sceneCache = new ShadowSceneCache(world);
+    this.culler = new FrustumCuller(world.capacity);
+    this.visible = new Uint8Array(world.capacity);
+    this.queue = new RenderQueue(world.capacity);
+    this.instances = new InstanceManager(world.capacity);
+    this.texture = resources.textures.create({
+      label: "Directional shadow array",
+      size: [this.resolution, this.resolution, this.capacity],
+      format: "depth32float",
+      usage:
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    });
+    this.view = this.texture.createView({ dimension: "2d-array" });
+    this.views = Array.from({ length: this.capacity }, (_, layer) =>
+      this.texture.createView({
+        dimension: "2d",
+        baseArrayLayer: layer,
+        arrayLayerCount: 1,
+      }),
+    );
+    this.sampler = resources.samplers.get({
+      compare: "less-equal",
+      magFilter: "linear",
+      minFilter: "linear",
+    });
+    this.buffer = resources.buffers.create({
+      label: "Shared shadow matrices",
+      size: this.data.byteLength,
+      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    });
+    // Exclude the sampled shadow texture from depth-pass groups to avoid feedback hazards.
+    const layout = device.createBindGroupLayout({
+      entries: Array.from({ length: 9 }, (_, binding) => ({
+        binding,
+        visibility:
+          binding === 2 ? GPUShaderStage.FRAGMENT : GPUShaderStage.VERTEX,
+        buffer: {
+          type:
+            binding === 0
+              ? ("uniform" as const)
+              : ("read-only-storage" as const),
+          minBindingSize:
+            binding === 0
+              ? 192
+              : binding === 2
+                ? 80
+                : binding === 3
+                  ? 48
+                  : binding === 5
+                    ? 4
+                    : binding >= 6
+                      ? 16
+                      : 64,
+          hasDynamicOffset: binding === 3,
+        },
+      })),
+    });
+    this.groups = dynamic.buffers.map((buffer) =>
+      device.createBindGroup({
+        layout,
+        entries: Array.from({ length: 9 }, (_, binding) => ({
+          binding,
+          resource:
+            binding === 0
+              ? { buffer, offset: 0, size: 192 }
+              : binding === 1
+                ? {
+                    buffer,
+                    offset: dynamic.alignment,
+                    size: world.capacity * 64,
+                  }
+                : binding === 3
+                  ? { buffer, offset: 0, size: world.capacity * 48 }
+                  : { buffer: bindings[binding]! },
+        })),
+      }),
+    );
+    const passLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: {
+            type: "uniform",
+            hasDynamicOffset: true,
+            minBindingSize: 64,
+          },
+        },
+      ],
+    });
+    this.passGroups = dynamic.buffers.map((buffer) =>
+      device.createBindGroup({
+        layout: passLayout,
+        entries: [{ binding: 0, resource: { buffer, size: 64 } }],
+      }),
+    );
+    const module = resources.shaders.get(
+      [frame, geometry, common, morph, skin, shader].join("\n"),
+      "Shared deformed shadow shader",
+    );
+    const pipelineLayout = device.createPipelineLayout({
+      bindGroupLayouts: [layout, textures.layout, passLayout],
+    });
+    this.descriptors = Array.from({ length: 6 }, (_, index) => ({
+      label: "Shadow depth",
+      layout: pipelineLayout,
+      vertex: { module, entryPoint: "shadowVS", buffers: vertexBuffers },
+      fragment: { module, entryPoint: "shadowFS", targets: [] },
+      primitive: {
+        topology:
+          index % 3 === 0
+            ? "triangle-list"
+            : index % 3 === 1
+              ? "line-list"
+              : "point-list",
+        cullMode: index % 3 !== 0 || index >= 3 ? "none" : "back",
+      },
+      depthStencil: {
+        format: "depth32float",
+        depthCompare: "less",
+        depthWriteEnabled: true,
+        depthBias: index % 3 === 0 ? 2 : 0,
+        depthBiasSlopeScale: index % 3 === 0 ? 2 : 0,
+      },
+    }));
+    this.pipelines = this.descriptors.map((descriptor) =>
+      resources.pipelines.get(descriptor),
+    );
+  }
+  prepare(
+    world: RenderWorld,
+    camera: Camera,
+    queue: GPUQueue,
+    stats: RendererStats,
+  ): void {
+    this.layerCount = 0;
+    let castingLights = 0;
+    for (let light = 0; light < world.lightCount; light++) {
+      const offset = light * 16,
+        cast = this.enabled && world.lightShadow[light] !== 0;
+      if (cast && castingLights === 4)
+        throw new Error("Directional shadow light capacity exceeded (4)");
+      const first = cast ? this.layerCount + 1 : 0,
+        count = cast ? this.cascades : 0;
+      if (
+        world.lightData[offset + 14] !== first ||
+        world.lightData[offset + 15] !== count
+      ) {
+        world.lightData[offset + 14] = first;
+        world.lightData[offset + 15] = count;
+        world.lightDirty[light] = 1;
+      }
+      if (!cast) continue;
+      castingLights++;
+      let near = 0.1;
+      for (let cascade = 1; cascade <= this.cascades; cascade++) {
+        const far = cascadeSplit(
+          0.1,
+          this.shadowDistance,
+          cascade,
+          this.cascades,
+        );
+        this.camera.fit(camera, world, light, near, far, this.resolution);
+        const layer = this.layerCount++,
+          o = layer * 20;
+        this.data.set(this.camera.matrix, o);
+        this.data[o + 16] = far;
+        this.data[o + 17] = 0.0001;
+        this.data[o + 18] = 0.005;
+        this.data[o + 19] = 0;
+        this.uniforms.set(this.camera.matrix, layer * 64);
+        let changed = false;
+        for (let k = 0; k < 20; k++)
+          if (this.previous[o + k] !== this.data[o + k]) changed = true;
+        this.drawLayer[layer] =
+          !this.cacheEnabled || changed || !this.valid[layer] ? 1 : 0;
+        if (changed) {
+          queue.writeBuffer(this.buffer, o * 4, this.data.buffer, o * 4, 80);
+          this.previous.set(this.data.subarray(o, o + 20), o);
+          stats.shadowUploadBytes += 80;
+        }
+        near = far;
+      }
+    }
+    if (!this.layerCount) return;
+    this.queue.build(world, this.materials, camera.view);
+    this.sorter.sort(this.queue, world, true);
+    this.queue.count = this.queue.opaqueCount + this.queue.maskCount; // Blended surfaces do not cast opaque depth.
+    this.instances.update(this.queue, world, this.meshes);
+    if (
+      this.sceneCache.update(
+        world,
+        this.instances.data,
+        this.queue.count,
+        this.materials.revision,
+      )
+    )
+      this.drawLayer.fill(1, 0, this.layerCount);
+    let draws = 0;
+    for (let layer = 0; layer < this.layerCount; layer++)
+      draws += this.drawLayer[layer]!;
+    if (!draws) return;
+    this.instanceOffset = this.dynamic.allocate(
+      Math.max(48, this.queue.count * 48),
+      this.device.limits.minStorageBufferOffsetAlignment,
+    );
+    this.dynamic.write(
+      this.instanceOffset,
+      this.instances.data.subarray(0, Math.max(12, this.queue.count * 12)),
+    );
+    this.uniformOffset = this.dynamic.allocate(this.layerCount * 256);
+    this.dynamic.write(
+      this.uniformOffset,
+      this.uniforms.subarray(0, this.layerCount * 64),
+    );
+  }
+  encode(
+    encoder: GPUCommandEncoder,
+    world: RenderWorld,
+    stats: RendererStats,
+    profiler?: GPUProfiler,
+  ): void {
+    for (let layer = 0; layer < this.layerCount; layer++) {
+      if (!this.drawLayer[layer]) {
+        stats.shadowCacheHits++;
+        continue;
+      }
+      this.frustum.setFromMatrix(
+        this.data.subarray(layer * 20, layer * 20 + 16),
+      );
+      this.visible.fill(0, 0, world.count);
+      for (let i = 0; i < world.count; i++)
+        this.visible[i] =
+          !this.cullingEnabled || this.culler.intersects(world, i, this.frustum)
+            ? 1
+            : 0;
+      for (let i = 0; i < this.queue.count; i++)
+        if (!this.visible[this.queue.order[i]!]) stats.shadowRejected++;
+
+      const pass = encoder.beginRenderPass({
+        label: "Directional shadow",
+        timestampWrites: profiler?.writes(GPUPass.shadow),
+        colorAttachments: [],
+        depthStencilAttachment: {
+          view: this.views[layer]!,
+          depthClearValue: 1,
+          depthLoadOp: "clear",
+          depthStoreOp: "store",
+        },
+      });
+      pass.setBindGroup(0, this.groups[this.dynamic.frameSlot]!, [
+        this.instanceOffset,
+      ]);
+      pass.setBindGroup(2, this.passGroups[this.dynamic.frameSlot]!, [
+        this.uniformOffset + layer * 256,
+      ]);
+      let first = 0;
+      while (first < this.queue.count) {
+        if (!this.visible[this.queue.order[first]!]) {
+          first++;
+          continue;
+        }
+        const object = this.queue.order[first]!,
+          mesh = world.meshId[object]!,
+          material = world.materialId[object]!,
+          geometry = this.meshes.get(mesh),
+          pipeline =
+            this.materials.doubleSided[material]! * 3 + geometry.topology;
+        let end = first + 1;
+        while (
+          end < this.queue.count &&
+          this.visible[this.queue.order[end]!] !== 0 &&
+          world.meshId[this.queue.order[end]!] === mesh &&
+          world.materialId[this.queue.order[end]!] === material
+        )
+          end++;
+        pass.setPipeline(this.pipelines[pipeline]!);
+        pass.setBindGroup(
+          1,
+          this.textures.groups[material] ?? this.textures.fallback,
+        );
+        pass.setVertexBuffer(0, geometry.vertex);
+        pass.setIndexBuffer(geometry.index, "uint32");
+        pass.drawIndexed(geometry.indexCount, end - first, 0, 0, first);
+        stats.shadowDrawCalls++;
+        if (geometry.topology === 0)
+          stats.shadowTriangles += (geometry.indexCount / 3) * (end - first);
+        first = end;
+      }
+      pass.end();
+      this.valid[layer] = 1;
+      stats.shadowPasses++;
+    }
+  }
+}

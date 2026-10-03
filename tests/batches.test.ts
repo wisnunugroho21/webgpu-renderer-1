@@ -22,7 +22,7 @@ describe("instance batches", () => {
     instances.update(q, w);
     expect(instances.data[0]).toBe(9999);
     expect(instances.data[6]).toBe(10049);
-    expect(instances.data[9999 * 8]).toBe(0);
+    expect(instances.data[9999 * 12]).toBe(0);
     b.build(q, w, false);
     expect(b.count).toBe(10000);
   });

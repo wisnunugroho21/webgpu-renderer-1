@@ -16,6 +16,9 @@ export function canvasSize(
 /** Owns the device and presentation surface. No synchronous GPU waits per frame. */
 export class GPUContext {
   readonly queue: GPUQueue;
+  get renderFormat(): GPUTextureFormat {
+    return `${this.format}-srgb` as GPUTextureFormat;
+  }
   readonly errors: string[] = [];
   lost = false;
   disposed = false;
@@ -58,7 +61,16 @@ export class GPUContext {
       powerPreference: "high-performance",
     });
     if (!adapter) throw new Error("No WebGPU adapter is available.");
-    const device = await adapter.requestDevice();
+    const requiredFeatures: GPUFeatureName[] = [];
+    for (const feature of [
+      "timestamp-query",
+      "indirect-first-instance",
+      "texture-compression-bc",
+      "texture-compression-etc2",
+      "texture-compression-astc",
+    ] as const)
+      if (adapter.features.has(feature)) requiredFeatures.push(feature);
+    const device = await adapter.requestDevice({ requiredFeatures });
     const context = canvas.getContext("webgpu");
     if (!context) {
       device.destroy();
@@ -93,6 +105,7 @@ export class GPUContext {
       device: this.device,
       format: this.format,
       alphaMode: "opaque",
+      viewFormats: [this.renderFormat],
       usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
     });
     return changed;

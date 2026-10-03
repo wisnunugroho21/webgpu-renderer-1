@@ -9,7 +9,8 @@
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
     "benchmark": "vitest bench --run",
-    "validate:gpu": "node scripts/validate-gpu.mjs"
+    "validate:gpu": "node scripts/validate-gpu.mjs",
+    "benchmark:gpu": "node scripts/benchmark-matrix.mjs"
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.74",
@@ -20,6 +21,7 @@
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "@gltf-transform/core": "^4.5.1"
+    "@gltf-transform/core": "^4.5.1",
+    "ktx-parse": "^2.0.0"
   }
 }

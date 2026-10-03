@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/profiling.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/profiling.bench.ts > profiling overhead",
+          "benchmarks": [
+            {
+              "id": "-1470095757_0_0",
+              "name": "record 9 CPU stages x 10,000 frames",
+              "rank": 1,
+              "rme": 1.3288165237601475,
+              "samples": [],
+              "totalTime": 501.8940029999992,
+              "min": 5.512875000000008,
+              "max": 8.21508399999999,
+              "hz": 175.33582683593082,
+              "period": 5.703340943181809,
+              "mean": 5.703340943181809,
+              "variance": 0.12790346591860458,
+              "sd": 0.3576359404738352,
+              "sem": 0.03812411935176705,
+              "df": 87,
+              "critical": 1.9879,
+              "moe": 0.07578693685937772,
+              "p75": 5.643709000000001,
+              "p99": 8.21508399999999,
+              "p995": 8.21508399999999,
+              "p999": 8.21508399999999,
+              "sampleCount": 88,
+              "median": 5.624166499999973
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

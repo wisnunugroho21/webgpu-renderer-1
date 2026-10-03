@@ -1,3 +1,14 @@
+import { AssetDecoder } from "../assets/workers/AssetDecoder";
+import { AssetLoader } from "../assets/AssetLoader";
+import { GLTFLoader } from "../assets/gltf/GLTFLoader";
+import { instantiate, UploadedAsset } from "../assets/gltf/instantiate";
+import { RuntimeAsset } from "../assets/gltf/RuntimeAsset";
+import { JSONDocument } from "@gltf-transform/core";
+import { CPUProfiler, CPUStage } from "../profiling/CPUProfiler";
+import { AnimatedBoundsSystem } from "../ecs/systems/AnimatedBoundsSystem";
+import { SkeletonSystem } from "../ecs/systems/SkeletonSystem";
+import { SkeletonRegistry } from "../animation/skinning/SkeletonRegistry";
+import { AnimationSystem } from "../ecs/systems/AnimationSystem";
 import { GPUContext } from "../gpu/GPUContext";
 import { Renderer } from "../rendering/Renderer";
 import { World } from "../ecs/World";
@@ -9,12 +20,30 @@ import { MaterialManager } from "../rendering/materials/MaterialManager";
 export class Application {
   gpu!: GPUContext;
   renderer!: Renderer;
-  readonly world = new World();
-  readonly transformSystem = new TransformSystem(this.world.capacity);
+  readonly world: World;
+  readonly animations = new AnimationSystem();
+  readonly skeletons = new SkeletonRegistry();
+  readonly skeletonSystem = new SkeletonSystem();
+  readonly animatedBounds = new AnimatedBoundsSystem();
+  private lastFrameTime = 0;
+  readonly transformSystem: TransformSystem;
   readonly sceneEntity: number;
-  readonly renderWorld = new RenderWorld(this.world.capacity);
+  readonly defaultLightEntity: number;
+  readonly renderWorld: RenderWorld;
   readonly extractor = new RenderExtractor();
   readonly materials = new MaterialManager();
+  readonly profiler = new CPUProfiler();
+  readonly assetLoader = new AssetLoader<
+    JSONDocument,
+    RuntimeAsset,
+    UploadedAsset
+  >(
+    (url) => this.gltf.fetch(url),
+    (data) => this.assetDecoder.decode(data),
+    (asset) => this.uploadAsset(asset),
+  );
+  private readonly gltf = new GLTFLoader();
+  readonly assetDecoder = new AssetDecoder(this.gltf);
   frames = 0;
   readonly encodingTimes = new Float64Array(600);
   private frameId = 0;
@@ -25,12 +54,24 @@ export class Application {
   constructor(
     readonly canvas: HTMLCanvasElement,
     readonly status: HTMLOutputElement,
+    entityCapacity = 16384,
+    renderCapacity = entityCapacity,
   ) {
+    this.world = new World(entityCapacity);
+    this.transformSystem = new TransformSystem(entityCapacity);
+    this.renderWorld = new RenderWorld(renderCapacity);
     this.sceneEntity = this.world.create();
     this.world.transforms.add(this.sceneEntity);
     this.world.meshes.set(this.sceneEntity, 0, 0);
     this.world.bounds.setSphere(this.sceneEntity, 0, 0, 0, Math.sqrt(3));
     this.materials.create();
+    this.defaultLightEntity = this.world.create();
+    this.world.transforms.add(this.defaultLightEntity);
+    this.world.lights.set(this.defaultLightEntity, {
+      type: "directional",
+      intensity: 3,
+      direction: [-0.4, -0.6, -1],
+    });
   }
 
   async start(): Promise<void> {
@@ -46,33 +87,87 @@ export class Application {
       },
     );
     this.transformSystem.update(this.world.transforms);
-    this.extractor.extract(this.world, this.renderWorld);
-    this.renderer = new Renderer(this.gpu, this.renderWorld, this.materials);
+    this.skeletonSystem.update(this.world, this.skeletons);
+    if (this.renderer)
+      this.animatedBounds.update(
+        this.world,
+        this.renderer.meshes,
+        this.skeletons,
+        this.animations.morphPool,
+      );
+    this.extractor.extract(
+      this.world,
+      this.renderWorld,
+      this.skeletons,
+      this.animations.morphPool,
+    );
+    this.renderer = new Renderer(
+      this.gpu,
+      this.renderWorld,
+      this.materials,
+      this.profiler,
+    );
     this.observer = new ResizeObserver(() => this.gpu.resize());
     this.observer.observe(this.canvas);
     this.status.textContent = "WebGPU ready • indexed cube";
     this.frameId = requestAnimationFrame(this.frame);
   }
 
-  private readonly frame = (): void => {
+  private readonly frame = (timestamp: number): void => {
     if (this.stopped || this.gpu.lost) return;
     if (this.pixelRatio !== window.devicePixelRatio) {
       this.pixelRatio = window.devicePixelRatio;
       this.gpu.resize();
     }
     const start = performance.now();
+    this.profiler.beginFrame();
+    const delta = this.lastFrameTime
+      ? Math.max(0, (timestamp - this.lastFrameTime) / 1000)
+      : 0;
+    this.lastFrameTime = timestamp;
+    this.profiler.start(CPUStage.animation);
+    this.animations.update(delta);
+    this.profiler.end(CPUStage.animation);
+    this.profiler.start(CPUStage.transforms);
     this.transformSystem.update(this.world.transforms);
-    this.extractor.extract(this.world, this.renderWorld);
+    this.profiler.end(CPUStage.transforms);
+    this.profiler.start(CPUStage.skeletons);
+    this.skeletonSystem.update(this.world, this.skeletons);
+    this.profiler.end(CPUStage.skeletons);
+    this.profiler.start(CPUStage.animatedBounds);
+    if (this.renderer)
+      this.animatedBounds.update(
+        this.world,
+        this.renderer.meshes,
+        this.skeletons,
+        this.animations.morphPool,
+      );
+    this.profiler.end(CPUStage.animatedBounds);
+    this.profiler.start(CPUStage.extraction);
+    this.extractor.extract(
+      this.world,
+      this.renderWorld,
+      this.skeletons,
+      this.animations.morphPool,
+    );
+    this.profiler.end(CPUStage.extraction);
+    this.renderer.stats.activeAnimators = this.animations.activeAnimators;
     const encoder = this.gpu.device.createCommandEncoder({
       label: "Frame encoder",
     });
     this.renderer.encode(
       encoder,
-      this.gpu.context.getCurrentTexture().createView(),
+      this.gpu.context
+        .getCurrentTexture()
+        .createView({ format: this.gpu.renderFormat }),
     );
     this.gpu.queue.submit([encoder.finish()]);
+    this.renderer.stats.frameTimeMs = delta * 1000;
+    this.renderer.stats.fps = delta > 0 ? 1 / delta : 0;
+    this.renderer.stats.cpuFrameMs = performance.now() - start;
     this.encodingTimes[this.frames % this.encodingTimes.length] =
-      performance.now() - start;
+      this.renderer.stats.cpuFrameMs;
+    this.profiler.finishFrame();
     this.frames++;
     this.frameId = requestAnimationFrame(this.frame);
   };
@@ -83,19 +178,59 @@ export class Application {
     this.observer?.disconnect();
   }
 
+  private checkLoadingDevice(): void {
+    if (!this.renderer || this.gpu.disposed || this.gpu.lost)
+      throw new Error("Device unavailable during asset loading");
+  }
+  private async uploadAsset(asset: RuntimeAsset): Promise<UploadedAsset> {
+    this.checkLoadingDevice();
+    const groups = await this.renderer.textures.prepare(asset);
+    this.checkLoadingDevice();
+    if (
+      this.materials.count + asset.materials.length + 1 >
+      this.materials.capacity
+    )
+      throw new Error("Material capacity exceeded by asset");
+    const materialIds = asset.materials.map((material) =>
+      this.materials.create(material),
+    );
+    const defaultMaterial = this.materials.create({
+      metallic: 1,
+      roughness: 1,
+    });
+    for (let i = 0; i < groups.length; i++)
+      this.renderer.textures.groups[materialIds[i]!] = groups[i]!;
+    const meshIds: number[][] = [];
+    for (const mesh of asset.meshes) {
+      const ids: number[] = [];
+      meshIds.push(ids);
+      for (const primitive of mesh.primitives) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        this.checkLoadingDevice();
+        ids.push(this.renderer.meshes.upload(primitive));
+      }
+    }
+    return { materialIds, defaultMaterial, meshIds };
+  }
   async loadAsset(url: string): Promise<Uint32Array> {
-    const [{ GLTFLoader }, { instantiate }] = await Promise.all([
-      import("../assets/gltf/GLTFLoader"),
-      import("../assets/gltf/instantiate"),
-    ]);
-    const asset = await new GLTFLoader().load(url);
-    if (this.gpu.disposed || this.gpu.lost)
-      throw new Error("Application stopped during asset loading");
-    return instantiate(asset, this.world, this.renderer.meshes, this.materials);
+    const uploaded = await this.assetLoader.load(url);
+    this.checkLoadingDevice();
+    const asset = this.assetLoader.get(url).decoded!;
+    return instantiate(
+      asset,
+      this.world,
+      this.renderer.meshes,
+      this.materials,
+      asset.defaultScene,
+      this.animations,
+      this.skeletons,
+      uploaded,
+    );
   }
 
   dispose(): void {
     this.stop();
+    this.assetDecoder.dispose();
     this.renderer?.dispose();
     this.gpu?.dispose();
   }

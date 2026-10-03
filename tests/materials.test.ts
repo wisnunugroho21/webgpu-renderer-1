@@ -11,14 +11,14 @@ describe("shared material data", () => {
         alphaMode: "MASK",
         doubleSided: true,
       });
-    expect(m.data[id * 8 + 4]).toBeCloseTo(0.8);
+    expect(m.data[id * 20 + 4]).toBeCloseTo(0.8);
     expect(m.pipelineIndex(id)).toBe(3);
     expect(m.flags[id]).toBe(
       MaterialFlags.ALPHA_MASK | MaterialFlags.DOUBLE_SIDED,
     );
     m.set(id, { alphaMode: "BLEND" });
     expect(m.pipelineIndex(id)).toBe(4);
-    expect(m.data[id * 8]).toBe(1);
+    expect(m.data[id * 20]).toBe(1);
   });
   it("uploads changed ranges and skips unchanged data", () => {
     const m = new MaterialManager(3);
@@ -26,19 +26,19 @@ describe("shared material data", () => {
     const buffer = {} as GPUBuffer,
       queue = { writeBuffer: vi.fn() } as unknown as GPUQueue;
     m.upload(queue, buffer);
-    expect(m.uploadBytes).toBe(96);
+    expect(m.uploadBytes).toBe(240);
     m.upload(queue, buffer);
     expect(m.uploadBytes).toBe(0);
     m.set(1, { roughness: 0.3 });
     m.upload(queue, buffer);
     expect(queue.writeBuffer).toHaveBeenLastCalledWith(
       buffer,
-      32,
+      80,
       m.data.buffer,
-      32,
-      32,
+      80,
+      80,
     );
-    expect(m.uploadBytes).toBe(32);
+    expect(m.uploadBytes).toBe(80);
   });
   it("rejects capacity and invalid values", () => {
     const m = new MaterialManager(1);
@@ -48,4 +48,34 @@ describe("shared material data", () => {
     expect(() => m.create()).toThrow("capacity");
     expect(() => m.set(5, {})).toThrow();
   });
+});
+
+it("updates streamed UV/normal metadata and revisions, then restores the original layout", () => {
+  const manager = new MaterialManager(),
+    id = manager.create({
+      baseColor: [0.2, 0.3, 0.4, 1],
+      textures: { baseColor: { texCoord: 0 } },
+    });
+  const old = manager.textureLayout(id),
+    revision = manager.revision;
+  manager.setTextureSlots(id, {
+    baseColor: { texCoord: 1 },
+    normal: { texCoord: 1 },
+    emissive: { texCoord: 1 },
+  });
+  expect(manager.textureLayout(id)).toEqual(
+    new Float32Array([1, 1, 1, 0, 1, 0]),
+  );
+  expect(manager.revision).toBeGreaterThan(revision);
+  expect(Array.from(manager.data.slice(0, 3))).toEqual([
+    Math.fround(0.2),
+    Math.fround(0.3),
+    Math.fround(0.4),
+  ]);
+  manager.setTextureLayout(id, old);
+  expect(manager.textureLayout(id)).toEqual(old);
+  expect(() =>
+    manager.setTextureSlots(id, { normal: { texCoord: 2 } }),
+  ).toThrow("TEXCOORD");
+  expect(manager.textureLayout(id)).toEqual(old);
 });

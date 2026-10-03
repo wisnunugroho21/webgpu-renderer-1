@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/render-graph.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/render-graph.bench.ts > render graph",
+          "benchmarks": [
+            {
+              "id": "-253779130_0_0",
+              "name": "execute eight compiled passes 10,000 times",
+              "rank": 1,
+              "rme": 0.09674216173003135,
+              "samples": [],
+              "totalTime": 500.0707090000023,
+              "min": 0.21466700000001993,
+              "max": 0.2670420000000604,
+              "hz": 4605.348720794582,
+              "period": 0.2171388228397752,
+              "mean": 0.2171388228397752,
+              "variance": 0.000026453816007699524,
+              "sd": 0.00514332732846156,
+              "sem": 0.00010717591386241917,
+              "df": 2302,
+              "critical": 1.96,
+              "moe": 0.00021006479117034158,
+              "p75": 0.2175420000000372,
+              "p99": 0.23945800000001327,
+              "p995": 0.24350000000004002,
+              "p999": 0.254792000000009,
+              "sampleCount": 2303,
+              "median": 0.214917000000014
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

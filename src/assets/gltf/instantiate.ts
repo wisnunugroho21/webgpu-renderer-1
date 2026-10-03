@@ -1,7 +1,14 @@
+import { SkeletonRegistry } from "../../animation/skinning/SkeletonRegistry";
+import { AnimationSystem } from "../../ecs/systems/AnimationSystem";
 import { RuntimeAsset } from "./RuntimeAsset";
 import { World } from "../../ecs/World";
 import { MeshManager } from "../../rendering/MeshManager";
 import { MaterialManager } from "../../rendering/materials/MaterialManager";
+export interface UploadedAsset {
+  materialIds: number[];
+  defaultMaterial: number;
+  meshIds: number[][];
+}
 /** Instantiate selected scene hierarchy into ECS; GPU assets are uploaded once per primitive. */
 export function instantiate(
   asset: RuntimeAsset,
@@ -9,6 +16,9 @@ export function instantiate(
   meshes: MeshManager,
   materials: MaterialManager,
   scene = asset.defaultScene,
+  animations?: AnimationSystem,
+  skeletons?: SkeletonRegistry,
+  uploaded?: UploadedAsset,
 ): Uint32Array {
   const roots = asset.scenes[scene];
   if (!roots) throw new Error("Unknown glTF scene");
@@ -36,15 +46,22 @@ export function instantiate(
   );
   if (world.nextEntity + active.length + primitiveCount > world.capacity)
     throw new Error("World capacity exceeded by asset");
-  if (materials.count + asset.materials.length + 1 > materials.capacity)
+  if (
+    !uploaded &&
+    materials.count + asset.materials.length + 1 > materials.capacity
+  )
     throw new Error("Material capacity exceeded by asset");
-  const materialIds = asset.materials.map((material) =>
-      materials.create(material),
-    ),
-    defaultMaterial = materials.create({ metallic: 1, roughness: 1 });
-  const meshIds = asset.meshes.map((mesh) =>
-    mesh.primitives.map((primitive) => meshes.upload(primitive)),
-  );
+  const materialIds =
+      uploaded?.materialIds ??
+      asset.materials.map((material) => materials.create(material)),
+    defaultMaterial =
+      uploaded?.defaultMaterial ??
+      materials.create({ metallic: 1, roughness: 1 }),
+    meshIds =
+      uploaded?.meshIds ??
+      asset.meshes.map((mesh) =>
+        mesh.primitives.map((primitive) => meshes.upload(primitive)),
+      );
   for (const node of active) {
     const entity = world.create(),
       data = asset.nodes[node]!;
@@ -88,16 +105,11 @@ export function instantiate(
           ? defaultMaterial
           : materialIds[primitive.material]!,
       );
-      const position = primitive.attributes.POSITION!,
-        min = [Infinity, Infinity, Infinity],
-        max = [-Infinity, -Infinity, -Infinity];
-      for (let i = 0; i < position.length; i++) {
-        const axis = i % 3;
-        min[axis] = Math.min(min[axis]!, position[i]!);
-        max[axis] = Math.max(max[axis]!, position[i]!);
-      }
-      world.bounds.setAABB(entity, min, max);
+      const bounds = meshes.get(meshIds[data.mesh]![index]!).bounds!;
+      world.bounds.setAABB(entity, bounds.min, bounds.max);
     });
   }
+  skeletons?.attach(asset, entities, world, meshes);
+  animations?.attach(asset, entities, world);
   return new Uint32Array(active.map((node) => entities[node]!));
 }

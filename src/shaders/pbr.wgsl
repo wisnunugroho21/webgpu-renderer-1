@@ -107,7 +107,7 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
     if ((u32(frame.lighting.z) & 2u) != 0u) {
       v = safeNormalize(vec3<f32>(frame.view[0].z, frame.view[1].z, frame.view[2].z));
     }
-    result = directLighting(base.rgb, metallic, roughness, n, v, input.world, input.position.xy) + base.rgb * (1.0 - metallic) * 0.03 * ao + emissive;
+    result = directLighting(base.rgb, metallic, roughness, n, v, input.world, input.position.xy) + ambientLighting(base.rgb, metallic, roughness, n, v, ao) + emissive;
   }
   return vec4<f32>(result, select(1.0, base.a, m.surface.z == 2.0));
 }

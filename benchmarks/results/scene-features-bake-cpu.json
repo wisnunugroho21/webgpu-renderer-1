@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/environment.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/environment.bench.ts",
+          "benchmarks": [
+            {
+              "id": "-1017924698_0",
+              "name": "Cold HDR bake: 16px GGX cube / 4px diffuse / 16px BRDF, 64 samples",
+              "rank": 1,
+              "rme": 0.8752290482507391,
+              "samples": [],
+              "totalTime": 501.4404970000001,
+              "min": 3.350999999999999,
+              "max": 4.418417000000034,
+              "hz": 289.1669118619272,
+              "period": 3.458210324137932,
+              "mean": 3.458210324137932,
+              "variance": 0.03457817849699933,
+              "sd": 0.1859520865626394,
+              "sem": 0.01544248025839858,
+              "df": 144,
+              "critical": 1.96,
+              "moe": 0.030267261306461218,
+              "p75": 3.44074999999998,
+              "p99": 4.211500000000001,
+              "p995": 4.418417000000034,
+              "p999": 4.418417000000034,
+              "sampleCount": 145,
+              "median": 3.393875000000037
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

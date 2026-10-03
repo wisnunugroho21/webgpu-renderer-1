@@ -1,0 +1,258 @@
+{
+  "tests": 192,
+  "testFiles": 50,
+  "defaultGpuCounterResourceSnapshotsUnchanged": 86,
+  "features": {
+    "layers": {
+      "activeDifference": 38571,
+      "zeroDifference": 0,
+      "referenceDifference": 0,
+      "clearedDifference": 0,
+      "resourcesBefore": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 38,
+        "textureCreations": 5,
+        "samplerCreations": 2,
+        "buffers": 38,
+        "textures": 5,
+        "bufferBytes": 61135576,
+        "cacheHits": 54,
+        "cacheMisses": 66
+      },
+      "resourcesAfter": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 38,
+        "textureCreations": 5,
+        "samplerCreations": 2,
+        "buffers": 38,
+        "textures": 5,
+        "bufferBytes": 61135576,
+        "cacheHits": 54,
+        "cacheMisses": 66
+      },
+      "jointUploadBytes": 4096,
+      "depthPasses": 1,
+      "shadowPasses": 1
+    },
+    "environment": {
+      "installationMs": 19.299999997019768,
+      "analyticError": 0,
+      "darkCenter": [
+        0,
+        0,
+        0
+      ],
+      "center": [
+        127,
+        127,
+        127
+      ],
+      "expected": 127,
+      "activeDifference": 23352,
+      "disabledDifference": 0,
+      "resumedDifference": 0,
+      "failedInstallDifference": 0,
+      "rejected": true,
+      "zeroIntensityDifference": 23352,
+      "rotationDifference": 15568,
+      "roughnessDifference": 15568,
+      "modeImages": [
+        {
+          "mode": "individual",
+          "differentBytes": 0
+        },
+        {
+          "mode": "sorted",
+          "differentBytes": 0
+        },
+        {
+          "mode": "instanced",
+          "differentBytes": 0
+        },
+        {
+          "mode": "gpu-indirect",
+          "differentBytes": 0
+        }
+      ],
+      "timings": {
+        "off": {
+          "cpuEncodingMs": 0.09999999403953552,
+          "completionMs": 0.8999999910593033
+        },
+        "on": {
+          "cpuEncodingMs": 0,
+          "completionMs": 0.7999999970197678
+        }
+      },
+      "overdrawTimings": {
+        "off": {
+          "cpuEncodingMs": 0.20000000298023224,
+          "completionMs": 4.699999988079071
+        },
+        "on": {
+          "cpuEncodingMs": 0.20000000298023224,
+          "completionMs": 5.100000008940697
+        }
+      },
+      "overdrawResourcesBefore": {
+        "pipelineCreations": 84,
+        "shaderModules": 13,
+        "bufferCreations": 40,
+        "textureCreations": 11,
+        "samplerCreations": 3,
+        "buffers": 39,
+        "textures": 8,
+        "bufferBytes": 61135592,
+        "cacheHits": 96,
+        "cacheMisses": 100
+      },
+      "overdrawResourcesAfter": {
+        "pipelineCreations": 84,
+        "shaderModules": 13,
+        "bufferCreations": 40,
+        "textureCreations": 11,
+        "samplerCreations": 3,
+        "buffers": 39,
+        "textures": 8,
+        "bufferBytes": 61135592,
+        "cacheHits": 96,
+        "cacheMisses": 100
+      },
+      "timingResources": {
+        "pipelineCreations": 84,
+        "shaderModules": 13,
+        "bufferCreations": 40,
+        "textureCreations": 11,
+        "samplerCreations": 3,
+        "buffers": 39,
+        "textures": 8,
+        "bufferBytes": 61135592,
+        "cacheHits": 96,
+        "cacheMisses": 100
+      },
+      "beforeEnvironment": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 38,
+        "textureCreations": 5,
+        "samplerCreations": 2,
+        "buffers": 38,
+        "textures": 5,
+        "bufferBytes": 61135576,
+        "cacheHits": 54,
+        "cacheMisses": 66
+      },
+      "warmResources": {
+        "pipelineCreations": 84,
+        "shaderModules": 13,
+        "bufferCreations": 39,
+        "textureCreations": 8,
+        "samplerCreations": 3,
+        "buffers": 39,
+        "textures": 8,
+        "bufferBytes": 61135592,
+        "cacheHits": 95,
+        "cacheMisses": 100
+      },
+      "afterWarm": {
+        "pipelineCreations": 84,
+        "shaderModules": 13,
+        "bufferCreations": 40,
+        "textureCreations": 11,
+        "samplerCreations": 3,
+        "buffers": 39,
+        "textures": 8,
+        "bufferBytes": 61135592,
+        "cacheHits": 96,
+        "cacheMisses": 100
+      },
+      "clearedResources": {
+        "pipelineCreations": 84,
+        "shaderModules": 13,
+        "bufferCreations": 40,
+        "textureCreations": 11,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 5,
+        "bufferBytes": 61135576,
+        "cacheHits": 96,
+        "cacheMisses": 100
+      }
+    },
+    "gpuError": null,
+    "uncapturedErrors": [],
+    "demo": {
+      "resources": {
+        "pipelineCreations": 84,
+        "shaderModules": 13,
+        "bufferCreations": 39,
+        "textureCreations": 8,
+        "samplerCreations": 3,
+        "buffers": 39,
+        "textures": 8,
+        "bufferBytes": 61155960,
+        "cacheHits": 90,
+        "cacheMisses": 100
+      },
+      "rotation": 0.10010000000000002,
+      "gpuErrors": []
+    },
+    "pageErrors": []
+  },
+  "cpuMeans": {
+    "before": {
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.5355628308351181,
+      "500 characters x 64 joints, 1024 LINEAR keys": 7.013346055555571,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 11.97897711904764,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.18925992013626292,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.8268176909090794,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.22459763942523242,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 1.130106668171552,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.2520873518145182,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 0.8576728147512983,
+      "100 independent animators, shared TRS clip": 0.018945034857727142,
+      "1000 independent animators, shared TRS clip": 0.1943379191605124,
+      "10000 independent animators, shared TRS clip": 5.510852527472502
+    },
+    "layer": {
+      "1000 animators with 0 layers": 0.06058414103962331,
+      "1000 animators with 1 layers": 0.16202322294232013,
+      "1000 animators with 4 layers": 0.3819102312977102,
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.4625100813308684,
+      "500 characters x 64 joints, 1024 LINEAR keys": 5.526702857142851,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 11.879070697674399,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.19428252602952895,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.8267568148760426,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.22845655915943072,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 1.026177520491818,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.2693765546580509,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 0.9027535740072492,
+      "100 independent animators, shared TRS clip": 0.01983690414980597,
+      "1000 independent animators, shared TRS clip": 0.20389027272727217,
+      "10000 independent animators, shared TRS clip": 5.48824817391302
+    },
+    "after": {
+      "1000 animators with 0 layers": 0.06060921272727239,
+      "1000 animators with 1 layers": 0.1617476380983185,
+      "1000 animators with 4 layers": 0.3877043085271306,
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.46093055760368523,
+      "500 characters x 64 joints, 1024 LINEAR keys": 5.3199645319148905,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 11.806860558139592,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.19324324111283123,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.8160141370309911,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.22966668319558636,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 1.107415628318594,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.2587939353336695,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 0.8870826560283549,
+      "100 independent animators, shared TRS clip": 0.01970103092986576,
+      "1000 independent animators, shared TRS clip": 0.20221401172664913,
+      "10000 independent animators, shared TRS clip": 5.402939075268818,
+      "Cold HDR bake: 16px GGX cube / 4px diffuse / 16px BRDF, 64 samples": 3.4644436275862107
+    },
+    "environment": {
+      "Cold HDR bake: 16px GGX cube / 4px diffuse / 16px BRDF, 64 samples": 3.458210324137932
+    }
+  }
+}

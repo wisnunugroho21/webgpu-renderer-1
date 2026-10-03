@@ -7,13 +7,20 @@ const status = document.querySelector<HTMLOutputElement>("#status")!;
 const app = new Application(canvas, status);
 // Read-only diagnostics plus lifecycle access for the browser regression harness.
 Object.assign(window, { rendererApp: app });
-let example: ReturnType<typeof createCollectExample> | undefined;
+let example: { dispose(): void } | undefined;
 void app
   .start()
-  .then(() => {
+  .then(async () => {
     if (new URLSearchParams(location.search).get("example") === "collect") {
-      example = createCollectExample(app);
-      Object.assign(window, { collectGame: example.game });
+      const collect = createCollectExample(app);
+      example = collect;
+      Object.assign(window, { collectGame: collect.game });
+    } else if (
+      new URLSearchParams(location.search).get("example") === "lighting"
+    ) {
+      const { createLightingExample } = await import("./examples/lighting");
+      example = await createLightingExample(app);
+      Object.assign(window, { environmentDemoReady: true });
     }
   })
   .catch((error) => {

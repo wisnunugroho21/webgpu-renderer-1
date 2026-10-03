@@ -19,6 +19,7 @@ import { ClusteredLighting } from "../lighting/ClusteredLighting";
 import { ShadowManager } from "../shadows/ShadowManager";
 import { IndirectDraws } from "../visibility/IndirectDraws";
 import { MESH_VERTEX_LAYOUT } from "../geometry/VertexLayout";
+import environmentShader from "../../shaders/environment.wgsl?raw";
 import shadowShader from "../../shaders/shadows.wgsl?raw";
 import geometryShader from "../../shaders/geometry.wgsl?raw";
 import frameShader from "../../shaders/frame.wgsl?raw";
@@ -28,7 +29,10 @@ import commonShader from "../../shaders/common.wgsl?raw";
 import morphShader from "../../shaders/morphing.wgsl?raw";
 import skinShader from "../../shaders/skinning.wgsl?raw";
 
-const shader = [
+const defaultAmbient = `fn ambientLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, ao: f32) -> vec3<f32> {
+  return base * (1.0 - metallic) * 0.03 * ao;
+}`;
+const sharedShader = [
   frameShader,
   geometryShader,
   commonShader,
@@ -38,7 +42,8 @@ const shader = [
   lightingShader,
   pbrShader,
 ].join("\n");
-interface ColorResourcesInput {
+export interface ColorResourcesInput {
+  environmentLayout?: GPUBindGroupLayout;
   gpu: GPUContext;
   world: RenderWorld;
   resources: Resources;
@@ -72,7 +77,12 @@ export function createColorResources(input: ColorResourcesInput) {
     gpuDraws,
   } = input;
   const device = gpu.device;
-  const module = resources.shaders.get(shader, "PBR shader");
+  const module = resources.shaders.get(
+    sharedShader +
+      "\n" +
+      (input.environmentLayout ? environmentShader : defaultAmbient),
+    "PBR shader",
+  );
   const groupLayout = device.createBindGroupLayout({
     entries: [
       {
@@ -150,7 +160,11 @@ export function createColorResources(input: ColorResourcesInput) {
   const pipelineDescriptor: GPURenderPipelineDescriptor = {
     label: "Cube pipeline",
     layout: device.createPipelineLayout({
-      bindGroupLayouts: [groupLayout, textures.layout],
+      bindGroupLayouts: [
+        groupLayout,
+        textures.layout,
+        ...(input.environmentLayout ? [input.environmentLayout] : []),
+      ],
     }),
     vertex: {
       module,

@@ -1,3 +1,5 @@
+import { EnvironmentData } from "./environment/EnvironmentData";
+import { EnvironmentLighting } from "./environment/EnvironmentLighting";
 import { FrameUniforms } from "./FrameUniforms";
 import {
   FRAME_BYTES,
@@ -8,7 +10,10 @@ import {
 } from "./layouts";
 import { createBootstrapMesh } from "./geometry/createBootstrapMesh";
 import { MESH_VERTEX_LAYOUT } from "./geometry/VertexLayout";
-import { createColorResources } from "./pipelines/createColorResources";
+import {
+  ColorResourcesInput,
+  createColorResources,
+} from "./pipelines/createColorResources";
 import { configureRenderGraph } from "./graph/configureRenderGraph";
 import { GeometryOptimization } from "./geometry/GeometryOptimization";
 import { RendererStreaming } from "./RendererStreaming";
@@ -50,6 +55,9 @@ import { MeshManager } from "./MeshManager";
 import { MaterialTextures } from "./materials/MaterialTextures";
 
 export class Renderer {
+  readonly environment: EnvironmentLighting;
+  private readonly colorInput: ColorResourcesInput;
+  private environmentColor?: ReturnType<typeof createColorResources>;
   readonly geometryOptimization: GeometryOptimization;
   readonly camera = new Camera();
   readonly lodGroups = new LODGroups();
@@ -247,7 +255,7 @@ export class Renderer {
       this.dynamic,
       world.capacity,
     );
-    const color = createColorResources({
+    this.colorInput = {
       gpu,
       world,
       resources: this.resources,
@@ -261,7 +269,18 @@ export class Renderer {
       clusters: this.clusters,
       shadows: this.shadows,
       gpuDraws: this.gpuDraws,
-    });
+    };
+    const color = createColorResources(this.colorInput);
+    this.environment = new EnvironmentLighting(
+      device,
+      this.resources,
+      (environmentLayout) => {
+        this.environmentColor ??= createColorResources({
+          ...this.colorInput,
+          environmentLayout,
+        });
+      },
+    );
     this.pipelineDescriptor = color.pipelineDescriptor;
     this.pipeline = color.pipeline;
     this.pipelines = color.pipelines;
@@ -386,6 +405,11 @@ export class Renderer {
     }
   }
 
+  /** Cold asynchronous upload/replacement; null removes the environment. */
+  setEnvironment(data: EnvironmentData | null): Promise<void> {
+    return this.environment.set(data);
+  }
+
   /** Optional GPU paths enable their prerequisites before any visibility work. */
   private configureFeatureDependencies(indirect: boolean): void {
     if (this.gpuOcclusion.enabled) {
@@ -503,6 +527,7 @@ export class Renderer {
   /** Reuse arena slots and persistent staging arrays. No GPU objects are created here. */
   private uploadFrameState(indirect: boolean): void {
     this.profiler.start(CPUStage.encoding);
+    this.environment.flush();
     this.gpuProfiler.beginFrame(this.frameNumber);
     this.dynamic.beginFrame(this.frameNumber++);
     const clustered = this.clusters.choose(this.world);
@@ -632,7 +657,12 @@ export class Renderer {
         depthStoreOp: "store",
       },
     });
-    pass.setBindGroup(0, this.frameGroups[this.dynamic.frameSlot]!, [
+    const environment = this.environment.active;
+    const colors = environment ? this.environmentColor! : undefined;
+    const pipelines = colors?.pipelines ?? this.pipelines;
+    const frameGroups = colors?.frameGroups ?? this.frameGroups;
+    if (environment) pass.setBindGroup(2, this.environment.group!);
+    pass.setBindGroup(0, frameGroups[this.dynamic.frameSlot]!, [
       this.colorInstanceOffset,
     ]);
     let previousPipeline = -1,
@@ -649,7 +679,7 @@ export class Renderer {
       const geometry = this.meshes.get(mesh);
       if (pipeline !== previousPipeline) {
         pass.setPipeline(
-          this.pipelines[
+          pipelines[
             pipeline +
               (this.depthPrepass.enabled ? 18 : 0) +
               (this.gpuDraws.enabled ? 36 : 0)
@@ -703,6 +733,7 @@ export class Renderer {
   }
 
   dispose(): void {
+    this.environment.dispose();
     this.gpuProfiler.dispose();
     this.textures.dispose();
     this.resources.dispose();

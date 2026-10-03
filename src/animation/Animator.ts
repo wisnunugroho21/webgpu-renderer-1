@@ -1,6 +1,10 @@
 import { World } from "../ecs/World";
 import { AnimationClip } from "./AnimationClip";
 import { AnimationChannel, AnimationPath } from "./AnimationChannel";
+import {
+  AnimationLayerOptions,
+  AnimationLayerPlayback,
+} from "./AnimationLayerPlayback";
 import { AnimationPose } from "./AnimationPose";
 export interface MorphState {
   readonly weightOffset: number;
@@ -16,12 +20,21 @@ interface Slot {
   source: AnimationPose;
   target: AnimationPose;
   result: AnimationPose;
+  layered?: AnimationPose;
 }
 interface Binding {
   channel: AnimationChannel;
   output: Float32Array;
   keyIndex: number;
   slot: Slot;
+}
+interface LayerBinding extends Binding {
+  pose: AnimationPose;
+  reference: AnimationPose;
+}
+interface LayerState {
+  playback: AnimationLayerPlayback;
+  bindings: LayerBinding[];
 }
 interface Fade {
   from: number;
@@ -36,6 +49,8 @@ export class Animator {
   playing = false;
   clipIndex = 0;
   private time = 0;
+  private layerStates: LayerState[] = [];
+  private layerControls: readonly AnimationLayerPlayback[] = Object.freeze([]);
   private fade?: Fade;
   private readonly bindings: Binding[][];
   private readonly slots: Slot[] = [];
@@ -84,6 +99,67 @@ export class Animator {
       }),
     );
   }
+  /** Sample current base/layer clocks without advancing, including while paused. */
+  evaluate(): void {
+    this.apply();
+  }
+  get layers(): readonly AnimationLayerPlayback[] {
+    return this.layerControls;
+  }
+  /** Cold setup: resolve node masks and allocate persistent poses once. */
+  addLayer(options: AnimationLayerOptions): AnimationLayerPlayback {
+    const clip = this.clips[options.clip];
+    if (!clip) throw new Error("Unknown animation layer clip");
+    const playback = new AnimationLayerPlayback(options, clip.duration);
+    const nodes = playback.nodes ? new Set(playback.nodes) : undefined;
+    const bindings = this.bindings[playback.clip]!.filter(
+      (binding) => !nodes || nodes.has(binding.channel.node),
+    ).map((binding) => {
+      const pose = new AnimationPose(
+        binding.channel.path,
+        binding.output.length,
+      );
+      const reference = new AnimationPose(
+        binding.channel.path,
+        binding.output.length,
+      );
+      binding.channel.sampler.sample(playback.referenceTime, reference.values);
+      return {
+        channel: binding.channel,
+        slot: binding.slot,
+        output: pose.values,
+        keyIndex: 0,
+        pose,
+        reference,
+      };
+    });
+    for (const slot of this.slots)
+      slot.layered ??= new AnimationPose(slot.path, slot.base.values.length);
+    this.layerStates.push({ playback, bindings });
+    this.layerControls = Object.freeze(
+      this.layerStates.map((state) => state.playback),
+    );
+    this.apply();
+    return playback;
+  }
+  removeLayer(playback: AnimationLayerPlayback): boolean {
+    const index = this.layerStates.findIndex(
+      (state) => state.playback === playback,
+    );
+    if (index < 0) return false;
+    this.layerStates.splice(index, 1);
+    this.layerControls = Object.freeze(
+      this.layerStates.map((state) => state.playback),
+    );
+    this.apply(true);
+    return true;
+  }
+  clearLayers(): void {
+    if (!this.layerStates.length) return;
+    this.layerStates = [];
+    this.layerControls = Object.freeze([]);
+    this.apply(true);
+  }
   get currentTime(): number {
     return this.time;
   }
@@ -115,6 +191,7 @@ export class Animator {
   stop(): void {
     this.playing = false;
     this.time = 0;
+    for (const layer of this.layerStates) layer.playback.time = 0;
     this.fade = undefined;
     this.apply();
   }
@@ -131,7 +208,9 @@ export class Animator {
     }
     let from = this.clipIndex;
     if (this.fade) {
-      for (const slot of this.slots) this.readRest(slot, slot.source.values);
+      for (const slot of this.slots)
+        if (this.layerStates.length) slot.source.copy(slot.result.values);
+        else this.readRest(slot, slot.source.values);
       from = -1;
     }
     this.fade = { from, time: this.time, elapsed: 0, duration };
@@ -148,6 +227,7 @@ export class Animator {
     )
       throw new Error("Invalid animation delta/speed");
     if (!this.playing) return;
+    for (const layer of this.layerStates) layer.playback.advance(deltaSeconds);
     const duration = this.clips[this.clipIndex]!.duration;
     this.time = this.advance(this.time, duration, deltaSeconds);
     const ended =
@@ -214,14 +294,23 @@ export class Animator {
         break;
     }
   }
-  private apply(): void {
-    if (!this.fade) {
+  private apply(restoreRest = false): void {
+    if (!this.fade && !this.layerStates.length && !restoreRest) {
       const bindings = this.bindings[this.clipIndex];
       if (!bindings) return;
       for (const b of bindings) {
         this.sample(b, this.time);
         this.write(b.slot, b.output);
       }
+      return;
+    }
+    if (!this.fade) {
+      for (const slot of this.slots) slot.result.copy(slot.base.values);
+      for (const binding of this.bindings[this.clipIndex] ?? []) {
+        this.sample(binding, this.time);
+        binding.slot.result.copy(binding.output);
+      }
+      this.applyLayers();
       return;
     }
     for (const slot of this.slots) {
@@ -241,8 +330,28 @@ export class Animator {
     for (const slot of this.slots) {
       slot.result.copy(slot.source.values);
       slot.result.blend(slot.target, weight);
-      this.write(slot, slot.result.values);
     }
+    this.applyLayers();
+  }
+  private applyLayers(): void {
+    if (!this.layerStates.length) {
+      for (const slot of this.slots) this.write(slot, slot.result.values);
+      return;
+    }
+    for (const slot of this.slots) slot.layered!.copy(slot.result.values);
+    // Ordered component-space composition; absent/masked channels do nothing.
+    for (const layer of this.layerStates) {
+      const control = layer.playback;
+      if (control.weight === 0) continue;
+      for (const binding of layer.bindings) {
+        this.sample(binding, control.time);
+        const result = binding.slot.layered!;
+        if (control.mode === "override")
+          result.blend(binding.pose, control.weight);
+        else result.additive(binding.pose, binding.reference, control.weight);
+      }
+    }
+    for (const slot of this.slots) this.write(slot, slot.layered!.values);
   }
   private sample(binding: Binding, time: number): void {
     const sampler = binding.channel.sampler;

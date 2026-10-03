@@ -15,7 +15,8 @@
     "format:check": "prettier --check . && node scripts/format-shaders.mjs --check",
     "profile:animation": "node scripts/profile-animation.mjs",
     "validate:assets": "node scripts/validate-asset-lifecycle.mjs",
-    "validate:game": "node scripts/validate-game-api.mjs"
+    "validate:game": "node scripts/validate-game-api.mjs",
+    "validate:features": "node scripts/validate-scene-features.mjs"
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.74",

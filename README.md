@@ -116,6 +116,70 @@ PBR shading uses shared material records and five glTF texture maps, with sRGB c
 
 Animated GLBs register independent controllers in `rendererApp.animations.animators`. Call `play(clipIndex)`, `pause()`, `stop()`, or set `loop`, `speed` and `currentTime`. Morph and four-weight skin deformation run in shared WGSL helpers; frames upload changed palettes/weights and never rewrite vertex buffers. Optional eight-weight skinning currently fails explicitly on GPU upload. Bounds use conservative morph extrema and joint boxes before linear/BVH culling.
 
+Runtime layers are optional and ordered. For an asset with multiple clips:
+
+```ts
+const animator = app.animations.animators[0]!;
+const upperBody = animator.addLayer({
+  clip: 1,
+  mode: "override",
+  time: 0,
+  weight: 0.6,
+  nodes: [3, 4, 5], // authored glTF node indices, not ECS entity IDs
+});
+const additive = animator.addLayer({
+  clip: 2,
+  mode: "additive",
+  time: 0,
+  referenceTime: 0,
+  weight: 0.25,
+});
+upperBody.speed = 0.8;
+additive.weight = 0.5;
+// Weight/time edits appear on the next update; evaluate also works while paused.
+animator.evaluate();
+animator.removeLayer(upperBody);
+animator.clearLayers();
+```
+
+Layers have independent `time`, `speed`, `loop` and `playing` controls while the controller plays. Controller pause freezes them all; stop rewinds their clocks without changing their local playing flags. A nonlooping base clip ending stops the controller. Each layer owns sample buffers/key hints; references and node masks resolve during setup. Additive motion is relative to its fixed reference pose and never accumulates across frames. Empty/masked channels leave the base/rest pose unchanged; clearing layers restores it. No layers are installed by default.
+
+## Optional environment lighting
+
+Run the material-grid demo at `/?example=lighting`: click the canvas, press **E** to toggle IBL and use **left/right arrows** to rotate it. Top row is dielectric, bottom is metal; roughness increases left to right. All spheres share geometry.
+
+Create a procedural environment during loading, or supply externally precomputed data:
+
+```ts
+import {
+  bakeEnvironment,
+  panoramaSampler,
+} from "./src/rendering/environment/bakeEnvironment";
+
+const environment = bakeEnvironment((direction, rgb) => {
+  const sky = Math.max(0, direction[1]!);
+  rgb[0] = 0.1 + sky * 0.3;
+  rgb[1] = 0.15 + sky * 0.5;
+  rgb[2] = 0.2 + sky;
+});
+await app.renderer.setEnvironment(environment);
+app.renderer.environment.intensity = 0.7;
+app.renderer.environment.rotationY = Math.PI / 4;
+app.renderer.environment.enabled = false; // retain resources for later re-enable
+app.renderer.environment.enabled = true;
+await app.renderer.setEnvironment(null); // retire textures/uniform buffer safely
+
+// For an already decoded linear RGB panorama:
+// const sampler = panoramaSampler(width, height, rgbFloat32Pixels);
+// const prefiltered = bakeEnvironment(sampler, { specularSize: 64, samples: 256 });
+```
+
+`bakeEnvironment` is cold CPU preprocessing; use it offline/during loading, not in update hooks. Defaults: 32px specular cube, 8px diffuse cube, 32px BRDF LUT, 128 samples. `EnvironmentData` stores six linear HDR RGBA faces in +X/-X/+Y/-Y/+Z/-Z order with rows top-to-bottom. Diffuse is irradiance divided by π; specular needs a complete power-of-two GGX-prefiltered mip chain at roughness mip/(mips−1). The LUT stores Fresnel A/B in RG with X=NdotV, Y=roughness. Ordinary downsampled image mips are insufficient. Input values must be finite/nonnegative and at most 65504; keep source data immutable until installation completes.
+
+One environment is shared across materials. Installation is transactional and serial; failure preserves the previous environment. First installation creates bounded pipeline variants and three filterable rgba16float textures plus a 16-byte uniform. No environment GPU resources are created by default; toggles and parameter changes reuse installed resources. Clearing releases textures/buffer after a cold completion fence; shader/pipeline/sampler caches live until renderer disposal. Frame/deformation ABIs remain unchanged.
+
+HDR/EXR decoding, skyboxes, tone mapping and glTF environment extensions are separate capabilities. This implementation supplies single-scattering diffuse/specular IBL; existing display conversion can clip bright HDR highlights. Validation, measured overhead and limitations: [scene features report](benchmarks/SCENE_FEATURES_REPORT.md).
+
 Lights use ECS `world.lights.set(entity, properties)` with directional/point/spot types. Directional lights opt into shadows with `castShadow: true`. Configure `renderer.shadows.cascades` (1–4), `shadowDistance` (>0.1–100), `enabled`, or `cacheEnabled`. The shared array supports four shadow lights and rejects overflow. Clustered lighting defaults to automatic selection for many bounded lights; `renderer.clusters.mode` accepts `auto`, `off`, or `on`, with safe overflow fallback.
 
 `app.profiler` exposes fixed CPU stage history and frame totals. `renderer.gpuProfiler.supported` reports timestamp availability. Set `enabled=true` for at most three captured frames, then `enabled=false` and explicitly call `await readSamples()` for pass times. Full capture slots drop further samples until readback; this diagnostic API keeps all readback outside ordinary frames.

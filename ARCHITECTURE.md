@@ -42,6 +42,10 @@ The application dispatches bounded fixed-step gameplay and variable update hooks
 
 Animation samplers contain shared immutable keys. Each Animator clip/channel binding owns its lower-key hint; steady playback checks the same or adjacent interval, while arbitrary seeks and wraps use binary search. Short clips bypass hint bookkeeping. Hint state never lives on the shared clip, so character phases and crossfade source/destination timelines remain independent. Sampling and pose preparation allocate only during setup; long-clip benchmark reference sampling/readbacks are diagnostic operations outside the ordinary frame path.
 
+Optional animation layers own playback clocks and persistent binding/reference poses per controller. Base and layered pose storage are separate: frame composition cannot accumulate additive deltas or feed a layered pose back into an interrupted base crossfade. Node masks resolve on installation. GPU deformation still consumes the final ECS snapshot, so color/depth/shadow/bounds follow the same composite pose.
+
+`src/rendering/environment` separates pure HDR data validation/half packing and cold convolution/BRDF baking from GPU ownership. Renderer-wide EnvironmentLighting serializes transactional replacement and fences retirement. No environment textures/pipelines exist before installation. The existing color pipeline table stays unchanged; a bounded optional table adds group 2 for one shared diffuse cube, prefiltered GGX cube, split-sum LUT, filtering sampler and 16-byte uniform. Default ambient shading remains available when the environment is absent/disabled. No per-material environment groups, normal-frame preprocessing, waits or resource creation. Environment controls flush only changed uniforms. Clear retires textures/buffer; renderer disposal also releases cached pipelines/samplers. `/?example=lighting` demonstrates the API with a shared sphere mesh.
+
 `Renderer.encode()` makes the preparation order explicit:
 
 1. Resize-dependent resources update when dimensions change.

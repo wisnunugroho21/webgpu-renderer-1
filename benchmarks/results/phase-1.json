@@ -1,0 +1,22 @@
+{
+  "adapter": {},
+  "format": "bgra8unorm",
+  "frames": 157,
+  "size": [
+    1280,
+    960
+  ],
+  "pixel": [
+    36,
+    20,
+    10,
+    255
+  ],
+  "errors": [],
+  "validationError": null,
+  "cpuEncodingMs": {
+    "median": 0.09999999403953552,
+    "p95": 0.20000000298023224
+  },
+  "lossHandled": true
+}

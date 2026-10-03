@@ -1,0 +1,87 @@
+{
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "device": "",
+    "description": ""
+  },
+  "format": "bgra8unorm",
+  "frames": 161,
+  "size": [
+    1280,
+    960
+  ],
+  "pixel": [
+    36,
+    20,
+    10,
+    255
+  ],
+  "centerPixel": [
+    255,
+    166,
+    51,
+    255
+  ],
+  "errors": [],
+  "validationError": null,
+  "cpuEncodingMs": {
+    "median": 0.10000000894069672,
+    "p95": 0.20000000298023224
+  },
+  "lossHandled": true,
+  "cameraCheck": {
+    "creations": 0,
+    "statsBefore": {
+      "pipelineCreations": 1,
+      "shaderModules": 1,
+      "bufferCreations": 5,
+      "textureCreations": 2,
+      "samplerCreations": 0,
+      "buffers": 5,
+      "textures": 1,
+      "bufferBytes": 6292104,
+      "cacheHits": 0,
+      "cacheMisses": 2
+    },
+    "statsAfter": {
+      "pipelineCreations": 1,
+      "shaderModules": 1,
+      "bufferCreations": 5,
+      "textureCreations": 2,
+      "samplerCreations": 0,
+      "buffers": 5,
+      "textures": 1,
+      "bufferBytes": 6292104,
+      "cacheHits": 0,
+      "cacheMisses": 2
+    },
+    "sameBuffer": true,
+    "moved": true
+  },
+  "resourceBenchmark": {
+    "count": 100,
+    "uncachedMs": 0.8999999910593033,
+    "cachedMs": 3.1000000089406967,
+    "stats": {
+      "pipelineCreations": 1,
+      "shaderModules": 1,
+      "bufferCreations": 5,
+      "textureCreations": 2,
+      "samplerCreations": 0,
+      "buffers": 5,
+      "textures": 1,
+      "bufferBytes": 6292104,
+      "cacheHits": 100,
+      "cacheMisses": 2
+    }
+  },
+  "dynamicBenchmark": {
+    "count": 10000,
+    "individualMs": 13.300000011920929,
+    "sharedMs": 2.199999988079071,
+    "sharedBufferCreations": 0,
+    "arenaBuffers": 3,
+    "uploadBytes": 640000
+  }
+}

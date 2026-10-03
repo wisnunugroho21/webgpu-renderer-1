@@ -1,0 +1,38 @@
+{
+  "adapter": {
+    "vendor": "apple",
+    "architecture": "metal-3",
+    "device": "",
+    "description": ""
+  },
+  "format": "bgra8unorm",
+  "frames": 155,
+  "size": [
+    1280,
+    960
+  ],
+  "pixel": [
+    36,
+    20,
+    10,
+    255
+  ],
+  "centerPixel": [
+    255,
+    166,
+    51,
+    255
+  ],
+  "errors": [],
+  "validationError": null,
+  "cpuEncodingMs": {
+    "median": 0.10000000894069672,
+    "p95": 0.29999999701976776
+  },
+  "lossHandled": true,
+  "cameraCheck": {
+    "creations": 0,
+    "sameBuffer": true,
+    "moved": true
+  }
+}

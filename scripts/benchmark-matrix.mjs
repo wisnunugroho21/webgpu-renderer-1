@@ -15,7 +15,8 @@ try {
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("http://127.0.0.1:5188");
   await page.waitForFunction(() => window.rendererApp?.frames >= 3);
-  const report = await page.evaluate(runBenchmarkMatrix);
+  const longAnimation = process.argv.includes("--long-animation");
+  const report = await page.evaluate(runBenchmarkMatrix, { longAnimation });
   report.environment = {
     browser: await browser.version(),
     timestamp: new Date().toISOString(),
@@ -24,7 +25,9 @@ try {
   report.pageErrors = errors;
   await mkdir("artifacts", { recursive: true });
   await writeFile(
-    "artifacts/benchmark-matrix.json",
+    longAnimation
+      ? "artifacts/benchmark-matrix-long.json"
+      : "artifacts/benchmark-matrix.json",
     JSON.stringify(report, null, 2),
   );
   assertBenchmarkReport(report, errors);

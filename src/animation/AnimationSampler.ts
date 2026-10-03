@@ -49,7 +49,11 @@ export class AnimationSampler {
       }
     }
   }
-  sample(time: number, out: Float32Array): void {
+  /** Returns the lower key index for reuse by this playback binding.
+   * Hints never change the result: nearby keys are checked, then arbitrary
+   * seeks fall back to binary search. Shared samplers retain no playback state.
+   */
+  sample(time: number, out: Float32Array, keyIndex?: number): number {
     if (!Number.isFinite(time) || out.length < this.size)
       throw new Error("Invalid animation sample");
     const times = this.input,
@@ -59,7 +63,31 @@ export class AnimationSampler {
       hi = times.length - 1;
     if (time <= times[0]!) hi = lo;
     else if (time >= times[hi]!) lo = hi;
-    else {
+    else if (hi === 1) {
+      // Two-key clips need no lookup or hint checks.
+    } else if (
+      keyIndex !== undefined &&
+      times[keyIndex]! <= time &&
+      time < times[keyIndex + 1]!
+    ) {
+      lo = keyIndex;
+      hi = lo + 1;
+    } else if (
+      keyIndex !== undefined &&
+      times[keyIndex + 1]! <= time &&
+      time < times[keyIndex + 2]!
+    ) {
+      lo = keyIndex + 1;
+      hi = lo + 1;
+    } else if (
+      keyIndex !== undefined &&
+      times[keyIndex - 1]! <= time &&
+      time < times[keyIndex]!
+    ) {
+      lo = keyIndex - 1;
+      hi = lo + 1;
+    } else {
+      // Bounded neighbor checks avoid a linear walk on loops, seeks and hitches.
       while (hi - lo > 1) {
         const mid = (lo + hi) >>> 1;
         if (times[mid]! <= time) lo = mid;
@@ -93,5 +121,6 @@ export class AnimationSampler {
           out[i] = values[a + i]! * (1 - t) + values[b + i]! * t;
     }
     if (this.rotation) Quat.normalize(out, out);
+    return lo;
   }
 }

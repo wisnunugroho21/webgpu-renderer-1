@@ -1,0 +1,192 @@
+{
+  "description": "Long-clip animation: persistent binding key hints with bounded neighbors and binary fallback",
+  "defaultCounterResourceSnapshotsUnchanged": 86,
+  "tests": 183,
+  "files": 48,
+  "cpuRuns": {
+    "before": {
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.4904660284313732,
+      "500 characters x 64 joints, 1024 LINEAR keys": 5.3553869893617,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 12.320945121951265,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.2603992988027103,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.8990859317773732,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.2716460673546973,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 0.945719998109603,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.2892885263158073,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 0.9587349808429023,
+      "100 independent animators, shared TRS clip": 0.01892705742296934,
+      "1000 independent animators, shared TRS clip": 0.1965202035363471,
+      "10000 independent animators, shared TRS clip": 5.500837395604401
+    },
+    "after": {
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.4523670171790249,
+      "500 characters x 64 joints, 1024 LINEAR keys": 5.984391428571436,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 11.998128952380961,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.1867086908140461,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.8425287946127987,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.2210657427055769,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 1.1843135437352055,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.25946213381742417,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 0.8855803575221313,
+      "100 independent animators, shared TRS clip": 0.0211095534070762,
+      "1000 independent animators, shared TRS clip": 0.20257045078979283,
+      "10000 independent animators, shared TRS clip": 5.923142129411773
+    },
+    "final": {
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.4585863886342798,
+      "500 characters x 64 joints, 1024 LINEAR keys": 6.007108559523805,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 12.006011880952341,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.1893658148428594,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.848121244067801,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.22502489063905853,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 1.1226179237667937,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.26981896709815856,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 0.8895082948489987,
+      "100 independent animators, shared TRS clip": 0.01937102235394383,
+      "1000 independent animators, shared TRS clip": 0.2011409573612233,
+      "10000 independent animators, shared TRS clip": 5.561461122222217
+    },
+    "repeat-before": {
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.5374420418904392,
+      "500 characters x 64 joints, 1024 LINEAR keys": 6.059003469879536,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 12.722821875000028,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.26050867812500583,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.8897952117437757,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.26764504173355397,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 1.115966209354111,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.30846264157927117,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 1.0866299848156047,
+      "100 independent animators, shared TRS clip": 0.018882344108761526,
+      "1000 independent animators, shared TRS clip": 0.1964914856581544,
+      "10000 independent animators, shared TRS clip": 5.7395004431818135
+    },
+    "repeat-after": {
+      "100 characters x 64 joints, 1024 LINEAR keys": 0.4519348473351383,
+      "500 characters x 64 joints, 1024 LINEAR keys": 5.347700808510629,
+      "1000 characters x 64 joints, 1024 LINEAR keys": 11.613238500000017,
+      "1000 TRS + 16 morph weights, 256 STEP keys": 0.19422608116505022,
+      "1000 TRS + morph crossfades, 256 STEP keys": 0.8520167666098679,
+      "1000 TRS + 16 morph weights, 256 LINEAR keys": 0.22927939844108958,
+      "1000 TRS + morph crossfades, 256 LINEAR keys": 0.8950913881931741,
+      "1000 TRS + 16 morph weights, 256 CUBICSPLINE keys": 0.24672148495311602,
+      "1000 TRS + morph crossfades, 256 CUBICSPLINE keys": 0.9108586375227564,
+      "100 independent animators, shared TRS clip": 0.018971248406434785,
+      "1000 independent animators, shared TRS clip": 0.19876552742448178,
+      "10000 independent animators, shared TRS clip": 5.710463545454548
+    }
+  },
+  "gpuLong": [
+    {
+      "characters": 1,
+      "before": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0,
+        "cpuFrame": 0.09999999403953552,
+        "completion": 0.699999988079071
+      },
+      "after": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0,
+        "cpuFrame": 0.09999999403953552,
+        "completion": 0.699999988079071
+      },
+      "imageDifference": {
+        "differentBytes": 0,
+        "maxDifference": 0
+      },
+      "statsResourcesUnchanged": true
+    },
+    {
+      "characters": 100,
+      "before": {
+        "animation": 0.7999999970197678,
+        "transforms": 0.4000000059604645,
+        "skeletons": 0.5,
+        "bounds": 0.20000000298023224,
+        "extraction": 0.20000000298023224,
+        "encoding": 0.20000000298023224,
+        "cpuFrame": 2.4000000059604645,
+        "completion": 3.5
+      },
+      "after": {
+        "animation": 0.7999999970197678,
+        "transforms": 0.4000000059604645,
+        "skeletons": 0.5,
+        "bounds": 0.20000000298023224,
+        "extraction": 0.20000000298023224,
+        "encoding": 0.20000000298023224,
+        "cpuFrame": 2.4000000059604645,
+        "completion": 3.5
+      },
+      "imageDifference": {
+        "differentBytes": 0,
+        "maxDifference": 0
+      },
+      "statsResourcesUnchanged": true
+    },
+    {
+      "characters": 500,
+      "before": {
+        "animation": 5.399999991059303,
+        "transforms": 2.0999999940395355,
+        "skeletons": 2.5999999940395355,
+        "bounds": 1,
+        "extraction": 0.9000000059604645,
+        "encoding": 0.8999999910593033,
+        "cpuFrame": 12.800000011920929,
+        "completion": 14.900000005960464
+      },
+      "after": {
+        "animation": 5.399999991059303,
+        "transforms": 2.0999999940395355,
+        "skeletons": 2.5999999940395355,
+        "bounds": 1,
+        "extraction": 0.9000000059604645,
+        "encoding": 0.9000000059604645,
+        "cpuFrame": 12.799999997019768,
+        "completion": 14.900000005960464
+      },
+      "imageDifference": {
+        "differentBytes": 0,
+        "maxDifference": 0
+      },
+      "statsResourcesUnchanged": true
+    },
+    {
+      "characters": 1000,
+      "before": {
+        "animation": 11.5,
+        "transforms": 4.0999999940395355,
+        "skeletons": 5.0999999940395355,
+        "bounds": 2.1000000089406967,
+        "extraction": 1.9000000059604645,
+        "encoding": 1.6000000089406967,
+        "cpuFrame": 26.400000005960464,
+        "completion": 30
+      },
+      "after": {
+        "animation": 10.299999997019768,
+        "transforms": 4.0999999940395355,
+        "skeletons": 5.200000002980232,
+        "bounds": 2.0999999940395355,
+        "extraction": 1.9000000059604645,
+        "encoding": 1.6000000089406967,
+        "cpuFrame": 25.299999997019768,
+        "completion": 28.799999997019768
+      },
+      "imageDifference": {
+        "differentBytes": 0,
+        "maxDifference": 0
+      },
+      "statsResourcesUnchanged": true
+    }
+  ]
+}

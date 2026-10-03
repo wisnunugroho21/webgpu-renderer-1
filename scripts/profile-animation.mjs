@@ -10,7 +10,8 @@ try {
   const page = await browser.newPage();
   await page.goto("http://127.0.0.1:5190");
   await page.waitForFunction(() => window.rendererApp?.frames >= 3);
-  await page.evaluate(async () => {
+  const longAnimation = process.argv.includes("--long-animation");
+  await page.evaluate(async (longAnimation) => {
     const original = window.rendererApp;
     original.stop();
     const app = new original.constructor(
@@ -23,12 +24,16 @@ try {
     app.stop();
     window.animationProfileApp = app;
     for (let i = 0; i < 1000; i++) {
-      await app.loadAsset("/regression/crowd-skin.glb");
+      await app.loadAsset(
+        longAnimation
+          ? "/regression/crowd-skin-long.glb"
+          : "/regression/crowd-skin.glb",
+      );
       const animator = app.animations.animators[i];
       animator.play(0);
-      animator.currentTime = (i % 10) * 0.01;
+      animator.currentTime = longAnimation ? (i * 30) / 1000 : (i % 10) * 0.01;
     }
-  });
+  }, longAnimation);
   const session = await page.context().newCDPSession(page);
   await session.send("Profiler.enable");
   await session.send("Profiler.setSamplingInterval", { interval: 100 });
@@ -67,6 +72,8 @@ try {
   const report = {
     workload:
       "1000 independent characters x 64 joints; 60 frames, last 50 measured",
+    keyCount: longAnimation ? 1024 : 2,
+    distinctPhases: longAnimation ? 1000 : 10,
     animationMedianMs: result.sort((a, b) => a - b)[
       Math.floor(result.length / 2)
     ],
@@ -75,7 +82,8 @@ try {
       .map(([name, us]) => ({ name, ms: us / 1000 })),
   };
   await mkdir("artifacts", { recursive: true });
-  const label = process.argv[2] ?? "current";
+  const label =
+    process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "current";
   await writeFile(
     `artifacts/animation-profile-${label}.json`,
     JSON.stringify(report, null, 2),

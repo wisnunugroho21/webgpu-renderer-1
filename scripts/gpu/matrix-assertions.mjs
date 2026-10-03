@@ -14,6 +14,15 @@ export function assertBenchmarkReport(report, errors) {
     );
   }
   for (const row of report.animation) {
+    if (row.keyCount === 1024) {
+      assert.equal(row.distinctPhases, row.characters);
+      assert.equal(row.warmupFrames, 60);
+      assert.equal(row.measuredFrames, 60);
+      assert.deepEqual(row.sampleImageDifference, {
+        differentBytes: 0,
+        maxDifference: 0,
+      });
+    }
     assert.equal(row.stats.activeAnimators, row.characters);
     assert.equal(row.stats.jointCount, row.characters * 64);
     assert.equal(row.stats.instances, row.characters);

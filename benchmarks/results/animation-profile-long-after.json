@@ -1,0 +1,48 @@
+{
+  "workload": "1000 independent characters x 64 joints; 60 frames, last 50 measured",
+  "keyCount": 1024,
+  "distinctPhases": 1000,
+  "animationMedianMs": 10,
+  "selfTimeMs": [
+    {
+      "name": "write:1",
+      "ms": 747.788
+    },
+    {
+      "name": "(program):0",
+      "ms": 147.548
+    },
+    {
+      "name": "sample:1",
+      "ms": 146.892
+    },
+    {
+      "name": "apply:1",
+      "ms": 76.098
+    },
+    {
+      "name": "slerp:1",
+      "ms": 73.658
+    },
+    {
+      "name": "update:1",
+      "ms": 1.435
+    },
+    {
+      "name": "(garbage collector):0",
+      "ms": 1.312
+    },
+    {
+      "name": "(idle):0",
+      "ms": 1.054
+    },
+    {
+      "name": "(anonymous):1",
+      "ms": 0.53
+    },
+    {
+      "name": "evaluate:305",
+      "ms": 0.133
+    }
+  ]
+}

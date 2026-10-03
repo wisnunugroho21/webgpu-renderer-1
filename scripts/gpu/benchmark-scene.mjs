@@ -1,7 +1,7 @@
 /** Runs inside Chrome via page.evaluate. Keep all helpers inside this callback:
  * Playwright serializes its source, so it cannot close over Node module imports.
  * The integrated scene deliberately retains asset/state transitions between checks. */
-export const runBenchmarkMatrix = async () => {
+export const runBenchmarkMatrix = async (options = {}) => {
   const original = window.rendererApp,
     Application = original.constructor;
   original.stop();
@@ -38,13 +38,15 @@ export const runBenchmarkMatrix = async () => {
       canvas.remove();
     }
   };
-  const measure = async (app, before = () => {}) => {
+  const measure = async (app, before = () => {}, long = false) => {
     const r = app.renderer,
       gpu = app.gpu,
       rows = [];
     let time = 0;
     const resources = { ...r.resources.stats };
-    for (let frame = 0; frame < 10; frame++) {
+    const frameCount = long ? 120 : 10,
+      warmup = long ? 60 : 5;
+    for (let frame = 0; frame < frameCount; frame++) {
       const row = {},
         start = performance.now();
       let t = start;
@@ -74,7 +76,7 @@ export const runBenchmarkMatrix = async () => {
       );
       row.extraction = performance.now() - t;
       r.stats.activeAnimators = app.animations.activeAnimators;
-      r.gpuProfiler.enabled = frame >= 7;
+      r.gpuProfiler.enabled = frame >= frameCount - 3;
       const encoder = gpu.device.createCommandEncoder();
       t = performance.now();
       r.encode(
@@ -88,7 +90,7 @@ export const runBenchmarkMatrix = async () => {
       row.cpuFrame = performance.now() - start;
       await gpu.queue.onSubmittedWorkDone();
       row.completion = performance.now() - start;
-      if (frame >= 5) rows.push(row);
+      if (frame >= warmup) rows.push(row);
       time += 1 / 60;
     }
     r.gpuProfiler.enabled = false;
@@ -199,7 +201,11 @@ export const runBenchmarkMatrix = async () => {
   for (const count of [1, 100, 500, 1000])
     await withApp(100000, async (app) => {
       for (let i = 0; i < count; i++) {
-        const entities = await app.loadAsset("/regression/crowd-skin.glb");
+        const entities = await app.loadAsset(
+          options.longAnimation
+            ? "/regression/crowd-skin-long.glb"
+            : "/regression/crowd-skin.glb",
+        );
         app.world.transforms.setPosition(
           entities[0],
           ((i % 32) - 16) * 1.2,
@@ -208,18 +214,70 @@ export const runBenchmarkMatrix = async () => {
         );
         const animator = app.animations.animators[i];
         animator.play(0);
-        animator.currentTime = (i % 10) * 0.01;
+        animator.currentTime = options.longAnimation
+          ? (i * 30) / count
+          : (i % 10) * 0.01;
       }
-      const measured = await measure(app);
+      const measured = await measure(app, undefined, options.longAnimation);
       measured.sharedSkeleton = app.skeletons.instances.every(
         (s) => s.asset === app.skeletons.instances[0].asset,
       );
       measured.sharedClip = app.animations.animators.every(
         (a) => a.clips === app.animations.animators[0].clips,
       );
+      if (options.longAnimation) {
+        // Diagnostic reference: re-sample the exact same times without hints,
+        // then compare complete images. This cold readback is outside timings.
+        const hinted = await captureImage(app);
+        const samplers = new Set(
+          app.animations.animators.flatMap((animator) =>
+            animator.clips.flatMap((clip) =>
+              clip.channels.map((c) => c.sampler),
+            ),
+          ),
+        );
+        for (const sampler of samplers) {
+          const sample = sampler.sample;
+          sampler.sample = function (time, out) {
+            return sample.call(this, time, out);
+          };
+        }
+        for (const animator of app.animations.animators)
+          animator.currentTime = animator.currentTime;
+        app.transformSystem.update(app.world.transforms);
+        app.skeletonSystem.update(app.world, app.skeletons);
+        app.animatedBounds.update(
+          app.world,
+          app.renderer.meshes,
+          app.skeletons,
+          app.animations.morphPool,
+        );
+        app.extractor.extract(
+          app.world,
+          app.renderWorld,
+          app.skeletons,
+          app.animations.morphPool,
+        );
+        const reference = await captureImage(app);
+        let differentBytes = 0,
+          maxDifference = 0;
+        for (let i = 0; i < hinted.length; i++) {
+          const delta = Math.abs(hinted[i] - reference[i]);
+          differentBytes += delta !== 0 ? 1 : 0;
+          maxDifference = Math.max(maxDifference, delta);
+        }
+        measured.sampleImageDifference = { differentBytes, maxDifference };
+      }
       results.animation.push({
         characters: count,
         jointsPerCharacter: 64,
+        warmupFrames: options.longAnimation ? 60 : 5,
+        measuredFrames: options.longAnimation ? 60 : 5,
+        keyCount:
+          app.animations.animators[0].clips[0].channels[0].sampler.input.length,
+        distinctPhases: new Set(
+          app.animations.animators.map((a) => a.currentTime),
+        ).size,
         verticesPerCharacter: 400,
         ...measured,
       });

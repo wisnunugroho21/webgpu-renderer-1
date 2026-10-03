@@ -40,6 +40,8 @@ Existing import paths and public APIs remain stable. Small focused modules stay 
 
 The application dispatches bounded fixed-step gameplay and variable update hooks, then updates animation, world transforms, the selected ECS camera, joint palettes and conservative animated bounds before extracting render state. Renderer passes consume `RenderWorld`; they do not query ECS stores.
 
+Animation samplers contain shared immutable keys. Each Animator clip/channel binding owns its lower-key hint; steady playback checks the same or adjacent interval, while arbitrary seeks and wraps use binary search. Short clips bypass hint bookkeeping. Hint state never lives on the shared clip, so character phases and crossfade source/destination timelines remain independent. Sampling and pose preparation allocate only during setup; long-clip benchmark reference sampling/readbacks are diagnostic operations outside the ordinary frame path.
+
 `Renderer.encode()` makes the preparation order explicit:
 
 1. Resize-dependent resources update when dimensions change.

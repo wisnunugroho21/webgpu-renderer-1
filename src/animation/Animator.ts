@@ -20,6 +20,7 @@ interface Slot {
 interface Binding {
   channel: AnimationChannel;
   output: Float32Array;
+  keyIndex: number;
   slot: Slot;
 }
 interface Fade {
@@ -76,6 +77,7 @@ export class Animator {
           throw new Error("Animation clip target size mismatch");
         return {
           channel,
+          keyIndex: 0,
           slot,
           output: new Float32Array(channel.sampler.size),
         };
@@ -217,7 +219,7 @@ export class Animator {
       const bindings = this.bindings[this.clipIndex];
       if (!bindings) return;
       for (const b of bindings) {
-        b.channel.sampler.sample(this.time, b.output);
+        this.sample(b, this.time);
         this.write(b.slot, b.output);
       }
       return;
@@ -228,11 +230,11 @@ export class Animator {
     }
     if (this.fade.from >= 0)
       for (const b of this.bindings[this.fade.from]!) {
-        b.channel.sampler.sample(this.fade.time, b.output);
+        this.sample(b, this.fade.time);
         b.slot.source.copy(b.output);
       }
     for (const b of this.bindings[this.clipIndex]!) {
-      b.channel.sampler.sample(this.time, b.output);
+      this.sample(b, this.time);
       b.slot.target.copy(b.output);
     }
     const weight = this.fade.elapsed / this.fade.duration;
@@ -241,6 +243,13 @@ export class Animator {
       slot.result.blend(slot.target, weight);
       this.write(slot, slot.result.values);
     }
+  }
+  private sample(binding: Binding, time: number): void {
+    const sampler = binding.channel.sampler;
+    // Avoid cursor reads/writes for the common two-key fixture and constant clips.
+    if (sampler.input.length > 2)
+      binding.keyIndex = sampler.sample(time, binding.output, binding.keyIndex);
+    else sampler.sample(time, binding.output);
   }
   private write(slot: Slot, v: Float32Array): void {
     const e = slot.entity,

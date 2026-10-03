@@ -1,0 +1,40 @@
+{
+  "workload": "1000 independent characters x 64 joints; 60 frames, last 50 measured",
+  "keyCount": 1024,
+  "distinctPhases": 1000,
+  "animationMedianMs": 10.300000011920929,
+  "selfTimeMs": [
+    {
+      "name": "write:1",
+      "ms": 708.627
+    },
+    {
+      "name": "sample:1",
+      "ms": 237.926
+    },
+    {
+      "name": "(program):0",
+      "ms": 122.27
+    },
+    {
+      "name": "apply:1",
+      "ms": 62.784
+    },
+    {
+      "name": "normalize:1",
+      "ms": 30.005
+    },
+    {
+      "name": "update:1",
+      "ms": 1.449
+    },
+    {
+      "name": "(idle):0",
+      "ms": 0.818
+    },
+    {
+      "name": "(garbage collector):0",
+      "ms": 0.676
+    }
+  ]
+}

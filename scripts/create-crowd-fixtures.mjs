@@ -1,7 +1,10 @@
 import { Document, NodeIO } from "@gltf-transform/core";
 import { mkdir } from "node:fs/promises";
 await mkdir("public/regression", { recursive: true });
-for (const kind of ["skin", "morph", "combined"]) {
+// Long fixture is opt-in so the original A–G assets remain reproducible.
+for (const kind of process.argv.includes("--long")
+  ? ["skin-long"]
+  : ["skin", "morph", "combined"]) {
   const d = new Document(),
     buffer = d.createBuffer();
   const attr = (type, data) =>
@@ -34,7 +37,7 @@ for (const kind of ["skin", "morph", "combined"]) {
   const mesh = d.createMesh().addPrimitive(primitive),
     node = d.createNode("Mesh").setMesh(mesh),
     root = d.createNode("Character").addChild(node);
-  if (kind !== "skin") {
+  if (!kind.startsWith("skin")) {
     for (let t = 0; t < 16; t++) {
       const delta = new Float32Array(positions.length),
         normal = new Float32Array(positions.length),
@@ -57,7 +60,12 @@ for (const kind of ["skin", "morph", "combined"]) {
   if (kind !== "morph") {
     const joints = [],
       bind = new Float32Array(64 * 16),
-      times = attr("SCALAR", new Float32Array([0, 1])),
+      times = attr(
+        "SCALAR",
+        kind === "skin-long"
+          ? Float32Array.from({ length: 1024 }, (_, k) => (k * 30) / 1023)
+          : new Float32Array([0, 1]),
+      ),
       rotations = attr(
         "VEC4",
         new Float32Array([0, 0, 0, 1, 0, 0, 0.02, Math.sqrt(1 - 0.0004)]),
@@ -76,10 +84,18 @@ for (const kind of ["skin", "morph", "combined"]) {
         bind[j * 16 + 15] =
           1;
       bind[j * 16 + 13] = -j * 0.01;
+      // Distinct smooth joint curves; immutable key data is shared by instances.
+      const longKeys = new Float32Array(1024 * 4);
+      if (kind === "skin-long")
+        for (let k = 0; k < 1024; k++) {
+          const angle = 0.025 * Math.sin((k * Math.PI * 8) / 1023 + j * 0.13);
+          longKeys[k * 4 + 2] = Math.sin(angle / 2);
+          longKeys[k * 4 + 3] = Math.cos(angle / 2);
+        }
       const sampler = d
         .createAnimationSampler()
         .setInput(times)
-        .setOutput(rotations)
+        .setOutput(kind === "skin-long" ? attr("VEC4", longKeys) : rotations)
         .setInterpolation("LINEAR");
       animation
         .addSampler(sampler)

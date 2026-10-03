@@ -40,6 +40,8 @@ Quaternion animation now prepares shared normalized LINEAR keyframes once and av
 
 The [second animation optimization round](benchmarks/ANIMATION_ROUND2_REPORT.md) removes temporary matrix views and redundant pose work. Its fresh 1,000-character CPU frame benchmark decreases from 29.0 to 25.9 ms, primarily through faster transform updates.
 
+The [long-clip animation report](benchmarks/ANIMATION_LONG_REPORT.md) adds 1,024-key clips and uniquely phased crowds, plus STEP/cubic/morph/crossfade CPU workloads. Playback bindings reuse key-index hints with bounded neighbor checks and binary-search fallback; this is automatic. The measured 1,000-character long crowd decreases from 11.5 to 10.3 ms for animation and 26.4 to 25.3 ms for the CPU frame. After generating the long fixture and building, use `npm run benchmark:gpu -- --long-animation` or `npm run profile:animation -- current-long --long-animation`.
+
 ## Playable example and gameplay loop
 
 Run `npm run dev` and open the printed server URL with `/?example=collect` appended (normally `http://127.0.0.1:5173/?example=collect`). Collect six golden cubes using **WASD or arrow keys**. **R** restarts; **C** switches between orthographic and perspective cameras. Click the canvas to focus input. The original cube remains the default route.

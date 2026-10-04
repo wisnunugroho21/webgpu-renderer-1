@@ -26,7 +26,7 @@ Evidence:
 - [Morph baseline](results/benchmark-matrix-before-morph-skip.json), [rejected sparse-only variant](results/benchmark-matrix-morph-sparse-only.json).
 - Individual phase evidence is retained in `results/phase-*.json`; [PROGRESS.md](../PROGRESS.md) records the sequential validation gates and feature limits.
 
-Reproduce with `npm test`, `npm run build`, `RENDERER_PREVIEW=1 npm run validate:gpu`, `npm run benchmark:gpu`, and `npm run benchmark -- --outputJson artifacts/benchmarks.json`. Google Chrome and an available WebGPU adapter are required. GPU scripts own isolated ports 5187/5188 and stop their own server processes.
+Reproduce with `pnpm test`, `pnpm run build`, `RENDERER_PREVIEW=1 pnpm run validate:gpu`, `pnpm run benchmark:gpu`, and `pnpm run benchmark --outputJson artifacts/benchmarks.json`. Google Chrome and an available WebGPU adapter are required. GPU scripts own isolated ports 5187/5188 and stop their own server processes.
 
 ## Optional Phase 44
 
@@ -43,4 +43,4 @@ The 200,000-triangle fixture has 782 consecutive 256-triangle clusters. With mos
 
 CPU-only metadata construction averages 3.7311 ms for 200,000 triangles; browser full mesh preparation takes about 30 ms including packing and upload submission. This is cold asset work. Feature CPU encoding and total completion include preparing/submitting all 782 indirect commands, including zero-instance draws. GPU color timings include fragment work; timestamp zero means below adapter resolution, not zero compute cost. Whole-frame speedups are workload-dependent and small differences vary between runs. The fully visible case regresses, which supports keeping the feature off by default.
 
-Raw evidence: [Phase 44](results/phase-44.json), [CPU preparation](results/phase-44-cpu.json), and the `geometry` section of [the expanded matrix](results/benchmark-matrix.json). Run `npm run benchmark:gpu` for all correctness and GPU workload checks, or `npm run benchmark -- tests/geometry.bench.ts --outputJson artifacts/phase-44-cpu.json` for isolated CPU preparation.
+Raw evidence: [Phase 44](results/phase-44.json), [CPU preparation](results/phase-44-cpu.json), and the `geometry` section of [the expanded matrix](results/benchmark-matrix.json). Run `pnpm run benchmark:gpu` for all correctness and GPU workload checks, or `pnpm run benchmark -- tests/geometry.bench.ts --outputJson artifacts/phase-44-cpu.json` for isolated CPU preparation.

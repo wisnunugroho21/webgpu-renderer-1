@@ -6,4 +6,4 @@ Validation: 197 tests, strict build and full production GPU regression pass. The
 
 CPU microbenchmarks: 10,000 full dirty transform updates average 0.4983 ms; 100 dirty transforms 0.0050 ms. Long animation CPU-only means 11.1397 → 11.3673 ms for 1,000×64 joints, while LINEAR crossfades improve 1.2580 → 1.1066 ms. Some cases regress; this is a bounded preparation optimization, not a universal sampling speedup.
 
-Reproduce with `npm test`, `npm run build`, `npm run benchmark -- tests/animation-long.bench.ts tests/ecs.bench.ts`, `npm run benchmark:gpu -- --long-animation`, and `RENDERER_PREVIEW=1 npm run validate:gpu`. Raw evidence: `results/remaining-animation-before-{cpu,matrix}.json`, `results/animation-preparation-{cpu,matrix,regression}.json`.
+Reproduce with `pnpm test`, `pnpm run build`, `pnpm run benchmark -- tests/animation-long.bench.ts tests/ecs.bench.ts`, `pnpm run benchmark:gpu --long-animation`, and `RENDERER_PREVIEW=1 pnpm run validate:gpu`. Raw evidence: `results/remaining-animation-before-{cpu,matrix}.json`, `results/animation-preparation-{cpu,matrix,regression}.json`.

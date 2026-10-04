@@ -5,5 +5,7 @@
   "dependencies": {
     "typescript-eslint": "^8.71.0",
     "typescript": "~6.0.3"
-  }
+  },
+  "version": "0.0.0",
+  "exports": "./index.js"
 }

@@ -41,12 +41,12 @@ Browser matrix samples are short and timings are machine-specific. Improvements 
 131 tests across 40 files, strict TypeScript/production build, full production-preview GPU regression, independent GPU benchmark matrix, animation/crossfade CPU benchmarks and formatting checks pass. Tests cover extreme quaternion magnitudes, zero quaternions, aliased outputs, immutable cached keys, arbitrary seeks/signs, reverse playback, STEP/cubic interpolation, independent controllers and crossfades. GPU regression covers static/animated image equivalence, morph/skin depth and shadows, bounds/visibility and resource reuse.
 
 ```sh
-npm test
-npm run build
-npm run profile:animation -- current
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run benchmark:gpu
-npm run benchmark -- tests/animation.bench.ts tests/blending.bench.ts --outputJson artifacts/animation-cpu.json
+pnpm test
+pnpm run build
+pnpm run profile:animation current
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run benchmark:gpu
+pnpm run benchmark -- tests/animation.bench.ts tests/blending.bench.ts --outputJson artifacts/animation-cpu.json
 ```
 
 Profiling requires installed Chrome and a WebGPU adapter. It owns port 5190 and writes a summary plus a Chrome `.cpuprofile` under `artifacts/`. Sampling and GPU diagnostics stay outside ordinary frame execution.

@@ -11,7 +11,7 @@ The repository review identified concentrated lifecycle, decoder and color-pass 
 | MaterialTextures / TextureUploader / TextureSampler | Cache leases and transactions, decode/upload cleanup, glTF sampler policy                  |
 | EnvironmentLoader / decodeEnvironmentPanorama       | Bounded bake cache versus HDR/EXR format normalization                                     |
 
-Shared content hashing and named color-pipeline offsets replace duplicated policy. Comments explain ownership, asynchronous publication, bitmap cleanup and cold versus frame operations. The codebase guide maps these boundaries. `npm run validate` runs formatting, tests, production build and all browser validations in order and stops at the first failure. Timed benchmarks remain separate.
+Shared content hashing and named color-pipeline offsets replace duplicated policy. Comments explain ownership, asynchronous publication, bitmap cleanup and cold versus frame operations. The codebase guide maps these boundaries. `pnpm run validate` runs formatting, tests, production build and all browser validations in order and stops at the first failure. Timed benchmarks remain separate.
 
 The main facades become smaller: Application 561 → 417 lines, Renderer 837 → 710, GLTFLoader 273 → 27, MaterialTextures 336 → 246, EnvironmentLoader 198 → 125. The extracted code remains in focused modules; these counts describe readability boundaries rather than a reduction in functionality or total implementation complexity.
 
@@ -28,4 +28,4 @@ The before/after long GPU matrices pass image/reference checks and preserve all 
 
 The 1,000-character encoding median changes 1.6 → 1.7 ms; the combined case stays 1.7 ms. Small differences, independent runs, timer resolution and JIT/scheduling variation limit performance conclusions. This restructuring does not establish a speedup, and the largest animation workloads still exceed a 16.7 ms CPU budget. Warm resource creation stays fixed; no new frame resource allocation, decoder work, completion wait or readback is introduced.
 
-Reproduce with `npm run validate` and `npm run benchmark:gpu -- --long-animation`. Raw evidence: `results/structure-{before,after}-matrix.json`, `results/structure-regression.json`, `results/structure-{assets,recovery,environments,codecs}.json`.
+Reproduce with `pnpm run validate` and `pnpm run benchmark:gpu --long-animation`. Raw evidence: `results/structure-{before,after}-matrix.json`, `results/structure-regression.json`, `results/structure-{assets,recovery,environments,codecs}.json`.

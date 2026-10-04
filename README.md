@@ -2,9 +2,11 @@
 
 TypeScript/Vite renderer following [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The initial repository was empty. See [PROGRESS.md](PROGRESS.md) for phase-by-phase validation, benchmark evidence, limitations and optional feature limits.
 
+Use pnpm 12.6.0, pinned in `package.json`. See [installation instructions](https://pnpm.io/installation) if pnpm is not installed.
+
 ```sh
-npm ci
-npm run dev
+pnpm install --frozen-lockfile
+pnpm run dev
 ```
 
 Open the displayed localhost URL in a WebGPU-capable browser. The initial scene is an indexed cube. Resize handling uses physical pixel dimensions and device limits; unexpected device loss pauses rendering and automatically rebuilds GPU resources before resuming.
@@ -14,39 +16,39 @@ Open the displayed localhost URL in a WebGPU-capable browser. The initial scene 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, animation binding setup, worker protocols, input cleanup, post-processing pipelines, asset upload, and GPU validation have separate responsibilities with comments around their invariants. Public application, renderer and animation APIs retain their existing import paths.
 
 ```sh
-npm run lint
-npm run lint:fix
-npm run format
-npm run format:check
+pnpm run lint
+pnpm run lint:fix
+pnpm run format
+pnpm run format:check
 ```
 
 ## Validation
 
 ```sh
-npm test
-npm run build
-npm run validate:gpu
-npm run validate:game
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run benchmark -- --outputJson artifacts/benchmarks.json
-npm run benchmark:gpu
+pnpm test
+pnpm run build
+pnpm run validate:gpu
+pnpm run validate:game
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run benchmark --outputJson artifacts/benchmarks.json
+pnpm run benchmark:gpu
 ```
 
 The GPU harness requires installed Google Chrome and a usable WebGPU adapter. It starts its own server on isolated port 5187, checks pixel output, camera movement without resource creation, resize, device loss, material modes, offscreen rejection, GLB loading, PBR texture/factor/UV/alpha checks, odd-sized linear/sRGB mipmaps, concurrent texture deduplication, decode failures, and full-image equivalence for 10,000 individual/sorted/instanced cubes. It also compares linear and static BVH rendering. GPU completion waits and mapped readbacks are diagnostic operations; ordinary frames never wait or read back. The independent benchmark matrix uses isolated port 5188 and covers material counts, 64-joint crowds, morph counts, combined deformation and occlusion.
 
-Production preview validation requires `npm run build` first. CPU benchmark results are machine-specific and exclude GPU pass timing. Construction cost is excluded from BVH query benchmarks. BVH remains opt-in because it was slower in the fully visible scene despite improving the mostly rejected static benchmark.
+Production preview validation requires `pnpm run build` first. CPU benchmark results are machine-specific and exclude GPU pass timing. Construction cost is excluded from BVH query benchmarks. BVH remains opt-in because it was slower in the fully visible scene despite improving the mostly rejected static benchmark.
 
 Historical and final evidence is saved in `benchmarks/results/`; fresh local results and screenshots go to `artifacts/`. See [benchmarks/REPORT.md](benchmarks/REPORT.md) for the complete A–G matrix and timing limits. Crowd fixtures can be regenerated with `node scripts/create-crowd-fixtures.mjs`.
 
-Quaternion animation now prepares shared normalized LINEAR keyframes once and avoids unnecessary interpolation/normalization work. The 1,000-character crowd's measured animation stage decreased from 21.4 to 11.1 ms. See [animation optimization evidence](benchmarks/ANIMATION_REPORT.md). After building, `npm run profile:animation -- current` captures an animation-only timing summary and Chrome CPU profile on isolated port 5190.
+Quaternion animation now prepares shared normalized LINEAR keyframes once and avoids unnecessary interpolation/normalization work. The 1,000-character crowd's measured animation stage decreased from 21.4 to 11.1 ms. See [animation optimization evidence](benchmarks/ANIMATION_REPORT.md). After building, `pnpm run profile:animation current` captures an animation-only timing summary and Chrome CPU profile on isolated port 5190.
 
 The [second animation optimization round](benchmarks/ANIMATION_ROUND2_REPORT.md) removes temporary matrix views and redundant pose work. Its fresh 1,000-character CPU frame benchmark decreases from 29.0 to 25.9 ms, primarily through faster transform updates.
 
-The [long-clip animation report](benchmarks/ANIMATION_LONG_REPORT.md) adds 1,024-key clips and uniquely phased crowds, plus STEP/cubic/morph/crossfade CPU workloads. Playback bindings reuse key-index hints with bounded neighbor checks and binary-search fallback; this is automatic. The measured 1,000-character long crowd decreases from 11.5 to 10.3 ms for animation and 26.4 to 25.3 ms for the CPU frame. After generating the long fixture and building, use `npm run benchmark:gpu -- --long-animation` or `npm run profile:animation -- current-long --long-animation`.
+The [long-clip animation report](benchmarks/ANIMATION_LONG_REPORT.md) adds 1,024-key clips and uniquely phased crowds, plus STEP/cubic/morph/crossfade CPU workloads. Playback bindings reuse key-index hints with bounded neighbor checks and binary-search fallback; this is automatic. The measured 1,000-character long crowd decreases from 11.5 to 10.3 ms for animation and 26.4 to 25.3 ms for the CPU frame. After generating the long fixture and building, use `pnpm run benchmark:gpu --long-animation` or `pnpm run profile:animation current-long --long-animation`.
 
 ## Playable example and gameplay loop
 
-Run `npm run dev` and open the printed server URL with `/?example=collect` appended (normally `http://127.0.0.1:5173/?example=collect`). Collect six golden cubes using **WASD or arrow keys**. **R** restarts; **C** switches between orthographic and perspective cameras. Click the canvas to focus input. The original cube remains the default route.
+Run `pnpm run dev` and open the printed server URL with `/?example=collect` appended (normally `http://127.0.0.1:5173/?example=collect`). Collect six golden cubes using **WASD or arrow keys**. **R** restarts; **C** switches between orthographic and perspective cameras. Click the canvas to focus input. The original cube remains the default route.
 
 The example in `src/examples/collect.ts` uses shared cube geometry/material IDs, focus-scoped keyboard input, fixed simulation for movement/collision, and interpolated render poses. `CollectGame.ts` keeps the gameplay model independent of rendering and input. `KeyboardInput.dispose()` removes its listeners; unregister gameplay callbacks when their owner is destroyed.
 
@@ -228,7 +230,7 @@ if (geometry.supported) geometry.enabled = true; // Re-enable cluster culling.
 
 Uploaded static triangle meshes are divided into shared, consecutive 256-triangle clusters. Compute culls conservative transformed cluster bounds and writes indexed indirect color draws. Small meshes, animated meshes, transparency, unsupported adapters, capacity overflow and `gpu-indirect` object submission use the existing draw path. CPU LOD is supported; depth and shadows retain full geometry. This version provides cluster bounds/culling rather than a mesh-shader API or GPU cluster LOD.
 
-GPU resources and large staging storage allocate during renderer initialization on supported adapters and remain resident until renderer disposal, including while disabled. Unsupported adapters default to the conventional path without these allocations. The fixed limit is 65,536 cluster-instance records per frame; overflowing batches fall back intact. `geometryClusterCandidates` counts cluster-instance records; `geometryClusterDraws` counts submitted indirect commands, including zero-instance culled commands. Actual GPU triangle/instance counts remain `-1` in runtime statistics; benchmark diagnostics read them explicitly. GPU profiler pass 10 measures cluster culling. The expanded `npm run benchmark:gpu` validates enabled/disabled full images and measures both mostly rejected and fully visible 200,000-triangle workloads.
+GPU resources and large staging storage allocate during renderer initialization on supported adapters and remain resident until renderer disposal, including while disabled. Unsupported adapters default to the conventional path without these allocations. The fixed limit is 65,536 cluster-instance records per frame; overflowing batches fall back intact. `geometryClusterCandidates` counts cluster-instance records; `geometryClusterDraws` counts submitted indirect commands, including zero-instance culled commands. Actual GPU triangle/instance counts remain `-1` in runtime statistics; benchmark diagnostics read them explicitly. GPU profiler pass 10 measures cluster culling. The expanded `pnpm run benchmark:gpu` validates enabled/disabled full images and measures both mostly rejected and fully visible 200,000-triangle workloads.
 
 ## Optional HDR and tone mapping
 
@@ -242,7 +244,7 @@ HDR is disabled by default and allocates no resources until enabled. It renders 
 
 Disabling HDR restores the original direct rendering path; resources remain cached for reuse. Resize replaces the target, and renderer disposal releases it. The target uses 8 bytes per pixel (about 15.8 MiB at 1920×1080), plus one 16-byte uniform and bounded color/presentation pipeline variants. Half-float scene values above 65504 saturate during presentation. Hi-Z debug runs after tone mapping. No ordinary-frame waits, readbacks or resource creation are added.
 
-The lighting demo enables HDR. Click the canvas, press **H** to toggle it and **−/+** to change exposure by half a stop. Run `npm run build && npm run validate:hdr` for analytic pixel references, transparency, submission modes, animation/IBL integration, resize, lifetime and overhead checks. See [HDR measurements](benchmarks/HDR_REPORT.md).
+The lighting demo enables HDR. Click the canvas, press **H** to toggle it and **−/+** to change exposure by half a stop. Run `pnpm run build && pnpm run validate:hdr` for analytic pixel references, transparency, submission modes, animation/IBL integration, resize, lifetime and overhead checks. See [HDR measurements](benchmarks/HDR_REPORT.md).
 
 ## Recyclable entity handles
 
@@ -291,7 +293,7 @@ Basis ETC1S/UASTC textures retain authored mips and role-correct linear/sRGB sam
 
 ## Maintenance checks
 
-Run `npm run validate` for ESLint, formatting, unit tests, production build and all renderer/asset/game/HDR/recovery/environment/codec GPU checks. It stops at the first failure. Run CPU/GPU benchmarks separately using `npm run benchmark` and `npm run benchmark:gpu`; add `-- --long-animation` to the latter for the long-clip crowd matrix. Module ownership and change locations are documented in [the codebase guide](ARCHITECTURE.md).
+Run `pnpm run validate` for ESLint, formatting, unit tests, production build and all renderer/asset/game/HDR/recovery/environment/codec GPU checks. It stops at the first failure. Run CPU/GPU benchmarks separately using `pnpm run benchmark` and `pnpm run benchmark:gpu`; add `--long-animation` to the latter for the long-clip crowd matrix. Module ownership and change locations are documented in [the codebase guide](ARCHITECTURE.md).
 
 ## Independent scene instances
 
@@ -320,7 +322,7 @@ app.gpu.renderScale = 0.75; // 0.25–2; multiplies device pixel ratio, default 
 app.renderer.antialiasing = "fxaa"; // default "none"
 ```
 
-Render scaling changes physical canvas size while retaining CSS size; dependent depth/HDR/Hi-Z targets resize together. FXAA is optional and shares a linear half-float scene target plus presentation pass with HDR. It does not enable HDR exposure or Reinhard mapping when HDR is disabled. It filters mapped color, includes blended transparency, and performs sRGB encoding once. As a spatial filter it can soften fine detail; no temporal history/motion vectors are required. First enable prepares bounded resources; warm frames and toggles reuse them. Scale and anti-aliasing survive device recovery. `npm run validate:quality` checks scale, restoration, image changes, submission modes, depth/HDR, stable warm resources, recovery and cleanup, and records diagnostic completion timings.
+Render scaling changes physical canvas size while retaining CSS size; dependent depth/HDR/Hi-Z targets resize together. FXAA is optional and shares a linear half-float scene target plus presentation pass with HDR. It does not enable HDR exposure or Reinhard mapping when HDR is disabled. It filters mapped color, includes blended transparency, and performs sRGB encoding once. As a spatial filter it can soften fine detail; no temporal history/motion vectors are required. First enable prepares bounded resources; warm frames and toggles reuse them. Scale and anti-aliasing survive device recovery. `pnpm run validate:quality` checks scale, restoration, image changes, submission modes, depth/HDR, stable warm resources, recovery and cleanup, and records diagnostic completion timings.
 
 ## Gameplay animation controls
 
@@ -382,7 +384,7 @@ Queries use the latest extracted snapshot and include offscreen objects. Ray hit
 Large assets prepare canonical vertices, indices, influence streams, morph extrema and cluster metadata in the existing decode worker. Prepared arrays transfer without copies. Uploads publish only after completion, yield between vertex/index writes of at most 1 MiB, and roll back cancellation/device failure. Decoder metrics include worker preparation time and prepared mesh count. Small input assets/main-thread fallback still prepare synchronously; deformation-arena append is also cold work.
 
 ```sh
-npm run bake:environment -- public/sky.hdr public/sky.envbin --specular-size 32 --samples 128
+pnpm run bake:environment public/sky.hdr public/sky.envbin --specular-size 32 --samples 128
 ```
 
 ```ts
@@ -448,8 +450,14 @@ Try `?example=collect`: WASD/arrows, touch stick or gamepad move; R/gamepad A re
 
 ## ESLint and Prettier
 
-`npm ci` installs the locked development tools. Run `npm run lint` to check TypeScript source/tests and JavaScript tooling with recommended ESLint rules; `npm run lint:fix` applies available fixes. Warnings fail the lint command. `npm run format` formats supported files with the existing Prettier configuration and then formats WGSL with the token-preserving shader formatter. `npm run format:check` checks both without modifying files. Generated output, assets, dependency directories and benchmark result files are excluded. ESLint uses `eslint-config-prettier` to avoid conflicting formatting rules.
+`pnpm install --frozen-lockfile` installs the locked development tools. Run `pnpm run lint` to check TypeScript source/tests and JavaScript tooling with recommended ESLint rules; `pnpm run lint:fix` applies available fixes. Warnings fail the lint command. `pnpm run format` formats supported files with the existing Prettier configuration and then formats WGSL with the token-preserving shader formatter. `pnpm run format:check` checks both without modifying files. Generated output, assets, dependency directories and benchmark result files are excluded. ESLint uses `eslint-config-prettier` to avoid conflicting formatting rules.
 
 Configuration lives in `eslint.config.js`, `.prettierrc.json` and `.prettierignore`. The complete validation command runs lint first. VS Code extension recommendations and workspace settings enable Prettier format-on-save and explicit ESLint fixes. WGSL remains handled by the dedicated command-line formatter.
 
-The build compiler remains TypeScript 7.0.2. The current typescript-eslint parser requires TypeScript below 6.1, so `tools/lint` is a separate locked dependency package using TypeScript 6.0.3. The root postinstall runs `npm ci --prefix tools/lint`; the configuration imports its parser bridge. This avoids unsupported peer dependencies or downgrading the build compiler. If installation was performed with lifecycle scripts disabled, run `npm ci --prefix tools/lint` before linting. Lint uses syntax-based recommended rules; strict type checking stays in `npm run build`.
+The build compiler remains TypeScript 7.0.2. The current typescript-eslint parser requires TypeScript below 6.1, so `tools/lint` is a separate workspace package using TypeScript 6.0.3. Both packages are installed by the pnpm workspace with one root lockfile; ESLint imports the workspace parser bridge. This avoids unsupported peer dependencies or downgrading the build compiler, without an installation hook. Lint uses syntax-based recommended rules; strict type checking stays in `pnpm run build`.
+
+## Package manager
+
+Use pnpm 12.6.0, pinned in `package.json`. Install pnpm using the [official installation instructions](https://pnpm.io/installation), then run `pnpm install --frozen-lockfile` from the repository root. The workspace installs the renderer and `tools/lint` together; `pnpm-lock.yaml` is the shared committed lockfile. Use `pnpm add` / `pnpm add -D` for dependencies and `pnpm --filter webgpu-renderer-lint add` for linter-toolchain dependencies. Do not run npm install or create nested npm lockfiles.
+
+Run scripts with `pnpm run <name>` or execute installed tools with `pnpm exec <tool>`. Script arguments follow the script name directly, for example `pnpm run benchmark:gpu --long-animation`. `pnpm run validate` invokes its child checks through pnpm. The root build compiler remains TypeScript 7 and the lint workspace retains TypeScript 6; peer resolution is isolated between them.

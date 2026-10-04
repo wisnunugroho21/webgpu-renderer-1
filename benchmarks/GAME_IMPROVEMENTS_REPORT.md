@@ -1,6 +1,6 @@
 # Game-development improvements
 
-All eight requested priorities were implemented sequentially. Each passed its CPU/build/browser checks and had timing evidence recorded before the next priority began. `npm run validate` now runs every production GPU suite, including render quality and HDR post-processing.
+All eight requested priorities were implemented sequentially. Each passed its CPU/build/browser checks and had timing evidence recorded before the next priority began. `pnpm run validate` now runs every production GPU suite, including render quality and HDR post-processing.
 
 | Priority | Delivered                                                                         | Evidence in `benchmarks/results/`                                     |
 | -------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |

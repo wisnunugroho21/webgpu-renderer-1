@@ -18,7 +18,7 @@ The default cache budget is 64 records / 128 MiB of decoded backing buffers. Cou
 
 155 tests across 43 files and the strict TypeScript/production build pass. Added coverage exercises rollback, partial allocation/write failures, cancellation at stage boundaries, late uploads/worker replies, cache budgets, failed cleanup retries, external consumers, failed instantiation, palette/state preservation, arena reuse, manually destroyed instances and fence ordering.
 
-`npm run validate:assets` uses real Chrome WebGPU against the production build. It validates an intentional second-primitive failure after texture preparation and a successful first primitive; all live resource counts return to baseline. It then loads two independent asset URLs, with two instances for the first URL, and checks that unloading the first preserves the other character and shared textures. Ten subsequent skinned/morphed/textured load/draw/unload cycles each return to the same baseline:
+`pnpm run validate:assets` uses real Chrome WebGPU against the production build. It validates an intentional second-primitive failure after texture preparation and a successful first primitive; all live resource counts return to baseline. It then loads two independent asset URLs, with two instances for the first URL, and checks that unloading the first preserves the other character and shared textures. Ten subsequent skinned/morphed/textured load/draw/unload cycles each return to the same baseline:
 
 - 36 shared buffers / 61,085,312 buffer bytes, five fallback/render textures;
 - one bootstrap mesh/material, two bootstrap/light entities;
@@ -46,13 +46,13 @@ For the tiny real skinned/morphed/textured fixture, ten browser cycles measure a
 ## Reproduction and evidence
 
 ```sh
-npm test
-npm run build
-npm run validate:assets
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run benchmark:gpu
-npm run benchmark -- tests/asset-loading.bench.ts tests/asset-lifecycle.bench.ts --outputJson artifacts/asset-lifecycle-final-cpu.json
-npm run format:check
+pnpm test
+pnpm run build
+pnpm run validate:assets
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run benchmark:gpu
+pnpm run benchmark -- tests/asset-loading.bench.ts tests/asset-lifecycle.bench.ts --outputJson artifacts/asset-lifecycle-final-cpu.json
+pnpm run format:check
 ```
 
 Tracked raw evidence is under `benchmarks/results`: `asset-lifecycle.json`, `asset-lifecycle-before-cpu.json`, `asset-rollback-after-cpu.json`, `asset-lifecycle-after-cpu.json`, `asset-lifecycle-gpu.json`, `asset-lifecycle-regression.json`, and `asset-lifecycle-matrix.json`.

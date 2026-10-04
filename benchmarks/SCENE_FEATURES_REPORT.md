@@ -59,15 +59,15 @@ Environment resolution/sample count determine preprocessing time and quality. Ba
 ## Reproduce
 
 ```sh
-npm test
-npm run build
-npm run validate:features
-npm run benchmark -- tests/animation.bench.ts tests/animation-long.bench.ts tests/animation-layers.bench.ts tests/environment.bench.ts --outputJson artifacts/features-cpu.json
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run benchmark:gpu
-npm run validate:game
-npm run validate:assets
-npm run format:check
+pnpm test
+pnpm run build
+pnpm run validate:features
+pnpm run benchmark -- tests/animation.bench.ts tests/animation-long.bench.ts tests/animation-layers.bench.ts tests/environment.bench.ts --outputJson artifacts/features-cpu.json
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run benchmark:gpu
+pnpm run validate:game
+pnpm run validate:assets
+pnpm run format:check
 ```
 
 Feature checks use port 5193. Timing jobs should run serially. Evidence: `benchmarks/results/scene-features*.json`, with the compact comparison in [scene-features.json](results/scene-features.json).

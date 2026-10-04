@@ -6,7 +6,7 @@ Cold enable creates bounded PBR format variants, a fullscreen pipeline, one 16-b
 
 ## Validation
 
-`npm run validate:hdr` checks actual Chrome WebGPU output:
+`pnpm run validate:hdr` checks actual Chrome WebGPU output:
 
 - Grayscale scene radiances 0, .18, 1, 2, 4, 16, 65504 and overflow agree with the analytic Reinhard→sRGB reference within one byte. 1/2/4/16 map to 188/213/231/248, preserving highlights that direct output clips.
 - Exposure ±1 stops agrees with doubling/halving radiance; extreme valid exposure is finite; invalid settings are rejected. Clamp at zero stops agrees with legacy output.
@@ -26,13 +26,13 @@ Focused 640×480 GPU checks warm 30 frames and measure 60 frames per mode. CPU e
 ## Reproduce
 
 ```sh
-npm test
-npm run build
-npm run validate:hdr
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run benchmark:gpu
-npm run validate:features
-npm run format:check
+pnpm test
+pnpm run build
+pnpm run validate:hdr
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run benchmark:gpu
+pnpm run validate:features
+pnpm run format:check
 ```
 
 HDR validation uses isolated preview port 5194. Run timing jobs serially. `/?example=lighting` enables HDR and supports H toggle, −/+ half-stop exposure, E lighting toggle and arrows for environment rotation.

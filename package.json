@@ -26,8 +26,7 @@
     "bake:environment": "node scripts/bake-environment.mjs",
     "validate:post": "node scripts/validate-post.mjs",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix --max-warnings 0",
-    "postinstall": "npm ci --prefix tools/lint --no-audit --no-fund"
+    "lint:fix": "eslint . --fix --max-warnings 0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -40,7 +39,8 @@
     "prettier": "^3.9.9",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "webgpu-renderer-lint": "workspace:*"
   },
   "dependencies": {
     "@gltf-transform/core": "^4.5.1",
@@ -49,5 +49,6 @@
     "ktx-parse": "^2.0.0",
     "meshoptimizer": "^1.3.0",
     "three": "^0.186.1"
-  }
+  },
+  "packageManager": "pnpm@12.6.0"
 }

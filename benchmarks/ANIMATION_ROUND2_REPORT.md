@@ -51,8 +51,8 @@ Raw evidence: `results/animation-round2.json`, `animation-round2-before-cpu.json
 Reproduce with the existing test/build/GPU commands and:
 
 ```sh
-npm run profile:animation -- round2
-npm run benchmark -- tests/animation.bench.ts tests/blending.bench.ts tests/ecs.bench.ts tests/skinning.bench.ts tests/math.bench.ts --outputJson artifacts/animation-cpu.json
+pnpm run profile:animation round2
+pnpm run benchmark -- tests/animation.bench.ts tests/blending.bench.ts tests/ecs.bench.ts tests/skinning.bench.ts tests/math.bench.ts --outputJson artifacts/animation-cpu.json
 ```
 
 The complete 1,000-character frame still exceeds a 16.7 ms CPU budget. Remaining work is concentrated in animation pose writes, packed matrix arithmetic and palette preparation. Further changes need independently phased/long-clip workloads alongside the current crowd, so optimizations do not rely on its repeated phases. No 60 FPS guarantee is claimed.

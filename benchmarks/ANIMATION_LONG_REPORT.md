@@ -49,12 +49,12 @@ Animation-only Chrome profiling measures 10.3 / 10.0 ms before/after. It exclude
 
 ```sh
 node scripts/create-crowd-fixtures.mjs --long
-npm run benchmark -- tests/animation-long.bench.ts tests/animation.bench.ts --outputJson artifacts/animation-long-cpu.json
-npm run build
-npm run benchmark:gpu -- --long-animation
-npm run profile:animation -- current-long --long-animation
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run benchmark:gpu
+pnpm run benchmark -- tests/animation-long.bench.ts tests/animation.bench.ts --outputJson artifacts/animation-long-cpu.json
+pnpm run build
+pnpm run benchmark:gpu --long-animation
+pnpm run profile:animation current-long --long-animation
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run benchmark:gpu
 ```
 
 The long mode writes `artifacts/benchmark-matrix-long.json`; default matrix output remains `artifacts/benchmark-matrix.json`. Profiling uses isolated port 5190, GPU matrix port 5188 and regression port 5187. Run timing jobs serially. Profile files remain diagnostic local artifacts. Regenerate original crowd assets without `--long`.

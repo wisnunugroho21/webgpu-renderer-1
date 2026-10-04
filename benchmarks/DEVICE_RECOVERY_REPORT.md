@@ -10,4 +10,4 @@ Validation uses actual `device.destroy()` loss notification and new devices, not
 
 Measured cold recreation in one run: approximately 52–69 ms for this small scene. Exact latest timings are in `results/device-recovery.json`; adapter requests, decoding and driver compilation affect latency. No normal-frame readback/wait is used. 197 existing tests, production build and the full GPU regression pass. A regression caught synchronous asset-detachment timing; it was fixed before completing this task.
 
-Reproduce: `npm test`, `npm run build`, `npm run validate:recovery`, `RENDERER_PREVIEW=1 npm run validate:gpu`, `npm run benchmark:gpu`. Isolated recovery preview port 5195. Raw evidence: `results/device-recovery*.json`.
+Reproduce: `pnpm test`, `pnpm run build`, `pnpm run validate:recovery`, `RENDERER_PREVIEW=1 pnpm run validate:gpu`, `pnpm run benchmark:gpu`. Isolated recovery preview port 5195. Raw evidence: `results/device-recovery*.json`.

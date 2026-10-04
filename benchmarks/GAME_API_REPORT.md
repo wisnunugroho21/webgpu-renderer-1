@@ -20,7 +20,7 @@ Usage and lifetime details are in README's gameplay/camera sections. Projection 
 
 172 tests across 47 files, strict TypeScript/production build and formatting checks pass. Tests cover fixed-step accumulation/interpolation, bounded catch-up, timing validation, subscription mutation/disposal, very small steps, keyboard edges/focus/modifier shortcuts, movement/collection/reset, standard-Z clipping, aspect resize, projection flags, parented poses, glTF camera instantiation/selection and selected-camera unloading.
 
-`npm run validate:game` runs Chrome WebGPU against the production build:
+`pnpm run validate:game` runs Chrome WebGPU against the production build:
 
 - Custom perspective near/far 2/200 and orthographic near/far 0/40 produce identical full-light-loop and clustered images: zero differing bytes.
 - Orthographic four-cascade shadows encode correctly; a near plane beyond shadow distance encodes zero shadow passes.
@@ -58,15 +58,15 @@ These isolate CPU functions and exclude RAF, input event delivery, DOM updates, 
 ## Reproduction and evidence
 
 ```sh
-npm test
-npm run build
-npm run validate:game
-npm run validate:assets
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run benchmark:gpu
-npm run benchmark -- tests/extraction.bench.ts tests/lod.bench.ts tests/shadows.bench.ts tests/game-api.bench.ts --outputJson artifacts/game-api-after-cpu.json
-npm run format:check
-npm run dev
+pnpm test
+pnpm run build
+pnpm run validate:game
+pnpm run validate:assets
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run benchmark:gpu
+pnpm run benchmark -- tests/extraction.bench.ts tests/lod.bench.ts tests/shadows.bench.ts tests/game-api.bench.ts --outputJson artifacts/game-api-after-cpu.json
+pnpm run format:check
+pnpm run dev
 # Open the server URL with /?example=collect appended.
 ```
 

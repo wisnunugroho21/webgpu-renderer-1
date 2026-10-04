@@ -10,4 +10,4 @@ Validation: 200 tests and strict production build pass. Independent RGBE values 
 
 Focused 640×480 cold load/bake/install measured 60.6 ms; cached content load/install 3.1 ms, with one CPU bake. Warm scene diagnostic completion median 0.8 ms. Tiny bake options are 2px specular/1px diffuse/2px LUT/8 samples; timings do not represent large production panoramas. Lazy decoder chunks add download/parse cost only when loading those files.
 
-Reproduce: `npm test`, `npm run build`, `npm run validate:environments`, `npm run validate:recovery`. Raw evidence: `results/environment-loading.json`. File validation uses preview port 5196.
+Reproduce: `pnpm test`, `pnpm run build`, `pnpm run validate:environments`, `pnpm run validate:recovery`. Raw evidence: `results/environment-loading.json`. File validation uses preview port 5196.

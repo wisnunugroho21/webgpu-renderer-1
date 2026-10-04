@@ -96,15 +96,15 @@ Changing a shader layout, culling rule, deformation helper or pass dependency re
 ## Validation and maintenance
 
 ```sh
-npm run format
-npm run format:check
-npm test
-npm run build
-RENDERER_PREVIEW=1 npm run validate:gpu
-npm run validate:assets
-npm run validate:game
-npm run benchmark -- --outputJson artifacts/benchmarks.json
-npm run benchmark:gpu
+pnpm run format
+pnpm run format:check
+pnpm test
+pnpm run build
+RENDERER_PREVIEW=1 pnpm run validate:gpu
+pnpm run validate:assets
+pnpm run validate:game
+pnpm run benchmark --outputJson artifacts/benchmarks.json
+pnpm run benchmark:gpu
 ```
 
 Prettier formats supported source/configuration/docs. `scripts/format-shaders.mjs` formats WGSL whitespace and verifies token preservation before writing. Generated assets, benchmark evidence, the source plan and historical progress log are excluded from automatic formatting.
@@ -135,7 +135,7 @@ The application facade preserves existing public properties and loading methods.
 
 `ColorPass` owns bounded default/HDR/environment pipeline sets and reuses existing buffers/material/mesh/pass owners. Render graph callbacks stay persistent and compile in `Renderer.configurePasses`; frame order and GPU layouts remain unchanged. Current clear color, depth view and dynamic instance offset are passed into encoding rather than captured at setup. `ColorPipelineLayout` names queue-ID groups and variant offsets shared by table creation and selection. Ordinary frames add no resource creation, cache work, decoder work, completion waits or readbacks.
 
-For a complete integration gate, run `npm run validate`. It runs formatting, unit tests, production build and every GPU validation in order, stopping at the first failure. Benchmark timing remains separate: `npm run benchmark`, `npm run benchmark:gpu`, and `npm run benchmark:gpu -- --long-animation`. This avoids overlapping validation jobs with timed workloads. See `benchmarks/STRUCTURE_REPORT.md` for equivalence and performance evidence from this restructuring.
+For a complete integration gate, run `pnpm run validate`. It runs lint, formatting, unit tests, production build and every GPU validation in order, stopping at the first failure. Benchmark timing remains separate: `pnpm run benchmark`, `pnpm run benchmark:gpu`, and `pnpm run benchmark:gpu --long-animation`. This avoids overlapping validation jobs with timed workloads. See `benchmarks/STRUCTURE_REPORT.md` for equivalence and performance evidence from this restructuring.
 
 ## Game integration owners
 
@@ -167,4 +167,4 @@ Small math, ECS stores, sampling kernels, visibility structures, mesh preparatio
 
 ## Code quality tools
 
-ESLint's flat config covers TypeScript and JavaScript with recommended correctness rules. Prettier owns formatting; eslint-config-prettier disables competing style rules. WGSL uses the existing token-preserving formatter. Validation runs lint before formatting, tests and build. `tools/lint` owns a locked TypeScript 6 parser runtime because typescript-eslint's supported peer range excludes the project's TypeScript 7 build compiler. Root postinstall installs that isolated package; ordinary runtime/build imports do not reference it.
+ESLint's flat config covers TypeScript and JavaScript with recommended correctness rules. Prettier owns formatting; eslint-config-prettier disables competing style rules. WGSL uses the existing token-preserving formatter. Validation runs lint before formatting, tests and build. `tools/lint` owns a locked TypeScript 6 parser runtime because typescript-eslint's supported peer range excludes the project's TypeScript 7 build compiler. The pnpm workspace installs that isolated package alongside the root using one committed lockfile; ordinary runtime/build imports do not reference it.

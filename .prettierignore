@@ -6,5 +6,5 @@ public/
 benchmarks/results/
 IMPLEMENTATION_PLAN.md
 PROGRESS.md
-package-lock.json
+pnpm-lock.yaml
 src/shaders/

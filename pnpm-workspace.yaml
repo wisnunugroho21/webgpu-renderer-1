@@ -1,0 +1,6 @@
+packages:
+  - tools/lint
+
+# Keep the parser's TypeScript 6 peers independent of the root build compiler.
+resolvePeersFromWorkspaceRoot: false
+strictPeerDependencies: true

@@ -20,7 +20,7 @@ const checks = [
 ];
 const root = fileURLToPath(new URL("../", import.meta.url));
 for (const check of checks) {
-  const result = spawnSync("npm", ["run", check], {
+  const result = spawnSync("pnpm", ["run", check], {
     cwd: root,
     stdio: "inherit",
     env: { ...process.env, RENDERER_PREVIEW: "1" },

@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import prettier from "eslint-config-prettier/flat";
 import globals from "globals";
-import tseslint from "./tools/lint/index.js";
+import tseslint from "webgpu-renderer-lint";
 
 export default defineConfig([
   globalIgnores([

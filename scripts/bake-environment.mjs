@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 const [input, output, ...args] = process.argv.slice(2);
 if (!input || !output)
   throw new Error(
-    "Usage: npm run bake:environment -- input.hdr output.envbin [--samples N] [--specular-size N] [--diffuse-size N] [--brdf-size N]",
+    "Usage: pnpm run bake:environment input.hdr output.envbin [--samples N] [--specular-size N] [--diffuse-size N] [--brdf-size N]",
   );
 const names = {
     "--samples": "samples",

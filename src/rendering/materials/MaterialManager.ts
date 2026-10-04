@@ -1,9 +1,6 @@
 import { MATERIAL_PIPELINE_VARIANTS } from "../pipelines/ColorPipelineLayout";
-import {
-  MaterialShaderRegistry,
-  MATERIAL_SHADER_PARAMETER_WORDS,
-  MATERIAL_SHADER_PARAMETER_BYTES,
-} from "./MaterialShaderRegistry";
+import { MaterialShaderRegistry } from "./MaterialShaderRegistry";
+import { MaterialShaderParameters } from "./MaterialShaderParameters";
 import { MATERIAL_WORDS, MATERIAL_BYTES } from "../layouts";
 import { Material } from "./Material";
 import { MaterialFlags } from "./MaterialFlags";
@@ -14,8 +11,7 @@ export class MaterialManager {
   readonly shaderIds: Uint16Array;
   readonly shaderParameters: Float32Array;
   shaderUploadBytes = 0;
-  private shaderDirtyStart = Infinity;
-  private shaderDirtyEnd = 0;
+  private readonly customParameters: MaterialShaderParameters;
   readonly data: Float32Array;
   readonly flags: Uint32Array;
   readonly alphaMode: Uint8Array;
@@ -35,9 +31,8 @@ export class MaterialManager {
   constructor(readonly capacity = 2048) {
     this.alive = new Uint8Array(capacity);
     this.shaderIds = new Uint16Array(capacity);
-    this.shaderParameters = new Float32Array(
-      capacity * MATERIAL_SHADER_PARAMETER_WORDS,
-    );
+    this.customParameters = new MaterialShaderParameters(capacity);
+    this.shaderParameters = this.customParameters.data;
     this.data = new Float32Array(capacity * MATERIAL_WORDS);
     this.flags = new Uint32Array(capacity);
     this.alphaMode = new Uint8Array(capacity);
@@ -61,7 +56,7 @@ export class MaterialManager {
     this.data.fill(0, id * MATERIAL_WORDS, (id + 1) * MATERIAL_WORDS);
     this.flags[id] = this.alphaMode[id] = this.doubleSided[id] = 0;
     this.shaderIds[id] = 0;
-    this.writeShaderParameters(id);
+    this.customParameters.write(id);
     this.revision++;
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
@@ -84,7 +79,7 @@ export class MaterialManager {
       throw new Error(
         "Unknown material shader; register it before creating a material",
       );
-    this.validateShaderParameters(material.shaderParameters);
+    this.customParameters.validate(material.shaderParameters);
     const baseColor = material.baseColor ?? [1, 1, 1, 1],
       metallic = material.metallic ?? 0,
       roughness = material.roughness ?? 1,
@@ -134,7 +129,7 @@ export class MaterialManager {
       if (![0, 1].includes(uv(role)))
         throw new Error("Only TEXCOORD_0/1 are supported");
     this.shaderIds[id] = shaderId;
-    this.writeShaderParameters(id, material.shaderParameters);
+    this.customParameters.write(id, material.shaderParameters);
     this.data.set(baseColor, offset);
     this.data.set([metallic, roughness, alpha, cutoff], offset + 4);
     this.data.set(
@@ -163,41 +158,11 @@ export class MaterialManager {
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
   }
-  /** Rejects oversized/nonfinite values before any material state is changed. */
-  private validateShaderParameters(values?: ArrayLike<number>): void {
-    if (!values) return;
-    if (
-      !Number.isInteger(values.length) ||
-      values.length < 0 ||
-      values.length > MATERIAL_SHADER_PARAMETER_WORDS
-    )
-      throw new Error("Material shader parameters require at most 16 values");
-    for (let i = 0; i < values.length; i++)
-      if (
-        !Number.isFinite(values[i]) ||
-        !Number.isFinite(Math.fround(values[i]!))
-      )
-        throw new Error("Material shader parameters must be finite f32 values");
-  }
-  /** Writes a zero-padded shared parameter row and marks its byte range dirty. */
-  private writeShaderParameters(id: number, values?: ArrayLike<number>): void {
-    const offset = id * MATERIAL_SHADER_PARAMETER_WORDS;
-    this.shaderParameters.fill(
-      0,
-      offset,
-      offset + MATERIAL_SHADER_PARAMETER_WORDS,
-    );
-    if (values)
-      for (let i = 0; i < values.length; i++)
-        this.shaderParameters[offset + i] = values[i]!;
-    this.shaderDirtyStart = Math.min(this.shaderDirtyStart, id);
-    this.shaderDirtyEnd = Math.max(this.shaderDirtyEnd, id + 1);
-  }
   /** Updates only custom parameters, preserving shader choice and PBR/alpha factors. */
   setShaderParameters(id: number, values: ArrayLike<number>): void {
     this.pipelineIndex(id);
-    this.validateShaderParameters(values);
-    this.writeShaderParameters(id, values);
+    this.customParameters.validate(values);
+    this.customParameters.write(id, values);
   }
   /** Selects a registered family without resetting PBR factors or texture metadata; omitted parameters are retained. */
   setShader(
@@ -212,9 +177,9 @@ export class MaterialManager {
       (shaderId !== 0 && !this.shaders.get(shaderId))
     )
       throw new Error("Unknown material shader");
-    this.validateShaderParameters(parameters);
+    this.customParameters.validate(parameters);
     this.shaderIds[id] = shaderId;
-    if (parameters) this.writeShaderParameters(id, parameters);
+    if (parameters) this.customParameters.write(id, parameters);
     this.revision++;
   }
   /** Encodes shader family and the existing 18 surface/topology variants without hot-path allocation. */
@@ -225,35 +190,14 @@ export class MaterialManager {
       topology
     );
   }
-  /** Creates one shared parameter buffer only when a custom shader is first installed. */
+  /** Creates lazy shared storage and marks all live rows for recovery upload. */
   createShaderParameterBuffer(manager: BufferManager): GPUBuffer {
-    this.shaderDirtyStart = 0;
-    this.shaderDirtyEnd = this.count;
-    return manager.create({
-      label: "Shared custom material parameters",
-      size: this.capacity * MATERIAL_SHADER_PARAMETER_BYTES,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
+    return this.customParameters.createBuffer(manager, this.count);
   }
-  /** Uploads dirty custom rows once; ordinary unchanged frames perform no parameter writes. */
+  /** Report bytes uploaded while preserving the public diagnostics field. */
   uploadShaderParameters(queue: GPUQueue, buffer?: GPUBuffer): void {
     this.shaderUploadBytes = 0;
-    if (!buffer || this.shaderDirtyStart === Infinity) return;
-    const offset = this.shaderDirtyStart * MATERIAL_SHADER_PARAMETER_BYTES;
-    const bytes =
-      (this.shaderDirtyEnd - this.shaderDirtyStart) *
-      MATERIAL_SHADER_PARAMETER_BYTES;
-    if (bytes)
-      queue.writeBuffer(
-        buffer,
-        offset,
-        this.shaderParameters.buffer,
-        offset,
-        bytes,
-      );
-    this.shaderUploadBytes = bytes;
-    this.shaderDirtyStart = Infinity;
-    this.shaderDirtyEnd = 0;
+    this.shaderUploadBytes = this.customParameters.upload(queue, buffer);
   }
   /** Returns the texture layout metadata associated with a material. */
   textureLayout(id: number): Float32Array {

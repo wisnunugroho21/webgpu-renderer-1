@@ -1,4 +1,5 @@
-import { createCollectExample } from "./examples/collect";
+import { installExample } from "./examples/installExample";
+import type { InstalledExample } from "./examples/installExample";
 import { Application } from "./app/Application";
 import "./style.css";
 
@@ -7,35 +8,15 @@ const status = document.querySelector<HTMLOutputElement>("#status")!;
 const app = new Application(canvas, status);
 // Read-only diagnostics plus lifecycle access for the browser regression harness.
 Object.assign(window, { rendererApp: app });
-let example:
-  | {
-      /** Releases this owner or scene lifetime according to its independent ownership contract. */
-      dispose(): void;
-    }
-  | undefined;
+let example: InstalledExample | undefined;
 void app
   .start()
   .then(async () => {
-    // Installs the requested collection, lighting or custom-material example only after application startup succeeds.
-
-    if (new URLSearchParams(location.search).get("example") === "collect") {
-      const collect = createCollectExample(app);
-      example = collect;
-      Object.assign(window, { collectGame: collect.game });
-    } else if (
-      new URLSearchParams(location.search).get("example") === "lighting"
-    ) {
-      const { createLightingExample } = await import("./examples/lighting");
-      example = await createLightingExample(app);
-      Object.assign(window, { environmentDemoReady: true });
-    } else if (
-      new URLSearchParams(location.search).get("example") === "shaders"
-    ) {
-      const { createMaterialShaderExample } =
-        await import("./examples/materialShaders");
-      example = await createMaterialShaderExample(app);
-      Object.assign(window, { materialShaderDemoReady: true });
-    }
+    // Startup owns GPU readiness; example installation owns demonstration selection.
+    example = await installExample(
+      app,
+      new URLSearchParams(location.search).get("example"),
+    );
   })
   .catch((error) => {
     // Reports startup/example failure in the status output and developer console.

@@ -98,6 +98,41 @@ describe("custom surface material families", () => {
     expect(manager.shaderIds[id]).toBe(0);
     expect(manager.shaderParameters.every((value) => value === 0)).toBe(true);
   });
+  it("retains pending rows before buffer installation and clears diagnostics on a failed upload", () => {
+    // Lazy setup and failed device writes must not consume the dirty CPU range.
+    const manager = new MaterialManager(4);
+    const id = manager.create({ shaderParameters: [1] });
+    const parameters = manager.shaderParameters;
+    const queue = { writeBuffer: vi.fn() } as unknown as GPUQueue;
+    const buffer = {} as GPUBuffer;
+    manager.uploadShaderParameters(queue);
+    expect(manager.shaderUploadBytes).toBe(0);
+    expect(queue.writeBuffer).not.toHaveBeenCalled();
+    manager.uploadShaderParameters(queue, buffer);
+    expect(manager.shaderUploadBytes).toBe(64);
+    manager.setShaderParameters(id, [2]);
+    vi.mocked(queue.writeBuffer).mockImplementationOnce(() => {
+      // Simulate a synchronous device failure before the row can be committed.
+      throw new Error("device write failed");
+    });
+    expect(() => manager.uploadShaderParameters(queue, buffer)).toThrow(
+      "device write failed",
+    );
+    expect(manager.shaderUploadBytes).toBe(0);
+    manager.uploadShaderParameters(queue, buffer);
+    expect(manager.shaderUploadBytes).toBe(64);
+    expect(queue.writeBuffer).toHaveBeenLastCalledWith(
+      buffer,
+      0,
+      parameters.buffer,
+      0,
+      64,
+    );
+    expect(manager.shaderParameters).toBe(parameters);
+    expect(parameters[0]).toBe(2);
+    manager.uploadShaderParameters(queue, buffer);
+    expect(manager.shaderUploadBytes).toBe(0);
+  });
   it("retains family IDs above 255 and separates transparent LOD batches", () => {
     // Pipeline storage must not truncate the final custom family or merge transparent instances.
     const world = new RenderWorld(4, 1, 1, 1);

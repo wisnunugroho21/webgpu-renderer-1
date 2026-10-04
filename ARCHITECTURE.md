@@ -4,10 +4,10 @@
 
 ## Start reading here
 
-1. `src/main.ts` creates the browser application.
-2. `src/app/Application.ts` owns browser lifecycle, frame order, and recovery publication; `ApplicationAssets.ts` owns scene/asset transactions; `ApplicationPicking.ts` owns CSS picking and live identity checks.
+1. `src/main.ts` creates the browser application; `examples/installExample.ts` selects the demonstration after startup.
+2. `src/app/Application.ts` owns browser lifecycle, frame order, and recovery publication; `ApplicationAssets.ts` owns scene/asset transactions; `ApplicationPicking.ts` owns CSS picking and live identity checks. `createDefaultScene.ts` owns the initial cube/sun fixture.
 3. `src/rendering/RenderExtractor.ts` copies ECS state into the persistent `RenderWorld` snapshot.
-4. `src/rendering/Renderer.ts` prepares visibility, sorts batches, uploads shared frame state, and executes the render graph. `createRendererResources.ts` builds shared GPU owners in dependency order; `passes/ColorPass.ts` owns color variants, HDR/IBL inputs, and batch drawing.
+4. `src/rendering/Renderer.ts` prepares visibility, sorts batches, uploads shared frame state, and executes the render graph. `createRendererResources.ts` builds shared GPU owners in dependency order; `passes/ColorPass.ts` selects prepared color variants, owns HDR/IBL presentation inputs, and draws batches; `materials/CustomMaterialShaders.ts` owns custom-family registration and preparation.
 5. `src/rendering/graph/configureRenderGraph.ts` declares pass dependencies. Individual pass classes encode the GPU work.
 
 ## Module ownership
@@ -35,6 +35,33 @@
 | `scripts/gpu`                              | Browser GPU scenarios, Node report assertions and isolated server lifecycle                                    |
 
 Existing import paths and public APIs remain stable. Small focused modules stay in place; modules are separated where they have distinct ownership or lifetimes.
+
+## Cold setup and data boundaries
+
+The color pipeline entry point remains `pipelines/createColorResources.ts`. It coordinates four focused concerns in the original native construction order: WGSL assembly (`colorShaderSource.ts`), binding layout (`createColorBindings.ts`), pipeline variants (`createColorPipelines.ts`), then shared frame groups (`createColorBindings.ts`). `ColorResources.ts` names their input/output contracts. Existing imports of `colorShaderSource` and `ColorResourcesInput` through the entry point remain supported. Binding/pipeline objects are reused, never reconstructed by the draw loop.
+
+`materials/CustomMaterialShaders.ts` serializes registration, validates WGSL before committing CPU provenance, replays definitions on device recovery, and prepares direct/HDR/environment tables. Those arrays are retained and read directly by `ColorPass.encode()`. The `Resources` owner still owns GPU destruction; the custom-family coordinator does not independently destroy cached objects. `MaterialManager` retains slot allocation, PBR packing, shader selection and the public diagnostics. `MaterialShaderParameters` owns only the shared custom parameter rows, validation and dirty upload range. `MaterialManager.shaderParameters` aliases that same CPU table; no extra copy or GPU table is introduced.
+
+`assets/gltf/convertRuntimeAsset.ts` is the pure conversion coordinator. `convertGeometry.ts` validates primitives/skins; `convertMaterials.ts` copies PBR/texture metadata; `convertScene.ts` resolves nodes, clips, cameras and scene roots. `readAccessor.ts` copies normalized values into independent typed arrays. Named `RuntimeMesh`, `RuntimeNode`, `RuntimeTexture`, `RuntimeSkin`, `RuntimeAnimationChannel`, `RuntimeAnimation` and `RuntimeCamera` records document the worker-transfer boundary in `RuntimeAsset.ts`. These converters never fetch, publish ECS entities or allocate GPU resources. Keep list order, reference indices, missing-value sentinels, validation order and array ownership stable when changing them.
+
+`app/createDefaultScene.ts` constructs the default fixture before GPU startup. It preserves cube entity, material-zero and directional-light allocation order. `examples/installExample.ts` owns URL example selection, lazy lighting/shader imports and diagnostic readiness flags. Browser status, startup errors, pagehide and HMR cleanup stay in `main.ts`.
+
+## Where to make a change
+
+| Change                               | First module to inspect                                       | Contract to preserve                                |
+| ------------------------------------ | ------------------------------------------------------------- | --------------------------------------------------- |
+| Game update order or device recovery | `app/Application.ts`, `app/rebuildDeviceResources.ts`         | Update/extraction order and atomic replacement      |
+| Demo startup or a new example        | `app/createDefaultScene.ts`, `examples/installExample.ts`     | Default slot IDs and example cleanup                |
+| Imported geometry/material metadata  | `assets/gltf/convertGeometry.ts`, `convertMaterials.ts`       | Independent arrays, indices and validation          |
+| Worker transfer payload              | `assets/gltf/RuntimeAsset.ts`, worker protocol                | Serializable metadata and buffer ownership          |
+| Custom shader registration           | `rendering/materials/CustomMaterialShaders.ts`                | Validation before commit; recovery replay           |
+| Custom material parameters           | `rendering/materials/MaterialShaderParameters.ts`             | 16 f32 values per row; dirty uploads only           |
+| Color bindings, WGSL or variants     | `rendering/pipelines/createColorResources.ts` and its helpers | Shared ABI, bounded variants and setup order        |
+| Draw submission                      | `rendering/passes/ColorPass.ts`, `Renderer.ts`                | Prepared resources only; snapshot input             |
+| Animation throughput                 | `animation/Animator.ts`, sampling and ECS systems             | Persistent binding state and allocation-free loops  |
+| Browser regression or benchmark      | `scripts/gpu` and validation entry points                     | Serialized browser callbacks must be self-contained |
+
+Focused math, sampling, bounds, visibility and queue kernels remain separate from setup helpers. Avoid adding generic per-frame context objects, closures or directory-wide barrels merely to shorten files. Browser benchmark callbacks passed to `page.evaluate()` deliberately keep browser-local dependencies inside the serialized callback; importing Node helpers into that callback would break the harness.
 
 ## Frame flow
 

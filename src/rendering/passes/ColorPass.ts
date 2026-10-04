@@ -1,8 +1,7 @@
-import { MaterialManager } from "../materials/MaterialManager";
-import {
-  MaterialShaderDefinition,
-  RegisteredMaterialShader,
-} from "../materials/MaterialShaderRegistry";
+import type { ColorResources } from "../pipelines/ColorResources";
+import type { MaterialManager } from "../materials/MaterialManager";
+import type { MaterialShaderDefinition } from "../materials/MaterialShaderRegistry";
+import { CustomMaterialShaders } from "../materials/CustomMaterialShaders";
 import { MeshManager } from "../MeshManager";
 import {
   MATERIAL_PIPELINE_VARIANTS,
@@ -15,7 +14,6 @@ import { EnvironmentLighting } from "../environment/EnvironmentLighting";
 import {
   ColorResourcesInput,
   createColorResources,
-  colorShaderSource,
 } from "../pipelines/createColorResources";
 import { GeometryOptimization } from "../geometry/GeometryOptimization";
 import { BatchBuilder } from "../BatchBuilder";
@@ -36,32 +34,19 @@ interface ColorPassScene extends ColorResourcesInput {
 /** Owns bounded color variants and optional presentation inputs.
  * Constructor/feature callbacks prepare GPU objects; encode only reuses them and submits batches. */
 export class ColorPass {
-  readonly base: ReturnType<typeof createColorResources>;
+  readonly base: ColorResources;
   readonly environment: EnvironmentLighting;
   readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
-  private hdrColor?: ReturnType<typeof createColorResources>;
-  private hdrEnvironmentColor?: ReturnType<typeof createColorResources>;
-  private environmentColor?: ReturnType<typeof createColorResources>;
+  private hdrColor?: ColorResources;
+  private hdrEnvironmentColor?: ColorResources;
+  private environmentColor?: ColorResources;
   private environmentLayout?: GPUBindGroupLayout;
-  private parameterBuffer?: GPUBuffer;
-  private readonly families: Array<ReturnType<typeof createColorResources>> =
-    [];
-  private readonly hdrFamilies: Array<ReturnType<typeof createColorResources>> =
-    [];
-  private readonly environmentFamilies: Array<
-    ReturnType<typeof createColorResources>
-  > = [];
-  private readonly hdrEnvironmentFamilies: Array<
-    ReturnType<typeof createColorResources>
-  > = [];
-  private registration: Promise<unknown> = Promise.resolve();
+  private readonly customShaders: CustomMaterialShaders;
   /** Initializes bounded PBR pipeline variants and state-cached batch drawing. */
   constructor(private readonly scene: ColorPassScene) {
     this.base = createColorResources(this.scene);
-    this.families[0] = this.base;
-    for (const shader of this.scene.materials.shaders.definitions)
-      this.prepareFamily(shader);
+    this.customShaders = new CustomMaterialShaders(this.scene, this.base);
     this.hdr = new HDRRendering(this.scene.gpu, this.scene.resources, () => {
       // Prepares the bounded half-float color variants when HDR presentation is first requested.
 
@@ -70,8 +55,7 @@ export class ColorPass {
         colorFormat: "rgba16float",
       });
       this.prepareHDREnvironment();
-      this.prepareHDRFamilies();
-      this.prepareEnvironmentFamilies();
+      this.customShaders.prepareHDR();
     });
     this.skybox = new EnvironmentSkybox(
       this.scene.gpu,
@@ -92,152 +76,18 @@ export class ColorPass {
           ...this.scene,
           environmentLayout,
         });
-        this.prepareEnvironmentFamilies();
+        this.customShaders.prepareEnvironment(environmentLayout);
       },
     );
   }
 
-  /** Allocates the single shared parameter table only on the first custom-family setup. */
-  private ensureParameterBuffer(): GPUBuffer {
-    return (this.parameterBuffer ??=
-      this.scene.materials.createShaderParameterBuffer(
-        this.scene.resources.buffers,
-      ));
-  }
-  /** Prepares one family against the default color target; recovery replays committed CPU definitions. */
-  private prepareFamily(shader: RegisteredMaterialShader): void {
-    this.families[shader.id] ??= createColorResources({
-      sharedBindings: this.families[1]?.bindings,
-      ...this.scene,
-      shader,
-      shaderParameterBuffer: this.ensureParameterBuffer(),
-    });
-  }
-  /** Prepares retained HDR variants during feature setup, never during drawing. */
-  private prepareHDRFamilies(): void {
-    if (!this.hdrColor) return;
-    for (const shader of this.scene.materials.shaders.definitions)
-      this.hdrFamilies[shader.id] ??= createColorResources({
-        sharedBindings: this.hdrFamilies[1]?.bindings,
-        ...this.scene,
-        shader,
-        colorFormat: "rgba16float",
-        shaderParameterBuffer: this.ensureParameterBuffer(),
-      });
-  }
-  /** Prepares environment-compatible family layouts when the shared environment layout becomes available. */
-  private prepareEnvironmentFamilies(): void {
-    if (!this.environmentLayout) return;
-    for (const shader of this.scene.materials.shaders.definitions) {
-      this.environmentFamilies[shader.id] ??= createColorResources({
-        sharedBindings: this.environmentFamilies[1]?.bindings,
-        ...this.scene,
-        shader,
-        environmentLayout: this.environmentLayout,
-        shaderParameterBuffer: this.ensureParameterBuffer(),
-      });
-      if (this.hdrColor)
-        this.hdrEnvironmentFamilies[shader.id] ??= createColorResources({
-          sharedBindings: this.hdrEnvironmentFamilies[1]?.bindings,
-          ...this.scene,
-          shader,
-          colorFormat: "rgba16float",
-          environmentLayout: this.environmentLayout,
-          shaderParameterBuffer: this.ensureParameterBuffer(),
-        });
-    }
-  }
-  /** Serializes registration so concurrent names/IDs publish in a stable order after validation. */
+  /** Registers a cold shader transaction through its dedicated resource owner. */
   registerShader(definition: MaterialShaderDefinition): Promise<number> {
-    const snapshot = { ...definition };
-    const result = this.registration.then(() => {
-      // Install the call-time definition after earlier registrations settle.
-      return this.installShader(snapshot);
-    });
-    this.registration = result.catch(() => {
-      /* Failure does not prevent a later valid registration. */
-    });
-    return result;
+    return this.customShaders.registerShader(definition);
   }
-  /** Validates assembled WGSL before preparing pipeline variants and publishing the material family. */
-  private async installShader(
-    definition: MaterialShaderDefinition,
-  ): Promise<number> {
-    const { gpu, materials } = this.scene;
-    if (gpu.lost || gpu.disposed) throw new Error("GPU device unavailable");
-    const shader = materials.shaders.candidate(definition);
-    if (materials.shaders.get(shader.id)) return shader.id;
-    gpu.device.pushErrorScope("validation");
-    let failure: unknown;
-    try {
-      const probe = gpu.device.createShaderModule({
-        label: shader.name,
-        code: colorShaderSource({ shader }),
-      });
-      const messages = (await probe.getCompilationInfo()).messages.filter(
-        (message) =>
-          /** Keep only fatal compilation diagnostics. */ message.type ===
-          "error",
-      );
-      if (messages.length)
-        throw new Error(
-          messages
-            .map(
-              (message) =>
-                /** Format shader diagnostics with source coordinates. */ `${message.lineNum}:${message.linePos} ${message.message}`,
-            )
-            .join("\n"),
-        );
-      if (gpu.lost || gpu.disposed) throw new Error("GPU device unavailable");
-      this.prepareFamily(shader);
-      if (this.hdrColor)
-        this.hdrFamilies[shader.id] = createColorResources({
-          sharedBindings: this.hdrFamilies[1]?.bindings,
-          ...this.scene,
-          shader,
-          colorFormat: "rgba16float",
-          shaderParameterBuffer: this.ensureParameterBuffer(),
-        });
-      if (this.environmentLayout) {
-        this.environmentFamilies[shader.id] = createColorResources({
-          sharedBindings: this.environmentFamilies[1]?.bindings,
-          ...this.scene,
-          shader,
-          environmentLayout: this.environmentLayout,
-          shaderParameterBuffer: this.ensureParameterBuffer(),
-        });
-        if (this.hdrColor)
-          this.hdrEnvironmentFamilies[shader.id] = createColorResources({
-            sharedBindings: this.hdrEnvironmentFamilies[1]?.bindings,
-            ...this.scene,
-            shader,
-            colorFormat: "rgba16float",
-            environmentLayout: this.environmentLayout,
-            shaderParameterBuffer: this.ensureParameterBuffer(),
-          });
-      }
-    } catch (error) {
-      failure = error;
-    }
-    const validation = await gpu.device.popErrorScope();
-    if (failure || validation || gpu.lost || gpu.disposed) {
-      delete this.families[shader.id];
-      delete this.hdrFamilies[shader.id];
-      delete this.environmentFamilies[shader.id];
-      delete this.hdrEnvironmentFamilies[shader.id];
-      throw (
-        failure ?? new Error(validation?.message ?? "GPU device unavailable")
-      );
-    }
-    materials.shaders.commit(shader);
-    return shader.id;
-  }
-  /** Flushes changed parameter rows before draw encoding; no GPU objects are allocated here. */
+  /** Flushes shared custom parameters before the graph consumes them. */
   uploadParameters(): void {
-    this.scene.materials.uploadShaderParameters(
-      this.scene.gpu.queue,
-      this.parameterBuffer,
-    );
+    this.customShaders.uploadParameters();
   }
   /** Builds the bounded combined HDR/environment pipeline variants on the cold feature setup path. */
   private prepareHDREnvironment(): void {
@@ -291,11 +141,11 @@ export class ColorPass {
         : undefined;
     const customFamilies = this.hdr.sceneEnabled
       ? environment
-        ? this.hdrEnvironmentFamilies
-        : this.hdrFamilies
+        ? this.customShaders.hdrEnvironmentFamilies
+        : this.customShaders.hdrFamilies
       : environment
-        ? this.environmentFamilies
-        : this.families;
+        ? this.customShaders.environmentFamilies
+        : this.customShaders.families;
     const pipelines = colors?.pipelines ?? this.base.pipelines;
     const frameGroups = colors?.frameGroups ?? this.base.frameGroups;
     if (environment) pass.setBindGroup(2, this.environment.group!);

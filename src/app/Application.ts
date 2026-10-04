@@ -1,3 +1,4 @@
+import { createDefaultScene } from "./createDefaultScene";
 import { ApplicationPicking } from "./ApplicationPicking";
 import { SpatialQueries } from "../spatial/SpatialQueries";
 import { rebuildDeviceResources } from "./rebuildDeviceResources";
@@ -99,18 +100,9 @@ export class Application {
       /** Refreshes render membership after asset instantiation or removal. */
       refreshSnapshot: () => this.refreshAssetSnapshot(),
     });
-    this.sceneEntity = this.world.create();
-    this.world.transforms.add(this.sceneEntity);
-    this.world.meshes.set(this.sceneEntity, 0, 0);
-    this.world.bounds.setSphere(this.sceneEntity, 0, 0, 0, Math.sqrt(3));
-    this.materials.create();
-    this.defaultLightEntity = this.world.create();
-    this.world.transforms.add(this.defaultLightEntity);
-    this.world.lights.set(this.defaultLightEntity, {
-      type: "directional",
-      intensity: 3,
-      direction: [-0.4, -0.6, -1],
-    });
+    const defaults = createDefaultScene(this.world, this.materials);
+    this.sceneEntity = defaults.sceneEntity;
+    this.defaultLightEntity = defaults.defaultLightEntity;
   }
 
   /** Registers a fixed-step gameplay callback and returns its unsubscribe function. */

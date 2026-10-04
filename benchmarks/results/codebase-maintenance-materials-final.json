@@ -1,0 +1,106 @@
+{
+  "ids": [
+    1,
+    1,
+    2
+  ],
+  "rejected": true,
+  "pixel": [
+    231,
+    124,
+    89,
+    255
+  ],
+  "expected": [
+    231,
+    124,
+    89
+  ],
+  "modes": [
+    {
+      "mode": "individual",
+      "difference": 0
+    },
+    {
+      "mode": "sorted",
+      "difference": 0
+    },
+    {
+      "mode": "instanced",
+      "difference": 0
+    },
+    {
+      "mode": "gpu-indirect",
+      "difference": 0
+    }
+  ],
+  "depthDifference": 0,
+  "masked": [
+    10,
+    20,
+    36,
+    255
+  ],
+  "blended": [
+    170,
+    91,
+    69,
+    255
+  ],
+  "updated": [
+    0,
+    255,
+    0,
+    255
+  ],
+  "changedBytes": 64,
+  "unchangedBytes": 0,
+  "hdrPixel": [
+    231,
+    124,
+    89,
+    255
+  ],
+  "deformationDifference": 0,
+  "deformationDepthDifference": 0,
+  "deformationIndirectDifference": 0,
+  "deformation": {
+    "joints": 64,
+    "morphTargets": 16,
+    "shadowDrawCalls": 2
+  },
+  "timings": [
+    {
+      "shaderId": 0,
+      "cpuMedianMs": 0.20000001788139343,
+      "completionMedianMs": 1,
+      "drawCalls": 1,
+      "instances": 1000,
+      "unchanged": true,
+      "parameterUploadBytes": 0
+    },
+    {
+      "shaderId": 2,
+      "cpuMedianMs": 0.19999998807907104,
+      "completionMedianMs": 0.9000000059604645,
+      "drawCalls": 1,
+      "instances": 1000,
+      "unchanged": true,
+      "parameterUploadBytes": 0
+    },
+    {
+      "shaderId": 1,
+      "cpuMedianMs": 0.19999998807907104,
+      "completionMedianMs": 0.9000000059604645,
+      "drawCalls": 1,
+      "instances": 1000,
+      "unchanged": true,
+      "parameterUploadBytes": 0
+    }
+  ],
+  "mixedDrawCalls": 2,
+  "recoveryDifference": 0,
+  "warmStable": true,
+  "gpuErrors": [],
+  "finalBuffers": 0
+}

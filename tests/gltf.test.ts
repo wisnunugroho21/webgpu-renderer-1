@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Document, NodeIO } from "@gltf-transform/core";
+import { convertRuntimeAsset } from "../src/assets/gltf/convertRuntimeAsset";
 import { GLTFLoader } from "../src/assets/gltf/GLTFLoader";
 /** Builds controlled test dependencies and reusable state for gltf. */
 function fixture(): Document {
@@ -159,5 +160,66 @@ describe("glTF to independent engine assets", () => {
     await expect(loader.parseGLB(new Uint8Array(4))).rejects.toThrow();
     const bytes = await new NodeIO().writeBinary(fixture());
     await expect(loader.parseGLB(bytes.slice(0, 20))).rejects.toThrow();
+  });
+  it("owns decoded arrays independently of the source document and later conversions", () => {
+    // Worker transfers and parser disposal must not mutate another scene's decoded data.
+    const document = fixture();
+    const first = convertRuntimeAsset(document);
+    const second = convertRuntimeAsset(document);
+    const root = document.getRoot();
+    root
+      .listMeshes()[0]!
+      .listPrimitives()[0]!
+      .getAttribute("POSITION")!
+      .getArray()!
+      .fill(9);
+    root.listTextures()[0]!.getImage()!.fill(0);
+    root
+      .listAnimations()[0]!
+      .listSamplers()[0]!
+      .getOutput()!
+      .getArray()!
+      .fill(7);
+    expect(first.meshes[0]!.primitives[0]!.attributes.POSITION![0]).toBe(-1);
+    expect(first.textures[0]!.image[0]).toBe(137);
+    expect(first.animations[0]!.channels[0]!.output[0]).toBe(0);
+    first.meshes[0]!.primitives[0]!.attributes.COLOR_0!.fill(0);
+    first.textures[0]!.image.fill(0);
+    first.skins[0]!.inverseBindMatrices.fill(0);
+    expect(second.meshes[0]!.primitives[0]!.attributes.COLOR_0![0]).toBe(1);
+    expect(second.textures[0]!.image[0]).toBe(137);
+    expect(second.skins[0]!.inverseBindMatrices[0]).toBe(1);
+  });
+  it("rejects malformed geometry, inverse binds and animation at the conversion boundary", () => {
+    // Pure converters must retain loader validation even when used without GLB parsing.
+    const geometry = fixture();
+    geometry
+      .getRoot()
+      .listMeshes()[0]!
+      .listPrimitives()[0]!
+      .setIndices(
+        geometry
+          .createAccessor()
+          .setType("SCALAR")
+          .setArray(new Uint16Array([99])),
+      );
+    expect(() => convertRuntimeAsset(geometry)).toThrow("index out of range");
+    const skin = fixture();
+    skin
+      .getRoot()
+      .listSkins()[0]!
+      .setInverseBindMatrices(
+        skin.createAccessor().setType("MAT4").setArray(new Float32Array(32)),
+      );
+    expect(() => convertRuntimeAsset(skin)).toThrow("does not match joints");
+    const animation = fixture();
+    animation
+      .getRoot()
+      .listAnimations()[0]!
+      .listChannels()[0]!
+      .setSampler(null);
+    expect(() => convertRuntimeAsset(animation)).toThrow(
+      "Incomplete animation channel",
+    );
   });
 });

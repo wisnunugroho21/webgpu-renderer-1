@@ -15,7 +15,7 @@ For a complete playable example and a step-by-step game workflow, see [GAME_DEVE
 
 ## Code organization
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, animation binding setup, worker protocols, input cleanup, post-processing pipelines, asset upload, and GPU validation have separate responsibilities with comments around their invariants. Public application, renderer and animation APIs retain their existing import paths.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, animation binding setup, worker protocols, input cleanup, post-processing pipelines, asset upload, and GPU validation have separate responsibilities with comments around their invariants. Color setup, custom shader registration, material parameter storage, glTF conversion and demonstration startup now have explicit module boundaries. The architecture guide includes a change-location table and preservation contracts. Public application, renderer and animation APIs retain their existing import paths. See [maintenance validation and benchmark evidence](benchmarks/CODEBASE_MAINTENANCE_REPORT.md).
 
 ```sh
 pnpm run lint

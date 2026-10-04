@@ -9,14 +9,23 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) =>
+    /** Delegates this operation to errors.push. */ errors.push(error.message),
+  );
   await page.goto("http://127.0.0.1:5197");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const report = await page.evaluate(async () => {
+    // Builds a record containing picking, baseline, reduced, restored difference, disabled difference, edge difference.
+
     const app = window.rendererApp,
       r = app.renderer;
     app.stop();
     app.gpu.device.pushErrorScope("validation");
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       const texture = app.gpu.context.getCurrentTexture();
       const encoder = app.gpu.device.createCommandEncoder();
@@ -37,8 +46,14 @@ try {
       buffer.destroy();
       return { bytes, width: texture.width, height: texture.height };
     };
+    /** Compares diagnostic pixel buffers and reports their differing values. */
     const difference = (a, b) =>
-      a.bytes.reduce((n, v, i) => n + Number(v !== b.bytes[i]), 0);
+      a.bytes.reduce(
+        (n, v, i) =>
+          /** Computes the n + Number(v !== b.bytes[i]) result. */ n +
+          Number(v !== b.bytes[i]),
+        0,
+      );
     const baseline = await draw();
     const rect = app.canvas.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2,
@@ -84,7 +99,7 @@ try {
         await app.gpu.queue.onSubmittedWorkDone();
         values.push(performance.now() - start);
       }
-      values.sort((a, b) => a - b);
+      values.sort((a, b) => /** Computes the a - b result. */ a - b);
       timings.push({ mode, completionMedianMs: values[5] });
     }
     r.antialiasing = "none";
@@ -140,7 +155,9 @@ try {
   });
   assert.deepEqual(
     report.reduced,
-    report.baseline.map((value) => value / 2),
+    report.baseline.map(
+      (value) => /** Computes the value / 2 result. */ value / 2,
+    ),
   );
   assert.equal(report.restoredDifference, 0);
   assert.equal(report.disabledDifference, 0);

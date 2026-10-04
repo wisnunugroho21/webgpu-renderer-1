@@ -4,7 +4,11 @@ import { TransformSystem } from "../src/ecs/systems/TransformSystem";
 import { RenderWorld } from "../src/rendering/RenderWorld";
 import { RenderExtractor } from "../src/rendering/RenderExtractor";
 describe("render extraction snapshot", () => {
+  // Groups checks for render extraction snapshot.
+
   it("compacts renderable entities and copies independent renderer data", () => {
+    // Verifies compacts renderable entities and copies independent renderer data.
+
     const w = new World(4),
       out = new RenderWorld(4),
       extractor = new RenderExtractor();
@@ -36,6 +40,8 @@ describe("render extraction snapshot", () => {
     expect(extractor.extract(w, out)).toBe(0);
   });
   it("rejects overflow and requires complete rendering components", () => {
+    // Verifies rejects overflow and requires complete rendering components.
+
     const w = new World(2),
       extractor = new RenderExtractor();
     for (let i = 0; i < 2; i++) {
@@ -46,6 +52,11 @@ describe("render extraction snapshot", () => {
     w.bounds.setSphere(0, 0, 0, 0, 1);
     w.bounds.setSphere(1, 0, 0, 0, 1);
     new TransformSystem(2).update(w.transforms);
-    expect(() => extractor.extract(w, new RenderWorld(1))).toThrow("capacity");
+    expect(() =>
+      /** Delegates this operation to extractor.extract. */ extractor.extract(
+        w,
+        new RenderWorld(1),
+      ),
+    ).toThrow("capacity");
   });
 });

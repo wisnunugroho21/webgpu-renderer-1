@@ -7,6 +7,7 @@ interface Listener {
 /** Cold listener ownership shared by DOM inputs. No listener arrays change during gameplay updates. */
 export class InputScope {
   private readonly listeners: Listener[] = [];
+  /** Initializes owned DOM listeners and blur/visibility cleanup. */
   constructor(
     private readonly target: HTMLElement,
     clear: () => void,
@@ -17,9 +18,12 @@ export class InputScope {
     if (document?.defaultView) this.add(document.defaultView, "blur", clear);
     if (document)
       this.add(document, "visibilitychange", () => {
+        // Clears held input when document visibility is lost so hidden tabs cannot retain movement.
+
         if (document.visibilityState === "hidden") clear();
       });
   }
+  /** Adds a target listener and records the matching removal action for scoped disposal. */
   listen<K extends keyof HTMLElementEventMap>(
     type: K,
     callback: (event: HTMLElementEventMap[K]) => void,
@@ -27,6 +31,7 @@ export class InputScope {
   ): void {
     this.add(this.target, type, callback as EventListener, options);
   }
+  /** Records a cleanup action to run when this input scope is disposed. */
   private add(
     target: EventTarget,
     type: string,
@@ -42,6 +47,7 @@ export class InputScope {
       capture: options?.capture ?? false,
     });
   }
+  /** Runs owned cleanup actions once and removes focus/visibility listeners. */
   dispose(): void {
     for (const listener of this.listeners)
       listener.target.removeEventListener(

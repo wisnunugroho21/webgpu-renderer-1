@@ -8,6 +8,7 @@ struct ClusterHeader {
 @group(0) @binding(10) var<storage, read> lightClusterCounts: array<ClusterHeader>;
 @group(0) @binding(11) var<storage, read> lightClusterIndices: array<u32>;
 @group(0) @binding(9) var<storage, read> lights: array<Light>;
+// Evaluates energy-balanced metallic diffuse and GGX specular response for one light direction.
 fn directBRDF(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, l: vec3<f32>) -> vec3<f32> {
   let h = safeNormalize(v + l);
   let nv = max(dot(n, v), 0.0);
@@ -26,6 +27,7 @@ fn directBRDF(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: v
   return(diffuse + d * visibility * f) * nl;
 }
 
+// Accumulates directional/point/spot illumination from the active cluster or overflow-safe full light list.
 fn directLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, position: vec3<f32>, pixel: vec2<f32>) -> vec3<f32> {
   var result = vec3<f32>(0);
   var count = u32(frame.eye.w);

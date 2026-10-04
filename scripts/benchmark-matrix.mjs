@@ -12,9 +12,15 @@ try {
       deviceScaleFactor: 2,
     }),
     errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) =>
+    /** Delegates this operation to errors.push. */ errors.push(error.message),
+  );
   await page.goto("http://127.0.0.1:5188");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const longAnimation = process.argv.includes("--long-animation");
   const report = await page.evaluate(runBenchmarkMatrix, { longAnimation });
   report.environment = {

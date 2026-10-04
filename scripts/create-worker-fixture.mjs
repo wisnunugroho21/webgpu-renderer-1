@@ -9,6 +9,7 @@ for (let i = 0; i < 100000; i++) {
   positions[i * 3 + 1] = Math.floor(i / 100) * 0.01;
   normals[i * 3 + 2] = 1;
 }
+/** Creates a glTF accessor with the requested component data and buffer ownership. */
 const attr = (data) =>
   d.createAccessor().setType("VEC3").setArray(data).setBuffer(buffer);
 const p = d
@@ -19,7 +20,9 @@ const p = d
     d
       .createAccessor()
       .setType("SCALAR")
-      .setArray(Uint32Array.from({ length: 99999 }, (_, i) => i))
+      .setArray(
+        Uint32Array.from({ length: 99999 }, (_, i) => /** Returns i. */ i),
+      )
       .setBuffer(buffer),
   );
 d.createScene().addChild(

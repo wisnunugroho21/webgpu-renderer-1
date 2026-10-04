@@ -9,7 +9,12 @@ const bytes = new Uint8Array([
   ...new TextEncoder().encode(
     "#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 2\n",
   ),
-  ...Array.from({ length: 4 }, () => [128, 128, 128, 129]).flat(),
+  ...Array.from(
+    { length: 4 },
+    () => /** Returns the ordered values needed by this operation. */ [
+      128, 128, 128, 129,
+    ],
+  ).flat(),
 ]);
 await writeFile("artifacts/environment-source.hdr", bytes);
 const baked = spawnSync(
@@ -37,19 +42,30 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } }),
     errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("pageerror", (e) =>
+    /** Delegates this operation to errors.push. */ errors.push(e.message),
+  );
   await page.route("**/environment.hdr", (r) =>
-    r.fulfill({
+    /** Delegates this operation to r.fulfill. */ r.fulfill({
       body: Buffer.from(bytes),
       contentType: "application/octet-stream",
     }),
   );
   await page.route("**/environment.envbin", (route) =>
-    route.fulfill({ body: archive, contentType: "application/octet-stream" }),
+    /** Delegates this operation to route.fulfill. */ route.fulfill({
+      body: archive,
+      contentType: "application/octet-stream",
+    }),
   );
   await page.goto("http://127.0.0.1:5196");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const report = await page.evaluate(async () => {
+    // Returns data.
+
     const app = window.rendererApp;
     app.stop();
     const r = app.renderer,
@@ -74,6 +90,7 @@ try {
       samples: 8,
     });
     const cachedMs = performance.now() - cached;
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       app.transformSystem.update(w.transforms);
       app.extractor.extract(
@@ -115,7 +132,9 @@ try {
     const archiveMs = performance.now() - archiveStart,
       archiveImage = await draw();
     const archiveDifference = sky.data.reduce(
-      (n, value, index) => n + Number(value !== archiveImage.data[index]),
+      (n, value, index) =>
+        /** Computes the n + Number(value !== archiveImage.data[index]) result. */ n +
+        Number(value !== archiveImage.data[index]),
       0,
     );
 
@@ -175,7 +194,9 @@ try {
       disabledCorner: disabled.corner,
       resources,
       warm,
-      completionMs: samples.sort((a, b) => a - b)[15],
+      completionMs: samples.sort(
+        (a, b) => /** Computes the a - b result. */ a - b,
+      )[15],
       cache: {
         ...app.environments.metrics,
         size: app.environments.size,

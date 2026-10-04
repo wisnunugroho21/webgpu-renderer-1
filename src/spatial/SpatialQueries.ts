@@ -9,7 +9,9 @@ export class RayHit {
 }
 /** Snapshot broad-phase queries include culled renderables. AABB hits are not triangle hits or physics. */
 export class SpatialQueries {
+  /** Initializes broad-phase queries against the extracted render snapshot. */
   constructor(private readonly world: RenderWorld) {}
+  /** Finds the nearest matching snapshot AABB hit and writes identity, distance and hit point into caller storage. */
   raycast(
     ray: Ray,
     out: RayHit,
@@ -60,6 +62,7 @@ export class SpatialQueries {
       out.point[axis] = ray.origin[axis]! + ray.direction[axis]! * out.distance;
     return true;
   }
+  /** Writes overlapping snapshot object indices into caller storage; bounds hits are broad-phase results, not physics contacts. */
   queryAABB(
     min: ArrayLike<number>,
     max: ArrayLike<number>,

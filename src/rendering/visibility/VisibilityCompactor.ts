@@ -10,6 +10,7 @@ export class VisibilityCompactor {
   private readonly group: GPUBindGroup;
   private readonly pipeline: GPUComputePipeline;
   dispatches = 0;
+  /** Initializes GPU visible-index compaction and bounded counters. */
   constructor(
     device: GPUDevice,
     resources: Resources,
@@ -67,6 +68,7 @@ export class VisibilityCompactor {
       compute: { module: resources.shaders.get(shader), entryPoint: "compact" },
     });
   }
+  /** Resets counters and compacts visible object indices into a bounded GPU list. */
   encode(encoder: GPUCommandEncoder, profiler?: GPUProfiler): void {
     this.dispatches = 0;
     if (!this.enabled) return;

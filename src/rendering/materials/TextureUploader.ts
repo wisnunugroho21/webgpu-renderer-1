@@ -27,6 +27,7 @@ interface TextureUploadMetrics {
 export class TextureUploader {
   readonly basis: BasisTranscoder;
   readonly mipmaps: MipGenerator;
+  /** Initializes decoded-image GPU upload and mip generation. */
   constructor(
     private readonly device: GPUDevice,
     private readonly resources: Resources,
@@ -36,6 +37,7 @@ export class TextureUploader {
     this.basis = new BasisTranscoder(device);
     this.mipmaps = new MipGenerator(device, resources);
   }
+  /** Uploads decoded color/data images into the appropriate linear/sRGB texture format and prepares mip levels. */
   async upload(input: TextureUploadInput): Promise<GPUTexture> {
     const { image, bytes, hash, format, basis, role, compressed, bitmaps } =
       input;
@@ -54,7 +56,9 @@ export class TextureUploader {
       );
       this.metrics.decodes++;
       this.metrics.uploadBytes += data.levels.reduce(
-        (n, l) => n + l.data.byteLength,
+        (n, l) =>
+          /** Computes the n + l.data.byteLength result. */ n +
+          l.data.byteLength,
         0,
       );
       return texture;
@@ -68,7 +72,9 @@ export class TextureUploader {
         image.name,
       );
       this.metrics.uploadBytes += compressed.levels.reduce(
-        (sum, level) => sum + level.data.byteLength,
+        (sum, level) =>
+          /** Computes the sum + level.data.byteLength result. */ sum +
+          level.data.byteLength,
         0,
       );
       return texture;

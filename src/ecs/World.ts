@@ -26,6 +26,7 @@ export class World {
   private readonly stores: ComponentStore[];
   nextEntity = 0;
   count = 0;
+  /** Initializes bounded entity identities and data-oriented component stores; invalid input is rejected. */
   constructor(readonly capacity = 16384) {
     if (!Number.isSafeInteger(capacity) || capacity <= 0)
       throw new Error("Invalid world capacity");
@@ -74,9 +75,11 @@ export class World {
     }
     return this.handle(index);
   }
+  /** Reports slots available to safe handles, including recycled slots and unused capacity. */
   get availableHandleSlots(): number {
     return this.capacity - this.nextEntity + this.freeCount;
   }
+  /** Creates a world-owned immutable identity for a live slot using its current generation. */
   handle(index: number): EntityHandle {
     if (!Number.isInteger(index) || !this.alive[index])
       throw new Error("Unknown entity");
@@ -87,6 +90,7 @@ export class World {
     this.handles.add(handle);
     return handle;
   }
+  /** Returns a live index only for a handle issued by this world with a matching generation; otherwise returns null. */
   resolve(handle: EntityHandle): number | null {
     return this.handles.has(handle) &&
       this.alive[handle.index] &&
@@ -94,11 +98,13 @@ export class World {
       ? handle.index
       : null;
   }
+  /** Resolves a safe handle or throws when it is stale or belongs to another world. */
   require(handle: EntityHandle): number {
     const index = this.resolve(handle);
     if (index === null) throw new Error("Stale or foreign entity handle");
     return index;
   }
+  /** Removes every component, increments the generation and recycles only handle-created slots. */
   destroy(entity: number | EntityHandle): void {
     if (typeof entity !== "number") {
       const index = this.resolve(entity);
@@ -115,10 +121,19 @@ export class World {
       if (this.recyclable[entity]) this.free[this.freeCount++] = entity;
     }
   }
+  /** Writes live entities containing all requested components into caller storage and returns the written count. */
   query(out: Uint32Array, ...stores: ComponentStore[]): number {
     let count = 0;
     for (let e = 0; e < this.nextEntity; e++) {
-      if (!this.alive[e] || stores.some((store) => !store.has[e])) continue;
+      if (
+        !this.alive[e] ||
+        stores.some(
+          (store) =>
+            /** Rejects entities missing any component required by this query. */ !store
+              .has[e],
+        )
+      )
+        continue;
       if (count === out.length)
         throw new Error("Query output capacity exceeded");
       out[count++] = e;

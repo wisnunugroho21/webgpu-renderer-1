@@ -5,6 +5,7 @@ export class MorphTargetData {
   readonly targetCount: number;
   readonly positionMin: Float32Array;
   readonly positionMax: Float32Array;
+  /** Initializes target-major morph deltas and conservative extrema; invalid input is rejected. */
   constructor(
     readonly targets: RuntimePrimitive["targets"],
     vertexCount: number,

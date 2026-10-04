@@ -25,6 +25,7 @@ export class GPULODSelector {
   private objectCount = -1;
   private groupCount = -1;
   uploadBytes = 0;
+  /** Initializes GPU authored-LOD decisions and persistent selection buffers. */
   constructor(
     device: GPUDevice,
     resources: Resources,
@@ -32,6 +33,7 @@ export class GPULODSelector {
     private readonly frustum: GPUFrustumCuller,
     readonly registry: LODGroups,
   ) {
+    /** Delegates this operation to resources.buffers.create. */
     const create = (label: string, size: number, usage: number) =>
       resources.buffers.create({ label, size: Math.max(4, size), usage });
     this.objectData = new Uint32Array(frustum.capacity * 4);
@@ -69,47 +71,55 @@ export class GPULODSelector {
         GPUBufferUsage.COPY_DST,
     );
     const layout = device.createBindGroupLayout({
-      entries: Array.from({ length: 10 }, (_, binding) => ({
-        binding,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: {
-          type:
-            binding === 0 || binding === 3
-              ? ("uniform" as const)
-              : binding === 2 || binding >= 6
-                ? ("storage" as const)
-                : ("read-only-storage" as const),
-          minBindingSize:
-            binding === 0
-              ? 192
-              : binding === 1
-                ? 32
-                : binding === 3 || binding === 4 || binding === 6
-                  ? 16
-                  : binding === 5
-                    ? 80
-                    : binding === 9
-                      ? 32
-                      : 4,
-        },
-      })),
+      entries: Array.from(
+        { length: 10 },
+        (
+          _,
+          binding,
+        ) => /** Builds a record containing binding, visibility, buffer. */ ({
+          binding,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: {
+            type:
+              binding === 0 || binding === 3
+                ? ("uniform" as const)
+                : binding === 2 || binding >= 6
+                  ? ("storage" as const)
+                  : ("read-only-storage" as const),
+            minBindingSize:
+              binding === 0
+                ? 192
+                : binding === 1
+                  ? 32
+                  : binding === 3 || binding === 4 || binding === 6
+                    ? 16
+                    : binding === 5
+                      ? 80
+                      : binding === 9
+                        ? 32
+                        : 4,
+          },
+        }),
+      ),
     });
     this.groups = frames.map((buffer) =>
-      device.createBindGroup({
-        layout,
-        entries: [
-          { binding: 0, resource: { buffer, size: 192 } },
-          { binding: 1, resource: { buffer: frustum.objects } },
-          { binding: 2, resource: { buffer: frustum.visibility } },
-          { binding: 3, resource: { buffer: frustum.params } },
-          { binding: 4, resource: { buffer: this.objectBuffer } },
-          { binding: 5, resource: { buffer: this.groupBuffer } },
-          { binding: 6, resource: { buffer: this.history } },
-          { binding: 7, resource: { buffer: this.selections } },
-          { binding: 8, resource: { buffer: this.selectedMeshes } },
-          { binding: 9, resource: { buffer: this.distribution } },
-        ],
-      }),
+      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+        {
+          layout,
+          entries: [
+            { binding: 0, resource: { buffer, size: 192 } },
+            { binding: 1, resource: { buffer: frustum.objects } },
+            { binding: 2, resource: { buffer: frustum.visibility } },
+            { binding: 3, resource: { buffer: frustum.params } },
+            { binding: 4, resource: { buffer: this.objectBuffer } },
+            { binding: 5, resource: { buffer: this.groupBuffer } },
+            { binding: 6, resource: { buffer: this.history } },
+            { binding: 7, resource: { buffer: this.selections } },
+            { binding: 8, resource: { buffer: this.selectedMeshes } },
+            { binding: 9, resource: { buffer: this.distribution } },
+          ],
+        },
+      ),
     );
     this.pipeline = resources.pipelines.getCompute({
       label: "GPU projected LOD",
@@ -120,6 +130,7 @@ export class GPULODSelector {
       },
     });
   }
+  /** Packs changed authored group/object data and frame settings for GPU LOD selection. */
   prepare(world: RenderWorld, queue: GPUQueue): void {
     this.uploadBytes = 0;
     if (!this.enabled) return;
@@ -170,6 +181,7 @@ export class GPULODSelector {
     this.objectCount = world.count;
     this.groupCount = this.registry.entries.length;
   }
+  /** Transfers changed GPU authored-LOD decisions and persistent selection buffers into its existing shared GPU storage. */
   private upload(
     buffer: GPUBuffer,
     data: Uint32Array,
@@ -197,6 +209,7 @@ export class GPULODSelector {
       this.uploadBytes += (last - first) * 4;
     }
   }
+  /** Dispatches projected-size mesh selection for currently visible GPU candidates. */
   encode(
     encoder: GPUCommandEncoder,
     slot: number,

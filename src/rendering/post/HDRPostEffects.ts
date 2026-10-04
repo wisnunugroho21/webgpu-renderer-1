@@ -39,10 +39,12 @@ export class HDRPostEffects {
   exposure?: GPUBuffer;
   private readonly settings = new Float32Array(8);
   private readonly nextSettings = new Float32Array(8);
+  /** Initializes bounded bloom/luminance pyramids and GPU exposure adaptation. */
   constructor(
     private readonly gpu: GPUContext,
     private readonly resources: Resources,
   ) {}
+  /** Delegates this operation to (this.bloom ?? this.fallback)!.createView. */
   get bloomView(): GPUTextureView {
     return (this.bloom ?? this.fallback)!.createView();
   }
@@ -115,6 +117,7 @@ export class HDRPostEffects {
     for (const level of this.luminance)
       this.resources.textures.destroy(level.texture);
     this.bloomLevels.length = this.luminance.length = 0;
+    /** Creates one retained compute binding group for the supplied reduction resources. */
     const group = (
       layout: GPUBindGroupLayout,
       input: GPUTextureView,
@@ -190,6 +193,7 @@ export class HDRPostEffects {
       });
     }
   }
+  /** Dispatches each retained reduction level in order without creating new targets. */
   private encodeLevels(
     encoder: GPUCommandEncoder,
     reduction: PostReduction,
@@ -208,6 +212,7 @@ export class HDRPostEffects {
     }
     pass.end();
   }
+  /** Uploads changed controls, reduces bloom/log luminance and adapts persistent GPU exposure without CPU readback. */
   encode(encoder: GPUCommandEncoder): void {
     const values = this.nextSettings;
     values[0] = this.threshold;

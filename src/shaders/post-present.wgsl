@@ -5,15 +5,18 @@ struct PostSettings {
 @group(0) @binding(2) var bloom: texture_2d<f32>;
 @group(0) @binding(3) var<storage, read> exposureState: array<vec4<f32>>;
 @group(0) @binding(4) var<uniform> post: PostSettings;
+// Returns the GPU adaptation gain only when automatic exposure is enabled.
 fn postExposure() -> f32 {
   return select(1.0, exposureState[0].x, post.a.z > 0.5);
 }
 
+// Loads one clamped bloom mip texel without requiring half-float filtering support.
 fn bloomAt(pixel: vec2<i32>, level: i32) -> vec3<f32> {
   let dimensions = vec2<i32>(textureDimensions(bloom, level));
   return textureLoad(bloom, clamp(pixel, vec2<i32>(0), dimensions - vec2<i32>(1)), level).rgb;
 }
 
+// Bilinearly combines bounded bloom mip levels and applies the configured bloom strength.
 fn postRadiance(pixel: vec2<i32>) -> vec3<f32> {
   if (post.a.y <= 0.0) {
     return vec3<f32>(0.0);

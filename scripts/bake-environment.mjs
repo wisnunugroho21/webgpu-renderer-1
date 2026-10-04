@@ -33,10 +33,12 @@ try {
     },
   });
   const chunks = (Array.isArray(result) ? result : [result]).flatMap(
-    (bundle) => bundle.output,
+    (bundle) => /** Returns bundle output. */ bundle.output,
   );
   const code = chunks.find(
-    (chunk) => chunk.type === "chunk" && chunk.isEntry,
+    (chunk) =>
+      /** Evaluates the chunk.type === "chunk" && chunk.isEntry condition. */ chunk.type ===
+        "chunk" && chunk.isEntry,
   ).code;
   const modulePath = resolve(temporary, "baker.mjs");
   await writeFile(modulePath, code);

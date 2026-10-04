@@ -5,9 +5,11 @@ export class TransformSystem {
   updated = 0;
   private readonly local = Mat4.create();
   private readonly stack: Uint32Array;
+  /** Initializes allocation-free hierarchy traversal scratch. */
   constructor(capacity: number) {
     this.stack = new Uint32Array(capacity);
   }
+  /** Recomputes dirty local/world matrices in parent-before-child order using retained traversal scratch. */
   update(store: TransformStore): number {
     this.updated = 0;
     for (let i = 0; i < store.dirtyCount; i++) {

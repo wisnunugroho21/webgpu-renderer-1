@@ -7,6 +7,7 @@ export class SkeletonAsset {
   readonly jointCount: number;
   readonly bindViews: readonly Float32Array[];
   readonly skeleton: number;
+  /** Initializes shared joint topology and inverse-bind matrices; invalid input is rejected. */
   constructor(
     skin: RuntimeAsset["skins"][number],
     nodes: RuntimeAsset["nodes"],
@@ -26,6 +27,8 @@ export class SkeletonAsset {
     const parent = new Int32Array(nodes.length).fill(-1),
       indices = new Int32Array(nodes.length).fill(-1);
     nodes.forEach((node, i) => {
+      // Updates parent[child] for this callback.
+
       for (const child of node.children) {
         if (child >= nodes.length || parent[child] !== -1)
           throw new Error("Invalid skeleton hierarchy");
@@ -47,16 +50,23 @@ export class SkeletonAsset {
       while (count) visited[stack[--count]!] = 2;
     }
     this.joints.forEach((node, i) => {
+      // Updates indices[node] for this callback.
+
       if (node >= nodes.length) throw new Error("Unknown skeleton joint");
       indices[node] = i;
     });
     if (this.skeleton >= nodes.length || this.skeleton < -1)
       throw new Error("Unknown skeleton root");
     this.bindViews = Array.from({ length: this.jointCount }, (_, i) =>
-      this.inverseBindMatrices.subarray(i * 16, i * 16 + 16),
+      /** Delegates this operation to this.inverseBindMatrices.subarray. */ this.inverseBindMatrices.subarray(
+        i * 16,
+        i * 16 + 16,
+      ),
     );
     this.parents = new Int32Array(this.jointCount).fill(-1);
     this.joints.forEach((node, i) => {
+      // Updates parents[i], p for this callback.
+
       let p = parent[node]!,
         steps = 0;
       while (p !== -1) {

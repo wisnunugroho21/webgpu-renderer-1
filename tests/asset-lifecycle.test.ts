@@ -18,6 +18,7 @@ Object.assign(globalThis, {
     COPY_SRC: 16,
   },
 });
+/** Builds controlled test dependencies and reusable state for asset-lifecycle. */
 function fixture() {
   const primitive: RuntimePrimitive = {
     attributes: { POSITION: new Float32Array(9), NORMAL: new Float32Array(9) },
@@ -41,13 +42,19 @@ function fixture() {
   };
   const queue = {
     writeBuffer: vi.fn(),
-    onSubmittedWorkDone: vi.fn(async () => {}),
+    onSubmittedWorkDone: vi.fn(async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    }),
   } as unknown as GPUQueue;
   const device = {
-    createBuffer: vi.fn((d: GPUBufferDescriptor) => ({
-      size: d.size,
-      destroy: vi.fn(),
-    })),
+    createBuffer: vi.fn(
+      (
+        d: GPUBufferDescriptor,
+      ) => /** Builds a record containing size, destroy. */ ({
+        size: d.size,
+        destroy: vi.fn(),
+      }),
+    ),
   } as unknown as GPUDevice;
   const resources = new Resources(device),
     deltas = new MorphDeltaBuffers(resources, queue, 3),
@@ -56,8 +63,10 @@ function fixture() {
   const groups: GPUBindGroup[] = [],
     textures = {
       groups: [],
-      prepare: vi.fn(async () => groups),
-      release: vi.fn(async () => {}),
+      prepare: vi.fn(async () => /** Returns groups. */ groups),
+      release: vi.fn(async () => {
+        // Intentionally performs no work at this optional callback boundary.
+      }),
     } as unknown as MaterialTextures;
   return {
     asset,
@@ -73,11 +82,15 @@ function fixture() {
   };
 }
 it("rolls back earlier primitives, material slots and texture ownership, then permits retry", async () => {
+  // Verifies rolls back earlier primitives, material slots and texture ownership, then permits retry.
+
   const f = fixture();
   f.asset.meshes[0]!.primitives.push({ ...f.primitive, attributes: {} });
   const baseline = f.resources.stats.buffers;
   await expect(
-    uploadAsset(f.asset, f.meshes, f.materials, f.textures, () => {}),
+    uploadAsset(f.asset, f.meshes, f.materials, f.textures, () => {
+      // Intentionally performs no work at this optional callback boundary.
+    }),
   ).rejects.toThrow("positions");
   expect(f.resources.stats.buffers).toBe(baseline);
   expect(f.deltas.count).toBe(0);
@@ -90,45 +103,72 @@ it("rolls back earlier primitives, material slots and texture ownership, then pe
     f.meshes,
     f.materials,
     f.textures,
-    () => {},
+    () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
   );
   expect(f.deltas.count).toBe(3);
   await releaseUploadedAsset(uploaded, f.meshes, f.materials, f.textures, () =>
-    f.meshes.fence(),
+    /** Delegates this operation to f.meshes.fence. */ f.meshes.fence(),
   );
   expect(f.resources.stats.buffers).toBe(baseline);
   expect(f.deltas.count).toBe(0);
 });
 it("cleans partial buffer creation and write failures without leaking morph ranges", () => {
+  // Verifies cleans partial buffer creation and write failures without leaking morph ranges.
+
   for (const stage of ["index", "write"] as const) {
     const f = fixture(),
       baseline = f.resources.stats.buffers;
     if (stage === "index")
       vi.mocked(f.device.createBuffer)
         .mockImplementationOnce(
-          (d) => ({ size: d.size, destroy() {} }) as GPUBuffer,
+          (d) =>
+            /** Returns ({ size: d.size, destroy() {} }) as GPUBuffer. */ ({
+              size: d.size,
+              /** Intentionally performs no work at this optional callback boundary. */
+              destroy() {},
+            }) as GPUBuffer,
         )
         .mockImplementationOnce(() => {
+          // Rejects invalid input for the current operation.
+
           throw new Error("allocation failed");
         });
     else
       vi.mocked(f.queue.writeBuffer)
-        .mockImplementationOnce(() => {})
-        .mockImplementationOnce(() => {})
-        .mockImplementationOnce(() => {})
         .mockImplementationOnce(() => {
+          // Intentionally performs no work at this optional callback boundary.
+        })
+        .mockImplementationOnce(() => {
+          // Intentionally performs no work at this optional callback boundary.
+        })
+        .mockImplementationOnce(() => {
+          // Intentionally performs no work at this optional callback boundary.
+        })
+        .mockImplementationOnce(() => {
+          // Rejects invalid input for the current operation.
+
           throw new Error("write failed");
         });
-    expect(() => f.meshes.upload(f.primitive)).toThrow("failed");
+    expect(() =>
+      /** Delegates this operation to f.meshes.upload. */ f.meshes.upload(
+        f.primitive,
+      ),
+    ).toThrow("failed");
     expect(f.resources.stats.buffers).toBe(baseline);
     expect(f.deltas.count).toBe(0);
   }
 });
 it("rolls back when cancellation/device loss occurs after texture preparation", async () => {
+  // Verifies rolls back when cancellation/device loss occurs after texture preparation.
+
   const f = fixture();
   let checks = 0;
   await expect(
     uploadAsset(f.asset, f.meshes, f.materials, f.textures, () => {
+      // Rejects invalid input for the current operation.
+
       if (++checks === 2) throw new Error("cancelled");
     }),
   ).rejects.toThrow("cancelled");
@@ -136,16 +176,22 @@ it("rolls back when cancellation/device loss occurs after texture preparation", 
   expect(f.materials.available).toBe(2);
 });
 it("does not reuse live material IDs and resets released metadata", () => {
+  // Verifies does not reuse live material IDs and resets released metadata.
+
   const m = new MaterialManager(2),
     a = m.create({ alphaMode: "BLEND", doubleSided: true }),
     b = m.create();
   m.release(a);
-  expect(() => m.set(a, {})).toThrow("Unknown");
+  expect(() => /** Delegates this operation to m.set. */ m.set(a, {})).toThrow(
+    "Unknown",
+  );
   expect(m.create()).toBe(a);
   expect(m.pipelineIndex(a)).toBe(0);
   expect(m.alive[b]).toBe(1);
 });
 it("reuses freed morph ranges without changing offsets owned by another asset", () => {
+  // Verifies reuses freed morph ranges without changing offsets owned by another asset.
+
   const f = fixture();
   const small: RuntimePrimitive = {
     ...f.primitive,

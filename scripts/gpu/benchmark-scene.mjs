@@ -12,8 +12,12 @@ export const runBenchmarkMatrix = async (options = {}) => {
     combined: null,
     occlusion: [],
   };
+  /** Returns the middle sorted timing sample to summarize diagnostic measurements. */
   const median = (values) =>
-    values.slice().sort((a, b) => a - b)[Math.floor(values.length / 2)];
+    values.slice().sort((a, b) => /** Computes the a - b result. */ a - b)[
+      Math.floor(values.length / 2)
+    ];
+  /** Creates an isolated browser application, runs a diagnostic workload and releases it before reporting validation errors. */
   const withApp = async (capacity, run) => {
     const canvas = document.createElement("canvas"),
       status = document.createElement("output");
@@ -44,7 +48,14 @@ export const runBenchmarkMatrix = async (options = {}) => {
     if (gpuErrors.length) throw new Error(gpuErrors.join("\n"));
     return result;
   };
-  const measure = async (app, before = () => {}, long = false) => {
+  /** Warms the workload and records CPU/completion/GPU timings outside the ordinary rendering path. */
+  const measure = async (
+    app,
+    before = () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
+    long = false,
+  ) => {
     const r = app.renderer,
       gpu = app.gpu,
       rows = [];
@@ -104,13 +115,21 @@ export const runBenchmarkMatrix = async (options = {}) => {
       (passes[interval.pass] ??= []).push(interval.milliseconds);
     const cpu = {};
     for (const key of Object.keys(rows[0]))
-      cpu[key] = median(rows.map((row) => row[key]));
+      cpu[key] = median(rows.map((row) => /** Returns row[key]. */ row[key]));
     const after = { ...r.resources.stats };
     // Initial dynamic/shadow state is warm after setup; resource creation is cold only.
     return {
       cpuMedianMs: cpu,
       gpuPassMedianMs: Object.fromEntries(
-        Object.entries(passes).map(([key, values]) => [key, median(values)]),
+        Object.entries(passes).map(
+          ([
+            key,
+            values,
+          ]) => /** Returns the ordered values needed by this operation. */ [
+            key,
+            median(values),
+          ],
+        ),
       ),
       stats: { ...r.stats },
       resourcesBefore: resources,
@@ -118,6 +137,7 @@ export const runBenchmarkMatrix = async (options = {}) => {
       size: [canvasWidth(app), app.canvas.height],
     };
   };
+  /** Renders and maps a complete diagnostic image for exact reference comparison. */
   const captureImage = async (app) => {
     const gpu = app.gpu,
       texture = gpu.context.getCurrentTexture(),
@@ -142,6 +162,7 @@ export const runBenchmarkMatrix = async (options = {}) => {
     rb.destroy();
     return bytes;
   };
+  /** Returns count. */
   const visibleCount = async (app) => {
     const gpu = app.gpu,
       rb = gpu.device.createBuffer({
@@ -163,8 +184,11 @@ export const runBenchmarkMatrix = async (options = {}) => {
     rb.destroy();
     return count;
   };
+  /** Returns app canvas width. */
   const canvasWidth = (app) => app.canvas.width;
   await withApp(16384, async (app) => {
+    // Applies app.world.create, app.world.transforms.add, app.world.transforms.setPosition to the current callback state.
+
     const entities = [];
     for (let i = 0; i < 1000; i++) {
       const e = app.world.create();
@@ -181,14 +205,16 @@ export const runBenchmarkMatrix = async (options = {}) => {
       entities.push(e);
     }
     const ids = Array.from({ length: 1000 }, (_, i) =>
-      app.materials.create({
-        baseColor: [
-          ((i % 7) + 1) / 8,
-          ((i % 11) + 1) / 12,
-          ((i % 13) + 1) / 14,
-          1,
-        ],
-      }),
+      /** Delegates this operation to app.materials.create. */ app.materials.create(
+        {
+          baseColor: [
+            ((i % 7) + 1) / 8,
+            ((i % 11) + 1) / 12,
+            ((i % 13) + 1) / 14,
+            1,
+          ],
+        },
+      ),
     );
     for (const count of [1, 100, 1000])
       for (const mode of ["individual", "sorted", "instanced"]) {
@@ -204,6 +230,8 @@ export const runBenchmarkMatrix = async (options = {}) => {
   });
   for (const count of [1, 100, 500, 1000])
     await withApp(100000, async (app) => {
+      // Applies app.loadAsset, app.world.transforms.setPosition, Math.floor to the current callback state.
+
       for (let i = 0; i < count; i++) {
         const entities = await app.loadAsset(
           options.longAnimation
@@ -224,10 +252,14 @@ export const runBenchmarkMatrix = async (options = {}) => {
       }
       const measured = await measure(app, undefined, options.longAnimation);
       measured.sharedSkeleton = app.skeletons.instances.every(
-        (s) => s.asset === app.skeletons.instances[0].asset,
+        (s) =>
+          /** Evaluates the s.asset === app.skeletons.instances[0].asset condition. */ s.asset ===
+          app.skeletons.instances[0].asset,
       );
       measured.sharedClip = app.animations.animators.every(
-        (a) => a.clips === app.animations.animators[0].clips,
+        (a) =>
+          /** Evaluates the a.clips === app.animations.animators[0].clips condition. */ a.clips ===
+          app.animations.animators[0].clips,
       );
       if (options.longAnimation) {
         // Diagnostic reference: re-sample the exact same times without hints,
@@ -235,14 +267,19 @@ export const runBenchmarkMatrix = async (options = {}) => {
         const hinted = await captureImage(app);
         const samplers = new Set(
           app.animations.animators.flatMap((animator) =>
-            animator.clips.flatMap((clip) =>
-              clip.channels.map((c) => c.sampler),
+            /** Delegates this operation to animator.clips.flatMap. */ animator.clips.flatMap(
+              (clip) =>
+                /** Builds an output entry for each input item. */ clip.channels.map(
+                  (c) => /** Returns c sampler. */ c.sampler,
+                ),
             ),
           ),
         );
         for (const sampler of samplers) {
           const sample = sampler.sample;
           sampler.sample = function (time, out) {
+            // Delegates this operation to sample.call.
+
             return sample.call(this, time, out);
           };
         }
@@ -283,12 +320,15 @@ export const runBenchmarkMatrix = async (options = {}) => {
         keyCount:
           app.animations.animators[0].clips[0].channels[0].sampler.input.length,
         distinctPhases: new Set(
-          app.animations.animators.map((a) => a.currentTime),
+          app.animations.animators.map(
+            (a) => /** Returns a current time. */ a.currentTime,
+          ),
         ).size,
         verticesPerCharacter: 400,
         ...measured,
       });
     });
+  /** Updates state weights[t], state dirty for update morph. */
   const updateMorph = (app, active, frame) => {
     for (const state of app.animations.morphStates) {
       for (let t = 0; t < state.targetCount; t++)
@@ -297,6 +337,8 @@ export const runBenchmarkMatrix = async (options = {}) => {
     }
   };
   await withApp(16384, async (app) => {
+    // Applies app.loadAsset, app.world.transforms.setPosition, Math.floor to the current callback state.
+
     for (let i = 0; i < 1000; i++) {
       const entities = await app.loadAsset("/regression/crowd-morph.glb");
       app.world.transforms.setPosition(
@@ -311,10 +353,18 @@ export const runBenchmarkMatrix = async (options = {}) => {
         characters: 1000,
         activeTargets: active,
         verticesPerCharacter: 400,
-        ...(await measure(app, (frame) => updateMorph(app, active, frame))),
+        ...(await measure(app, (frame) =>
+          /** Delegates this operation to updateMorph. */ updateMorph(
+            app,
+            active,
+            frame,
+          ),
+        )),
       });
   });
   await withApp(100000, async (app) => {
+    // Applies app.loadAsset, app.world.transforms.setPosition, Math.floor to the current callback state.
+
     for (let i = 0; i < 1000; i++) {
       const entities = await app.loadAsset("/regression/crowd-combined.glb");
       app.world.transforms.setPosition(
@@ -330,10 +380,18 @@ export const runBenchmarkMatrix = async (options = {}) => {
       jointsPerCharacter: 64,
       activeTargets: 16,
       verticesPerCharacter: 400,
-      ...(await measure(app, (frame) => updateMorph(app, 16, frame))),
+      ...(await measure(app, (frame) =>
+        /** Delegates this operation to updateMorph. */ updateMorph(
+          app,
+          16,
+          frame,
+        ),
+      )),
     };
   });
   await withApp(16384, async (app) => {
+    // Applies r.camera.setPosition, r.camera.setTarget, results.occlusion.push to the current callback state.
+
     const r = app.renderer;
     r.camera.setPosition(0, 0, 5);
     r.camera.setTarget(0, 0, 0);
@@ -395,6 +453,8 @@ export const runBenchmarkMatrix = async (options = {}) => {
   });
 
   await withApp(16384, async (app) => {
+    // Applies indices.set, performance.now, r.meshes.upload to the current callback state.
+
     const r = app.renderer,
       g = r.geometryOptimization;
     results.geometry = {
@@ -447,6 +507,7 @@ export const runBenchmarkMatrix = async (options = {}) => {
     r.camera.setPosition(0, 0, 8);
     r.camera.setTarget(0, 0, 0);
     r.cullingEnabled = true;
+    /** Applies app.transformSystem.update, app.skeletonSystem.update, app.animatedBounds.update to refresh. */
     const refresh = () => {
       app.transformSystem.update(app.world.transforms);
       app.skeletonSystem.update(app.world, app.skeletons);
@@ -463,11 +524,13 @@ export const runBenchmarkMatrix = async (options = {}) => {
         app.animations.morphPool,
       );
     };
+    /** Renders the requested configuration and captures its diagnostic reference pixels. */
     const image = async (enabled) => {
       g.enabled = enabled;
       refresh();
       return await captureImage(app);
     };
+    /** Compares diagnostic pixel buffers and reports their differing values. */
     const difference = (a, b) => {
       let maxDifference = 0,
         differingBytes = 0;
@@ -478,6 +541,7 @@ export const runBenchmarkMatrix = async (options = {}) => {
       }
       return { maxDifference, differingBytes };
     };
+    /** Reads GPU counters/arguments explicitly to verify conservative visibility and draw ranges. */
     const diagnostics = async () => {
       const n = g.count;
       if (!n)
@@ -581,6 +645,7 @@ export const runBenchmarkMatrix = async (options = {}) => {
         });
       }
     }
+    /** Applies image, results.geometry.checks.push, difference to check. */
     const check = async (name) => {
       const before = await image(false),
         after = await image(true);

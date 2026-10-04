@@ -7,6 +7,7 @@ export class TouchJoystick {
   private x = 0;
   private y = 0;
   private readonly previousTouchAction: string;
+  /** Initializes bounded touch-stick axes and pointer capture; invalid input is rejected. */
   constructor(
     private readonly target: HTMLElement,
     private readonly radius = 48,
@@ -22,6 +23,7 @@ export class TouchJoystick {
     this.scope.listen("pointercancel", this.up);
     this.scope.listen("lostpointercapture", this.up);
   }
+  /** Captures the active touch pointer and establishes the stick origin. */
   private readonly down = (event: PointerEvent): void => {
     if (event.pointerType !== "touch" || this.pointer !== -1) return;
     this.target.setPointerCapture(event.pointerId);
@@ -31,6 +33,7 @@ export class TouchJoystick {
     this.axes.fill(0);
     event.preventDefault();
   };
+  /** Converts the captured pointer displacement into bounded normalized stick axes. */
   private readonly move = (event: PointerEvent): void => {
     if (event.pointerId !== this.pointer) return;
     const x = (event.clientX - this.x) / this.radius,
@@ -40,10 +43,12 @@ export class TouchJoystick {
     this.axes[1] = y / length;
     event.preventDefault();
   };
+  /** Releases the active touch and resets the axes. */
   private readonly up = (event: PointerEvent): void => {
     if (event.pointerId === this.pointer) this.clear();
   };
 
+  /** Releases capture and zeros the joystick axes. */
   readonly clear = (): void => {
     const id = this.pointer;
     this.pointer = -1;
@@ -51,6 +56,7 @@ export class TouchJoystick {
     if (id !== -1 && this.target.hasPointerCapture(id))
       this.target.releasePointerCapture(id);
   };
+  /** Removes listeners, releases capture and restores the previous touch-action style. */
   dispose(): void {
     this.clear();
     this.scope.dispose();

@@ -5,10 +5,12 @@ struct PostSettings {
 @group(0) @binding(0) var source: texture_2d<f32>;
 @group(0) @binding(1) var outputImage: texture_storage_2d<OUTPUT_FORMAT, write>;
 @group(0) @binding(2) var<uniform> options: PostSettings;
+// Transforms source radiance into thresholded bloom or log-luminance/count reduction values for this pipeline variant.
 fn extract(color: vec4<f32>) -> vec4<f32> {
   // EXTRACT_VALUE
 }
 
+// Reduces covered scene pixels into the first bloom/luminance level, handling odd dimensions.
 @compute @workgroup_size(8, 8) fn first(@builtin(global_invocation_id) id: vec3<u32>) {
   if (any(id.xy >= textureDimensions(outputImage))) {
     return;
@@ -28,6 +30,7 @@ fn extract(color: vec4<f32>) -> vec4<f32> {
   // STORE_FIRST
 }
 
+// Combines preceding reduction texels into the next bounded mip/level.
 @compute @workgroup_size(8, 8) fn reduce(@builtin(global_invocation_id) id: vec3<u32>) {
   if (any(id.xy >= textureDimensions(outputImage))) {
     return;

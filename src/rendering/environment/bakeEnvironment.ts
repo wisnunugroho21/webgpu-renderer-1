@@ -13,6 +13,7 @@ export interface EnvironmentBakeOptions {
   brdfSize?: number;
   samples?: number;
 }
+/** Reverses base-two bits to produce a deterministic low-discrepancy sample coordinate. */
 function radicalInverse(index: number): number {
   let value = 0,
     fraction = 0.5;
@@ -55,6 +56,7 @@ export function cubeDirection(
   const length = Math.hypot(out[0]!, out[1]!, out[2]!);
   for (let i = 0; i < 3; i++) out[i] = out[i]! / length;
 }
+/** Builds a GGX importance-sampled half vector from roughness and a low-discrepancy sample. */
 function halfVector(
   u: number,
   v: number,
@@ -95,6 +97,7 @@ export function bakeEnvironment(
     direction = new Float64Array(3),
     local = new Float64Array(3),
     color = new Float64Array(3);
+  /** Applies color.fill, sample to read. */
   const read = () => {
     color.fill(NaN);
     sample(direction, color);
@@ -102,6 +105,7 @@ export function bakeEnvironment(
       if (!Number.isFinite(value) || value < 0 || value > 65504)
         throw new Error("Invalid environment radiance");
   };
+  /** Builds a record containing size, faces. */
   const cube = (
     size: number,
     roughness: number,
@@ -176,7 +180,11 @@ export function bakeEnvironment(
   };
   const levels = Math.log2(specularSize) + 1;
   const specular = Array.from({ length: levels }, (_, mip) =>
-    cube(specularSize / 2 ** mip, levels === 1 ? 0 : mip / (levels - 1), false),
+    /** Delegates this operation to cube. */ cube(
+      specularSize / 2 ** mip,
+      levels === 1 ? 0 : mip / (levels - 1),
+      false,
+    ),
   );
   const pixels = new Float32Array(brdfSize * brdfSize * 4);
   for (let y = 0; y < brdfSize; y++)
@@ -235,6 +243,8 @@ export function panoramaSampler(
     if (!Number.isFinite(value) || value < 0 || value > 65504)
       throw new Error("Invalid panorama radiance");
   return (direction, out) => {
+    // Maps a world direction into equirectangular panorama coordinates and samples linear radiance.
+
     const x =
       (0.5 + Math.atan2(direction[2]!, direction[0]!) / (2 * Math.PI)) * width -
       0.5;

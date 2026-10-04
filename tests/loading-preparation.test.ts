@@ -11,6 +11,7 @@ import {
 } from "../src/rendering/environment/EnvironmentArchive";
 import { bakeEnvironment } from "../src/rendering/environment/bakeEnvironment";
 import { EnvironmentLoader } from "../src/rendering/environment/EnvironmentLoader";
+/** Builds a record containing attributes, indices, mode, material, targets. */
 const primitive = (vertices = 3) => ({
   attributes: {
     POSITION: new Float32Array(vertices * 3),
@@ -22,6 +23,8 @@ const primitive = (vertices = 3) => ({
   targets: [],
 });
 it("restores worker-prepared metadata with canonical skin validation and bit-exact vertices", () => {
+  // Verifies restores worker-prepared metadata with canonical skin validation and bit-exact vertices.
+
   const source = {
     ...primitive(),
     attributes: {
@@ -36,14 +39,21 @@ it("restores worker-prepared metadata with canonical skin validation and bit-exa
   expect(clone.vertices).toEqual(reference.vertices);
   expect(clone.skin).toBeDefined();
   clone.skin!.validateJointCount(1);
-  expect(() => clone.skin!.validateJointCount(0)).toThrow();
+  expect(() =>
+    /** Delegates this operation to clone.skin!.validateJointCount. */ clone.skin!.validateJointCount(
+      0,
+    ),
+  ).toThrow();
 });
 it("bounds upload writes and rolls back cancellation between chunks", async () => {
+  // Verifies bounds upload writes and rolls back cancellation between chunks.
+
   Object.assign(globalThis, {
     GPUBufferUsage: { VERTEX: 1, INDEX: 2, COPY_DST: 4 },
   });
   const created: { size: number; destroy: () => void }[] = [];
   const resources = new Resources({
+    /** Returns buffer. */
     createBuffer: (descriptor: GPUBufferDescriptor) => {
       const buffer = { size: descriptor.size, destroy: vi.fn() };
       created.push(buffer);
@@ -52,6 +62,7 @@ it("bounds upload writes and rolls back cancellation between chunks", async () =
   } as unknown as GPUDevice);
   const sizes: number[] = [];
   const queue = {
+    /** Delegates this operation to sizes.push. */
     writeBuffer: (_buffer: GPUBuffer, _offset: number, data: Float32Array) =>
       sizes.push(data.byteLength),
   } as unknown as GPUQueue;
@@ -60,24 +71,39 @@ it("bounds upload writes and rolls back cancellation between chunks", async () =
   let checks = 0;
   await expect(
     manager.uploadAsync(source, () => {
+      // Rejects invalid input for the current operation.
+
       if (++checks === 3) throw new Error("cancelled");
     }),
   ).rejects.toThrow("cancelled");
   expect(manager.entries).toHaveLength(0);
   expect(resources.stats.buffers).toBe(0);
-  expect(sizes.every((size) => size <= 1024 * 1024)).toBe(true);
-  const id = await manager.uploadAsync(source, () => {});
+  expect(
+    sizes.every(
+      (size) =>
+        /** Evaluates the size <= 1024 * 1024 condition. */ size <= 1024 * 1024,
+    ),
+  ).toBe(true);
+  const id = await manager.uploadAsync(source, () => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
   expect(manager.get(id).indexCount).toBe(3);
   manager.destroy(id);
   expect(resources.stats.buffers).toBe(0);
 });
 it("round-trips precomputed bakes exactly and rejects corrupt/versioned payloads", async () => {
-  const data = bakeEnvironment((_direction, out) => out.fill(0.5), {
-    specularSize: 2,
-    diffuseSize: 1,
-    brdfSize: 2,
-    samples: 8,
-  });
+  // Verifies round-trips precomputed bakes exactly and rejects corrupt/versioned payloads.
+
+  const data = bakeEnvironment(
+    (_direction, out) =>
+      /** Delegates this operation to out.fill. */ out.fill(0.5),
+    {
+      specularSize: 2,
+      diffuseSize: 1,
+      brdfSize: 2,
+      samples: 8,
+    },
+  );
   const bytes = encodeEnvironmentArchive(data);
   expect(decodeEnvironmentArchive(bytes)).toEqual(data);
   const loader = new EnvironmentLoader();
@@ -86,12 +112,22 @@ it("round-trips precomputed bakes exactly and rejects corrupt/versioned payloads
   expect(loader.metrics.bakes).toBe(0);
   const bad = bytes.slice();
   new DataView(bad.buffer).setUint32(4, 99, true);
-  expect(() => decodeEnvironmentArchive(bad)).toThrow("version");
   expect(() =>
-    decodeEnvironmentArchive(bytes.subarray(0, bytes.length - 1)),
+    /** Delegates this operation to decodeEnvironmentArchive. */ decodeEnvironmentArchive(
+      bad,
+    ),
+  ).toThrow("version");
+  expect(() =>
+    /** Delegates this operation to decodeEnvironmentArchive. */ decodeEnvironmentArchive(
+      bytes.subarray(0, bytes.length - 1),
+    ),
   ).toThrow("length");
   new DataView(bad.buffer).setUint32(4, 1, true);
   new DataView(bad.buffer).setFloat32(24, NaN, true);
-  expect(() => decodeEnvironmentArchive(bad)).toThrow("finite");
+  expect(() =>
+    /** Delegates this operation to decodeEnvironmentArchive. */ decodeEnvironmentArchive(
+      bad,
+    ),
+  ).toThrow("finite");
   loader.clear();
 });

@@ -12,11 +12,15 @@ let leases = 0;
 bench(
   "register/dispose 1000 independent scene lifetimes with reused slots",
   () => {
+    // Measures register/dispose 1000 independent scene lifetimes with reused slots.
+
     for (let i = 0; i < 1000; i++) {
       const node = world.createHandle();
       world.transforms.add(world.require(node));
       leases++;
-      instances.addEntities("shared", [node], () => leases--).dispose();
+      instances
+        .addEntities("shared", [node], () => /** Returns leases--. */ leases--)
+        .dispose();
     }
     if (world.count !== 0 || world.nextEntity !== 1 || leases !== 0)
       throw new Error("Unbounded scene lifetime");

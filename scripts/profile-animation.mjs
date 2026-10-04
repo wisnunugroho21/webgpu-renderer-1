@@ -9,9 +9,15 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage();
   await page.goto("http://127.0.0.1:5190");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const longAnimation = process.argv.includes("--long-animation");
   await page.evaluate(async (longAnimation) => {
+    // Applies original.stop, document.createElement, app.start to the current callback state.
+
     const original = window.rendererApp;
     original.stop();
     const app = new original.constructor(
@@ -38,6 +44,8 @@ try {
   await session.send("Profiler.enable");
   await session.send("Profiler.setSamplingInterval", { interval: 100 });
   const result = await page.evaluate(() => {
+    // Returns rows.
+
     const app = window.animationProfileApp,
       rows = [];
     for (let frame = 0; frame < 60; frame++) {
@@ -53,6 +61,8 @@ try {
   });
   await session.send("Profiler.start");
   await page.evaluate(() => {
+    // Applies app.world.transforms.dirty.fill, app.world.transforms.queued.fill, app.animations.update to the current callback state.
+
     const app = window.animationProfileApp;
     for (let frame = 0; frame < 100; frame++) {
       app.world.transforms.dirty.fill(0);
@@ -62,7 +72,14 @@ try {
     }
   });
   const { profile } = await session.send("Profiler.stop");
-  const nodes = new Map(profile.nodes.map((node) => [node.id, node]));
+  const nodes = new Map(
+    profile.nodes.map(
+      (node) => /** Returns the ordered values needed by this operation. */ [
+        node.id,
+        node,
+      ],
+    ),
+  );
   const times = new Map();
   for (let index = 0; index < profile.samples.length; index++) {
     const frame = nodes.get(profile.samples[index]).callFrame;
@@ -74,16 +91,23 @@ try {
       "1000 independent characters x 64 joints; 60 frames, last 50 measured",
     keyCount: longAnimation ? 1024 : 2,
     distinctPhases: longAnimation ? 1000 : 10,
-    animationMedianMs: result.sort((a, b) => a - b)[
-      Math.floor(result.length / 2)
-    ],
+    animationMedianMs: result.sort(
+      (a, b) => /** Computes the a - b result. */ a - b,
+    )[Math.floor(result.length / 2)],
     selfTimeMs: [...times]
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, us]) => ({ name, ms: us / 1000 })),
+      .sort((a, b) => /** Computes the b[1] - a[1] result. */ b[1] - a[1])
+      .map(([name, us]) => /** Builds a record containing name, ms. */ ({
+        name,
+        ms: us / 1000,
+      })),
   };
   await mkdir("artifacts", { recursive: true });
   const label =
-    process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "current";
+    process.argv
+      .slice(2)
+      .find(
+        (arg) => /** Returns !arg.startsWith("--"). */ !arg.startsWith("--"),
+      ) ?? "current";
   await writeFile(
     `artifacts/animation-profile-${label}.json`,
     JSON.stringify(report, null, 2),
@@ -93,7 +117,9 @@ try {
     JSON.stringify(profile),
   );
   console.log(JSON.stringify(report, null, 2));
-  await page.evaluate(() => window.animationProfileApp.dispose());
+  await page.evaluate(() =>
+    /** Delegates this operation to window.animationProfileApp.dispose. */ window.animationProfileApp.dispose(),
+  );
 } finally {
   try {
     await browser?.close();

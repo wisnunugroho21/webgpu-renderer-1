@@ -6,6 +6,7 @@ export class AnimationSampler {
   readonly duration: number;
   private readonly rotationKeys?: Float32Array;
   private readonly a = new Float32Array(4);
+  /** Initializes validated keyframes and allocation-free interpolation state; invalid input is rejected. */
   constructor(
     readonly input: Float32Array,
     readonly output: Float32Array,

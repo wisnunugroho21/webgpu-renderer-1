@@ -22,9 +22,12 @@ Object.assign(globalThis, {
   },
 });
 afterEach(() => {
+  // Applies vi.restoreAllMocks, vi.unstubAllGlobals to the current callback state.
+
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+/** Builds controlled test dependencies and reusable state for application-assets. */
 function fixture() {
   vi.stubGlobal("window", { devicePixelRatio: 1 });
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
@@ -35,10 +38,17 @@ function fixture() {
   );
   const queue = {
     writeBuffer: vi.fn(),
-    onSubmittedWorkDone: vi.fn(async () => {}),
+    onSubmittedWorkDone: vi.fn(async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    }),
   } as unknown as GPUQueue;
   const resources = new Resources({
-    createBuffer: (d) => ({ size: d.size, destroy() {} }),
+    /** Builds a record containing size, destroy. */
+    createBuffer: (d) => ({
+      size: d.size,
+      /** Intentionally performs no work at this optional callback boundary. */
+      destroy() {},
+    }),
   } as GPUDevice);
   const deltas = new MorphDeltaBuffers(resources, queue, 9),
     meshes = new MeshManager(resources, queue, deltas);
@@ -50,15 +60,23 @@ function fixture() {
   });
   const textures = {
     groups: [],
-    prepare: vi.fn(async () => []),
-    release: vi.fn(async () => {}),
+    prepare: vi.fn(
+      async () => /** Returns the ordered values needed by this operation. */ [],
+    ),
+    release: vi.fn(async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    }),
   } as unknown as MaterialTextures;
   app.renderer = {
     meshes,
     textures,
     camera: new Camera(),
     lodGroups: { entries: [] },
-    streaming: { referencesAsset: () => false },
+    streaming: {
+      /** Returns false. */
+      referencesAsset: () => false,
+    },
+    /** Delegates this operation to resources.dispose. */
     dispose: () => resources.dispose(),
   } as unknown as Renderer;
   app.gpu = {
@@ -67,6 +85,7 @@ function fixture() {
     lost: false,
     dispose: vi.fn(),
   } as unknown as GPUContext;
+  /** Builds a record containing name, children, mesh, skin, camera, position. */
   const node = (mesh: number, skin: number): RuntimeAsset["nodes"][number] => ({
     name: "node",
     children: new Uint32Array(),
@@ -134,6 +153,8 @@ function fixture() {
   return { app, asset, resources, deltas, meshes, queue };
 }
 it("unloads all owned instances, preserves another character, and reuses shared ranges", async () => {
+  // Verifies unloads all owned instances, preserves another character, and reuses shared ranges.
+
   const f = fixture(),
     baseline = f.resources.stats.buffers,
     available = f.app.materials.available;
@@ -175,6 +196,8 @@ it("unloads all owned instances, preserves another character, and reuses shared 
   await f.app.dispose();
 });
 it("vetoes foreign mesh/hierarchy/LOD consumers without removing owned instances", async () => {
+  // Verifies vetoes foreign mesh/hierarchy/LOD consumers without removing owned instances.
+
   const f = fixture();
   const nodes = await f.app.loadAsset("a");
   const external = f.app.world.create();
@@ -200,6 +223,8 @@ it("vetoes foreign mesh/hierarchy/LOD consumers without removing owned instances
   await f.app.dispose();
 });
 it("rolls back failed instantiation controllers/entities and leaves a retryable shared asset", async () => {
+  // Verifies rolls back failed instantiation controllers/entities and leaves a retryable shared asset.
+
   const f = fixture();
   f.asset.animations[0]!.channels[0]!.output = new Float32Array(2);
   await expect(f.app.loadAsset("a")).rejects.toThrow();
@@ -212,26 +237,39 @@ it("rolls back failed instantiation controllers/entities and leaves a retryable 
   await f.app.dispose();
 });
 it("removes consumers before fencing and blocks loading during the asynchronous release", async () => {
+  // Verifies removes consumers before fencing and blocks loading during the asynchronous release.
+
   const f = fixture();
   await f.app.loadAsset("a");
   let done!: () => void;
   vi.mocked(f.queue.onSubmittedWorkDone).mockImplementation(
     () =>
-      new Promise<undefined>((resolve) => {
-        done = () => resolve(undefined);
-      }),
+      /** Creates Promise storage for this operation. */ new Promise<undefined>(
+        (resolve) => {
+          // Updates done for this callback.
+
+          done = () =>
+            /** Delegates this operation to resolve. */ resolve(undefined);
+        },
+      ),
   );
   const pending = f.app.unloadAsset("a");
   expect(f.app.world.count).toBe(2);
   expect(f.app.renderWorld.count).toBe(1);
   await expect(f.app.loadAsset("a")).rejects.toThrow("unavailable");
-  await vi.waitFor(() => expect(done).toBeTypeOf("function"));
+  await vi.waitFor(() =>
+    /** Delegates this operation to expect(done).toBeTypeOf. */ expect(
+      done,
+    ).toBeTypeOf("function"),
+  );
   done();
   await pending;
   vi.mocked(f.queue.onSubmittedWorkDone).mockResolvedValue(undefined);
   await f.app.dispose();
 });
 it("unloads a skinned asset after its entities were manually destroyed", async () => {
+  // Verifies unloads a skinned asset after its entities were manually destroyed.
+
   const f = fixture();
   await f.app.loadAsset("a");
   for (let e = 2; e < f.app.world.nextEntity; e++) f.app.world.destroy(e);
@@ -244,6 +282,8 @@ it("unloads a skinned asset after its entities were manually destroyed", async (
 });
 
 it("returns to manual camera mode when unloading the selected asset camera", async () => {
+  // Verifies returns to manual camera mode when unloading the selected asset camera.
+
   const f = fixture();
   f.asset.nodes[0]!.camera = 0;
   f.asset.cameras.push({
@@ -256,7 +296,10 @@ it("returns to manual camera mode when unloading the selected asset camera", asy
     yMag: 0,
   });
   const nodes = await f.app.loadAsset("camera");
-  const entity = Array.from(nodes).find((e) => f.app.world.cameras.has[e])!;
+  const entity = Array.from(nodes).find(
+    (e) =>
+      /** Returns f app world cameras has[e]. */ f.app.world.cameras.has[e],
+  )!;
   f.app.setActiveCamera(entity);
   await f.app.unloadAsset("camera");
   expect(f.app.cameraSystem.activeEntity).toBeNull();
@@ -264,6 +307,8 @@ it("returns to manual camera mode when unloading the selected asset camera", asy
 });
 
 it("disposes one animated instance while preserving shared assets and surviving bindings", async () => {
+  // Verifies disposes one animated instance while preserving shared assets and surviving bindings.
+
   const f = fixture();
   const first = await f.app.instantiateAsset("a");
   const second = await f.app.instantiateAsset("a");
@@ -276,12 +321,22 @@ it("disposes one animated instance while preserving shared assets and surviving 
   await first.dispose();
   expect(first.disposed).toBe(true);
   expect(second.disposed).toBe(false);
-  expect(first.nodes.every((node) => f.app.world.resolve(node) === null)).toBe(
-    true,
-  );
-  expect(second.nodes.every((node) => f.app.world.resolve(node) !== null)).toBe(
-    true,
-  );
+  expect(
+    first.nodes.every(
+      (node) =>
+        /** Evaluates the f.app.world.resolve(node) === null condition. */ f.app.world.resolve(
+          node,
+        ) === null,
+    ),
+  ).toBe(true);
+  expect(
+    second.nodes.every(
+      (node) =>
+        /** Evaluates the f.app.world.resolve(node) !== null condition. */ f.app.world.resolve(
+          node,
+        ) !== null,
+    ),
+  ).toBe(true);
   expect(f.app.animations.animators).toEqual([surviving]);
   expect(f.app.skeletons.instances).toHaveLength(1);
   expect(f.app.animations.morphStates).toHaveLength(1);
@@ -302,6 +357,8 @@ it("disposes one animated instance while preserving shared assets and surviving 
 });
 
 it("vetoes foreign hierarchy and deformation consumers before instance detachment", async () => {
+  // Verifies vetoes foreign hierarchy and deformation consumers before instance detachment.
+
   const f = fixture();
   const instance = await f.app.instantiateAsset("a");
   const child = f.app.world.createHandle();
@@ -324,6 +381,8 @@ it("vetoes foreign hierarchy and deformation consumers before instance detachmen
 });
 
 it("invalidates owned instance lifetimes on URL unload and cache eviction", async () => {
+  // Verifies invalidates owned instance lifetimes on URL unload and cache eviction.
+
   const f = fixture();
   const first = await f.app.instantiateAsset("a");
   const second = await f.app.instantiateAsset("a");

@@ -5,7 +5,11 @@ import { RenderSorter } from "../src/rendering/RenderSorter";
 import { MaterialManager } from "../src/rendering/materials/MaterialManager";
 import { Mat4 } from "../src/math/Mat4";
 describe("render queues", () => {
+  // Groups checks for render queues.
+
   it("partitions opaque/mask/transparent and sorts transparency by view depth", () => {
+    // Verifies partitions opaque/mask/transparent and sorts transparency by view depth.
+
     const w = new RenderWorld(5),
       m = new MaterialManager(3),
       q = new RenderQueue(5);
@@ -23,6 +27,8 @@ describe("render queues", () => {
     expect(Array.from(q.order)).toEqual([1, 3, 2, 4, 0]);
   });
   it("sorts opaque state before depth and accepts a visible subset", () => {
+    // Verifies sorts opaque state before depth and accepts a visible subset.
+
     const w = new RenderWorld(4),
       m = new MaterialManager(3),
       q = new RenderQueue(4);
@@ -38,6 +44,8 @@ describe("render queues", () => {
   });
   for (const materials of [1, 100, 1000])
     it(`reduces 10,000 interleaved objects to ${materials} material runs`, () => {
+      // Verifies render queues.
+
       const w = new RenderWorld(10000),
         m = new MaterialManager(materials),
         q = new RenderQueue(10000);

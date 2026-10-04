@@ -11,6 +11,7 @@ export class ShadowCamera {
   private readonly center = new Float32Array(3);
   private readonly eye = new Float32Array(3);
   private readonly up = new Float32Array(3);
+  /** Fits a directional light projection to the requested camera slice using retained matrix scratch. */
   fit(
     camera: Camera,
     world: RenderWorld,

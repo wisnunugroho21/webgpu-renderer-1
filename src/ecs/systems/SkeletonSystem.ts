@@ -10,6 +10,7 @@ export class SkeletonSystem {
   updatedJoints = 0;
   private readonly mesh = Mat4.create();
   private readonly localJoint = Mat4.create();
+  /** Updates changed palette entries as inverse(meshWorld) × jointWorld × inverseBind and marks their upload ranges. */
   update(world: World, registry: SkeletonRegistry): void {
     this.activeSkeletons = this.jointCount = this.updatedJoints = 0;
     const transforms = world.transforms,

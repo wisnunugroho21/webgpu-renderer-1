@@ -4,6 +4,7 @@ export class MipGenerator {
   private readonly layout: GPUBindGroupLayout;
   private readonly pipelines = new Map<GPUTextureFormat, GPURenderPipeline>();
   passes = 0;
+  /** Initializes shared linear/sRGB downsampling pipelines. */
   constructor(
     private readonly device: GPUDevice,
     resources: Resources,
@@ -20,10 +21,12 @@ export class MipGenerator {
     const module = resources.shaders.get(
       `
       @group(0) @binding(0) var source:texture_2d<f32>;
+      // Emits an oversized fullscreen triangle from vertex IDs without a vertex buffer.
       @vertex fn vs(@builtin(vertex_index) i:u32)->@builtin(position) vec4<f32> {
         let positions=array<vec2<f32>,3>(vec2<f32>(-1,-1),vec2<f32>(3,-1),vec2<f32>(-1,3));
         return vec4<f32>(positions[i],0,1);
       }
+      // Area-weights covered source texels, including odd dimensions, and outputs linear downsampled color.
       @fragment fn fs(@builtin(position) p:vec4<f32>)->@location(0) vec4<f32> {
         let size=textureDimensions(source);let destination=max(size/2u,vec2<u32>(1u));
         let ratio=vec2<f32>(size)/vec2<f32>(destination);
@@ -55,6 +58,7 @@ export class MipGenerator {
       );
     }
   }
+  /** Encodes successive render-pass downsampling into the texture mip chain using shared pipelines. */
   generate(texture: GPUTexture): void {
     if (texture.mipLevelCount < 2) return;
     const pipeline = this.pipelines.get(texture.format);
@@ -94,6 +98,7 @@ export class MipGenerator {
     this.device.queue.submit([encoder.finish()]);
   }
 }
+/** Returns the full mip-chain level count down to a 1×1 texture. */
 export function mipLevelCount(width: number, height: number): number {
   if (
     !Number.isInteger(width) ||

@@ -6,6 +6,7 @@ export class BoundsStore extends ComponentStore {
   readonly radius: Float32Array;
   readonly min: Float32Array;
   readonly max: Float32Array;
+  /** Initializes mesh-local AABB and sphere component storage. */
   constructor(capacity: number) {
     super(capacity);
     this.centerX = new Float32Array(capacity);
@@ -15,6 +16,7 @@ export class BoundsStore extends ComponentStore {
     this.min = new Float32Array(capacity * 3);
     this.max = new Float32Array(capacity * 3);
   }
+  /** Stores a mesh-local conservative sphere and its enclosing local box, marking bounds membership. */
   setSphere(
     entity: number,
     x: number,
@@ -34,6 +36,7 @@ export class BoundsStore extends ComponentStore {
       this.max[entity * 3 + i] = c + radius;
     }
   }
+  /** Stores mesh-local box extrema and derives its enclosing sphere. */
   setAABB(
     entity: number,
     min: ArrayLike<number>,

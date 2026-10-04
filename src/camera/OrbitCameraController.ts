@@ -15,6 +15,7 @@ export class OrbitCameraController {
   private readonly max: number;
   private readonly rotation: number;
   private readonly zoom: number;
+  /** Initializes bounded yaw, pitch, distance and target camera state; invalid input is rejected. */
   constructor(
     protected readonly camera: Camera,
     options: OrbitOptions = {},
@@ -47,9 +48,11 @@ export class OrbitCameraController {
     this.yaw = Math.atan2(x, z);
     this.pitch = this.clampPitch(Math.asin(distance > 0 ? y / distance : 0));
   }
+  /** Bounds vertical orbit away from pole singularities. */
   protected clampPitch(value: number): number {
     return Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, value));
   }
+  /** Applies pointer rotation and exponential wheel dolly within configured pitch/distance limits. */
   protected rotate(dx: number, dy: number, wheel: number): void {
     if (!Number.isFinite(dx) || !Number.isFinite(dy) || !Number.isFinite(wheel))
       throw new Error("Invalid orbit input");
@@ -64,6 +67,7 @@ export class OrbitCameraController {
       ),
     );
   }
+  /** Writes the orbit eye and target to the camera without changing its projection. */
   protected apply(heading = 0): void {
     const yaw = this.yaw + heading,
       horizontal = Math.cos(this.pitch) * this.distance;
@@ -75,6 +79,7 @@ export class OrbitCameraController {
     );
     this.camera.setUp(0, 1, 0);
   }
+  /** Consumes CSS-pixel rotation/wheel input and applies the resulting orbit pose. */
   update(dx = 0, dy = 0, wheel = 0): void {
     this.rotate(dx, dy, wheel);
     this.apply();

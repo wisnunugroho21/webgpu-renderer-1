@@ -11,5 +11,12 @@ temporal.enabled = true;
 for (let i = 0; i < w.count; i++) w.entityId[i] = i;
 temporal.prepare(w, camera, 0, 1280, 960, true);
 bench("compare exact temporal snapshots for 100000 objects", () =>
-  temporal.prepare(w, camera, 0, 1280, 960, true),
+  /** Measures compare exact temporal snapshots for 100000 objects. */ temporal.prepare(
+    w,
+    camera,
+    0,
+    1280,
+    960,
+    true,
+  ),
 );

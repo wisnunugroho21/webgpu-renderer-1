@@ -14,6 +14,7 @@ struct ShadowOutput {
   @location(3) uv1: vec2<f32>
 }
 
+// Uses the same morph/skin/model path as color, then projects into the selected light-space depth layer.
 @vertex fn shadowVS(@location(0) p: vec3<f32>, @location(1) color: vec4<f32>, @location(2) normal: vec3<f32>, @location(3) uv0: vec2<f32>, @location(4) tangent: vec4<f32>, @location(5) uv1: vec2<f32>, @location(6) jointIndices: vec4<u32>, @location(7) weights: vec4<f32>, @builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance: u32) -> ShadowOutput {
   let info = instances[instance];
   let vertex = deformVertex(LocalVertex(p, normal, tangent), info, vertexIndex, jointIndices, weights, transforms[info.transformIndex]);
@@ -26,6 +27,7 @@ struct ShadowOutput {
   return out;
 }
 
+// Discards masked texels below cutoff before they can write camera/shadow depth.
 @fragment fn shadowFS(input: ShadowOutput) {
   let m = materials[input.materialId];
   let uv = select(input.uv0, input.uv1, m.uv.x == 1.0);

@@ -18,8 +18,12 @@ ray.set([0, 0, 10], [0, 0, -1]);
 const min = new Float32Array([-2, -2, -2]),
   max = new Float32Array([15, 15, 2]);
 bench("raycast 10000 snapshot bounds", () => {
+  // Measures raycast 10000 snapshot bounds.
+
   queries.raycast(ray, hit);
 });
 bench("AABB query 10000 snapshot bounds", () => {
+  // Measures AABB query 10000 snapshot bounds.
+
   queries.queryAABB(min, max, out);
 });

@@ -13,7 +13,9 @@ export async function releaseUploadedAsset(
 ): Promise<void> {
   for (const id of asset.materialIds) delete textures.groups[id];
   // A lost/disposed device can reject its fence; its resources still need CPU cleanup.
-  await fence().catch(() => {});
+  await fence().catch(() => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
   for (const ids of asset.meshIds)
     for (const id of ids) if (meshes.entries[id]) meshes.destroy(id);
   for (const id of [...asset.materialIds, asset.defaultMaterial])
@@ -36,7 +38,8 @@ export async function uploadAsset(
   materials: MaterialManager,
   textures: MaterialTextures,
   checkDevice: () => void,
-  fence: () => Promise<void> = () => meshes.fence(),
+  fence: () => Promise<void> = () =>
+    /** Delegates this operation to meshes.fence. */ meshes.fence(),
 ): Promise<UploadedAsset> {
   const uploaded: UploadedAsset = {
     materialIds: [],
@@ -59,7 +62,9 @@ export async function uploadAsset(
       const ids: number[] = [];
       uploaded.meshIds.push(ids);
       for (const primitive of mesh.primitives) {
-        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await new Promise<void>((resolve) =>
+          /** Delegates this operation to setTimeout. */ setTimeout(resolve, 0),
+        );
         checkDevice();
         ids.push(await meshes.uploadAsync(primitive, checkDevice));
       }

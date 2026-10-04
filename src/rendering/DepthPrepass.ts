@@ -11,6 +11,7 @@ export class DepthPrepass {
   enabled = false;
   skipLOD = false;
   private readonly pipelines: GPURenderPipeline[];
+  /** Initializes shared deformation-aware camera depth drawing. */
   constructor(
     resources: Resources,
     private readonly geometry: ShadowManager,
@@ -19,18 +20,21 @@ export class DepthPrepass {
     private readonly textures: MaterialTextures,
   ) {
     this.pipelines = geometry.descriptors.map((descriptor) =>
-      resources.pipelines.get({
-        ...descriptor,
-        label: "Camera depth prepass",
-        depthStencil: {
-          ...descriptor.depthStencil!,
-          format: "depth24plus",
-          depthBias: 0,
-          depthBiasSlopeScale: 0,
+      /** Returns the keyed entry from resources pipelines. */ resources.pipelines.get(
+        {
+          ...descriptor,
+          label: "Camera depth prepass",
+          depthStencil: {
+            ...descriptor.depthStencil!,
+            format: "depth24plus",
+            depthBias: 0,
+            depthBiasSlopeScale: 0,
+          },
         },
-      }),
+      ),
     );
   }
+  /** Draws eligible opaque/masked geometry into camera depth with the shared morph/skin helpers. */
   encode(
     encoder: GPUCommandEncoder,
     view: GPUTextureView,

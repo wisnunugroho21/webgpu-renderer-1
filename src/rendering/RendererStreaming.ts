@@ -28,6 +28,7 @@ export class RendererStreaming {
       layout: Float32Array;
     }
   >();
+  /** Initializes resident material/LOD replacements and conservative fallbacks. */
   constructor(
     private queue: GPUQueue,
     private meshes: MeshManager,
@@ -38,8 +39,11 @@ export class RendererStreaming {
     private readonly world: RenderWorld,
   ) {
     this.resources = new Streaming(
-      () => this.queue.onSubmittedWorkDone(),
+      () =>
+        /** Delegates this operation to this.queue.onSubmittedWorkDone. */ this.queue.onSubmittedWorkDone(),
       (resident) => {
+        // Returns false.
+
         if ("mesh" in resident) {
           for (let i = 0; i < this.world.count; i++)
             if (this.world.meshId[i] === resident.mesh) return true;
@@ -54,11 +58,16 @@ export class RendererStreaming {
       },
     );
   }
+  /** Drains pending streaming publication before replacing device ownership. */
   async quiesce(): Promise<void> {
     await Promise.allSettled(
-      Array.from(this.resources.records.values(), (r) => r.pending),
+      Array.from(
+        this.resources.records.values(),
+        (r) => /** Returns r pending. */ r.pending,
+      ),
     );
   }
+  /** Reconnects retained streaming records to recovered GPU queues/managers and remapped texture groups. */
   rebind(
     queue: GPUQueue,
     meshes: MeshManager,
@@ -71,7 +80,12 @@ export class RendererStreaming {
       [this.textures.fallback, textures.fallback],
     ]);
     for (const [old, next] of remap)
-      old.forEach((group, i) => groups.set(group, next[i]!));
+      old.forEach((group, i) =>
+        /** Delegates this operation to groups.set. */ groups.set(
+          group,
+          next[i]!,
+        ),
+      );
     for (const record of this.resources.records.values())
       if (record.value && "groups" in record.value)
         record.value.groups = remap.get(record.value.groups)!;
@@ -83,6 +97,7 @@ export class RendererStreaming {
     this.textures = textures;
     this.frame = frame;
   }
+  /** Loads a replacement authored LOD while keeping its resident fallback available until publication. */
   async bindLOD(
     group: number,
     level: number,
@@ -98,8 +113,12 @@ export class RendererStreaming {
     const lease = this.resources.acquire(
       `mesh:${key}`,
       this.frame(),
-      async () => ({ mesh: this.meshes.upload(await load()) }),
+      async () => /** Builds a record containing mesh. */ ({
+        mesh: this.meshes.upload(await load()),
+      }),
       (r) => {
+        // Destroys the retired streamed mesh once its resident references and queued uses are released.
+
         if ("mesh" in r) this.meshes.destroy(r.mesh);
       },
     );
@@ -116,6 +135,7 @@ export class RendererStreaming {
       throw error;
     }
   }
+  /** Removes a streaming LOD binding and restores the resident group fallback. */
   releaseLOD(group: number, level: number): void {
     const key = `${group}:${level}`,
       slot = this.lodSlots.get(key);
@@ -124,6 +144,7 @@ export class RendererStreaming {
     this.lodSlots.delete(key);
     slot.lease.release();
   }
+  /** Loads replacement texture slots without replacing the material scalar factors. */
   async bindMaterial(
     material: number,
     key: string,
@@ -137,6 +158,8 @@ export class RendererStreaming {
       `texture:${key}`,
       this.frame(),
       async () => {
+        // Builds a record containing groups, slots.
+
         const asset = await load();
         if (asset.materials.length !== 1)
           throw new Error("Streamed texture asset must contain one material");
@@ -146,6 +169,8 @@ export class RendererStreaming {
         };
       },
       async (r) => {
+        // Releases retired streamed material texture ownership after safe eviction.
+
         if ("groups" in r) await this.textures.release(r.groups);
       },
     );
@@ -167,6 +192,7 @@ export class RendererStreaming {
       throw error;
     }
   }
+  /** Releases streamed texture ownership and restores the resident material slots. */
   releaseMaterial(material: number): void {
     const slot = this.materialSlots.get(material);
     if (!slot) return;
@@ -189,10 +215,12 @@ export class RendererStreaming {
         return true;
     return false;
   }
+  /** Updates residency age for resources used by the current frame. */
   touch(frame: number): void {
     for (const slot of this.lodSlots.values()) slot.lease.touch(frame);
     for (const slot of this.materialSlots.values()) slot.lease.touch(frame);
   }
+  /** Retires old unreferenced streaming resources after safe queue completion and a final reference check. */
   evictUnused(minimumAge = 60): Promise<number> {
     return this.resources.evictUnused(this.frame(), minimumAge);
   }

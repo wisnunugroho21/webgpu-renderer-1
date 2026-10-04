@@ -9,16 +9,25 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) =>
+    /** Delegates this operation to errors.push. */ errors.push(error.message),
+  );
   await page.goto("http://127.0.0.1:5193");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const report = await page.evaluate(async () => {
+    // Builds a record containing layers, environment, gpu error, uncaptured errors.
+
     const app = window.rendererApp,
       r = app.renderer,
       w = app.world,
       device = app.gpu.device;
     app.stop();
     device.pushErrorScope("validation");
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       app.transformSystem.update(w.transforms);
       app.skeletonSystem.update(w, app.skeletons);
@@ -53,6 +62,7 @@ try {
       buffer.destroy();
       return bytes;
     };
+    /** Compares diagnostic pixel buffers and reports their differing values. */
     const difference = (a, b) => {
       let count = 0;
       for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) count++;
@@ -112,9 +122,12 @@ try {
     layers.rateEvaluatedDifference = difference(restored, await draw());
     animator.evaluationInterval = 0;
     animator.currentTime = 0.7;
+    /** Builds a record containing size, faces. */
     const cube = (size, color) => ({
       size,
       faces: Array.from({ length: 6 }, (_, face) => {
+        // Returns pixels.
+
         const pixels = new Float32Array(size * size * 4),
           rgb = color(face);
         for (let i = 0; i < pixels.length; i += 4) pixels.set([...rgb, 1], i);
@@ -124,8 +137,20 @@ try {
     const lut = new Float32Array(4 * 4 * 4);
     for (let i = 0; i < lut.length; i += 4) lut.set([0.8, 0.05, 0, 1], i);
     const constantEnvironment = {
-      diffuse: cube(2, () => [0.5, 0.5, 0.5]),
-      specular: [4, 2, 1].map((size) => cube(size, () => [0.25, 0.25, 0.25])),
+      diffuse: cube(
+        2,
+        () => /** Returns the ordered values needed by this operation. */ [
+          0.5, 0.5, 0.5,
+        ],
+      ),
+      specular: [4, 2, 1].map((size) =>
+        /** Delegates this operation to cube. */ cube(
+          size,
+          () => /** Returns the ordered values needed by this operation. */ [
+            0.25, 0.25, 0.25,
+          ],
+        ),
+      ),
       brdf: { size: 4, pixels: lut },
     };
     const material = app.renderWorld.materialId[0];
@@ -147,7 +172,11 @@ try {
       (1.055 * Math.pow(0.25 * (0.8 + 0.05), 1 / 2.4) - 0.055) * 255,
     );
     const analyticError = Math.max(
-      ...center.map((value) => Math.abs(value - expected)),
+      ...center.map((value) =>
+        /** Computes Math.abs(value - expected) without allocating intermediate vectors. */ Math.abs(
+          value - expected,
+        ),
+      ),
     );
     const modeImages = [];
     for (const mode of [
@@ -182,8 +211,12 @@ try {
     const directional = {
       ...constantEnvironment,
       specular: [4, 2, 1].map((size, mip) =>
-        cube(size, (face) =>
-          mip === 0 ? (face === 4 ? [0, 0, 1] : [1, 0, 0]) : [0, 1, 0],
+        /** Delegates this operation to cube. */ cube(size, (face) =>
+          /** Selects the result according to mip === 0. */ mip === 0
+            ? face === 4
+              ? [0, 0, 1]
+              : [1, 0, 0]
+            : [0, 1, 0],
         ),
       ),
     };
@@ -195,6 +228,7 @@ try {
     r.environment.rotationY = 0;
     app.materials.set(material, { metallic: 1, roughness: 1 });
     const rough = await draw();
+    /** Warms the workload and records CPU/completion/GPU timings outside the ordinary rendering path. */
     const measure = async (enabled) => {
       r.environment.enabled = enabled;
       const rows = [];
@@ -213,11 +247,16 @@ try {
         if (frame >= 60)
           rows.push({ cpu, completion: performance.now() - start });
       }
+      /** Returns the middle sorted timing sample to summarize diagnostic measurements. */
       const median = (values) =>
-        values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
+        values.sort((a, b) => /** Computes the a - b result. */ a - b)[
+          Math.floor(values.length / 2)
+        ];
       return {
-        cpuEncodingMs: median(rows.map((x) => x.cpu)),
-        completionMs: median(rows.map((x) => x.completion)),
+        cpuEncodingMs: median(rows.map((x) => /** Returns x cpu. */ x.cpu)),
+        completionMs: median(
+          rows.map((x) => /** Returns x completion. */ x.completion),
+        ),
       };
     };
     const timingResources = { ...r.resources.stats };
@@ -352,35 +391,53 @@ try {
   assert.deepEqual(report.uncapturedErrors, []);
   assert.deepEqual(errors, []);
   await page.goto("http://127.0.0.1:5193/?example=lighting");
-  await page.waitForFunction(() => window.environmentDemoReady);
-  const readyFrame = await page.evaluate(() => window.rendererApp.frames);
   await page.waitForFunction(
-    (frame) => window.rendererApp.frames >= frame + 3,
+    () =>
+      /** Returns window environment demo ready. */ window.environmentDemoReady,
+  );
+  const readyFrame = await page.evaluate(
+    () => /** Returns window renderer app frames. */ window.rendererApp.frames,
+  );
+  await page.waitForFunction(
+    (frame) =>
+      /** Evaluates the window.rendererApp.frames >= frame + 3 condition. */ window
+        .rendererApp.frames >=
+      frame + 3,
     readyFrame,
   );
-  const demoResources = await page.evaluate(() => ({
-    ...window.rendererApp.renderer.resources.stats,
-  }));
+  const demoResources = await page.evaluate(
+    () => /** Returns an empty fixture handle for a controlled test dependency. */ ({
+      ...window.rendererApp.renderer.resources.stats,
+    }),
+  );
   await page.screenshot({ path: "artifacts/environment-lighting.png" });
   await page.locator("canvas").click();
   await page.keyboard.press("e");
   await page.waitForFunction(
-    () => !window.rendererApp.renderer.environment.enabled,
+    () =>
+      /** Returns !window.rendererApp.renderer.environment.enabled. */ !window
+        .rendererApp.renderer.environment.enabled,
   );
   await page.keyboard.press("e");
   await page.waitForFunction(
-    () => window.rendererApp.renderer.environment.enabled,
+    () =>
+      /** Returns window renderer app renderer environment enabled. */ window
+        .rendererApp.renderer.environment.enabled,
   );
   await page.keyboard.down("ArrowRight");
   await page.waitForFunction(
-    () => window.rendererApp.renderer.environment.rotationY > 0.1,
+    () =>
+      /** Evaluates the window.rendererApp.renderer.environment.rotationY > 0.1 condition. */ window
+        .rendererApp.renderer.environment.rotationY > 0.1,
   );
   await page.keyboard.up("ArrowRight");
-  report.demo = await page.evaluate(() => ({
-    resources: { ...window.rendererApp.renderer.resources.stats },
-    rotation: window.rendererApp.renderer.environment.rotationY,
-    gpuErrors: [...window.rendererApp.gpu.errors],
-  }));
+  report.demo = await page.evaluate(
+    () => /** Builds a record containing resources, rotation, gpu errors. */ ({
+      resources: { ...window.rendererApp.renderer.resources.stats },
+      rotation: window.rendererApp.renderer.environment.rotationY,
+      gpuErrors: [...window.rendererApp.gpu.errors],
+    }),
+  );
   for (const key of [
     "pipelineCreations",
     "shaderModules",

@@ -4,11 +4,15 @@ import { readdir, readFile, writeFile } from "node:fs/promises";
 // changes whitespace only and checks its token stream before writing any shader.
 const tokenPattern =
   /\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\])*"|0[xX][\da-fA-F]+(?:\.[\da-fA-F]*)?(?:[pP][+-]?\d+)?[iufh]?|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?[iufh]?|[a-zA-Z_]\w*|->|<<=?|>>=?|[=!<>+*/%&|^-]=|&&|\|\||\+\+|--|[^\s]/gy;
+/** Keeps only entries matching the callback predicate. */
 function tokens(source) {
   return [...source.matchAll(tokenPattern)]
-    .map((match) => match[0])
-    .filter((token) => !/^\s+$/.test(token));
+    .map((match) => /** Returns match[0]. */ match[0])
+    .filter(
+      (token) => /** Returns !/^\s+$/.test(token). */ !/^\s+$/.test(token),
+    );
 }
+/** Returns output. */
 function format(source) {
   const input = tokens(source),
     lines = [],
@@ -17,10 +21,12 @@ function format(source) {
     indent = 0,
     parentheses = 0,
     pendingStruct = false;
+  /** Applies line.trim, lines.push, " ".repeat to flush. */
   const flush = () => {
     if (line.trim()) lines.push("  ".repeat(indent) + line.trim());
     line = "";
   };
+  /** Applies line.at, [")", "]", ",", ";", ".", ":"].includes, ["@", ".", "(", "["].includes to append. */
   const append = (token) => {
     const previous = line.at(-1);
     const tight =
@@ -74,7 +80,11 @@ function format(source) {
       .join("\n")
       .replace(
         /\b(array|atomic|ptr|var|vec[234]|mat[234]x[234]|texture_\w+)\s*<([\w\s,<>]+)>/g,
-        (type) => type.replace(/\s*([<>])\s*/g, "$1"),
+        (type) =>
+          /** Delegates this operation to type.replace. */ type.replace(
+            /\s*([<>])\s*/g,
+            "$1",
+          ),
       )
       .replace(/\s+(\+\+|--)/g, "$1")
       .trimEnd() + "\n";
@@ -84,7 +94,9 @@ function format(source) {
 }
 let differences = 0;
 for (const file of (await readdir("src/shaders"))
-  .filter((file) => file.endsWith(".wgsl"))
+  .filter((file) =>
+    /** Delegates this operation to file.endsWith. */ file.endsWith(".wgsl"),
+  )
   .sort()) {
   const path = `src/shaders/${file}`,
     source = await readFile(path, "utf8"),

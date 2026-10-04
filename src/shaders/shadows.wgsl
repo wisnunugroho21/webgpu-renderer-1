@@ -8,6 +8,7 @@ struct ShadowData {
 @group(0) @binding(12) var<storage, read> shadowData: array<ShadowData>;
 @group(0) @binding(13) var shadowMaps: texture_depth_2d_array;
 @group(0) @binding(14) var shadowSampler: sampler_comparison;
+// Selects a directional cascade and averages nine biased comparison samples; outside coverage stays lit.
 fn shadowVisibility(light: Light, world: vec3<f32>, normal: vec3<f32>) -> f32 {
   if (light.cone.z == 0.0) {
     return 1.0;

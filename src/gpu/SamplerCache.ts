@@ -3,10 +3,12 @@ import { ResourceStats } from "./ResourceStats";
 export class SamplerCache {
   private readonly keys = new CacheKey();
   private readonly cache = new Map<string, GPUSampler>();
+  /** Initializes descriptor-keyed GPU sampler reuse. */
   constructor(
     private readonly device: GPUDevice,
     private readonly stats: ResourceStats,
   ) {}
+  /** Returns a shared sampler matching the descriptor, creating it only on a cache miss. */
   get(descriptor: GPUSamplerDescriptor = {}): GPUSampler {
     const normalized = {
       addressModeU: "clamp-to-edge",
@@ -32,6 +34,7 @@ export class SamplerCache {
     this.cache.set(key, sampler);
     return sampler;
   }
+  /** Clears retained descriptor-keyed GPU sampler reuse without publishing new frame work. */
   clear(): void {
     this.cache.clear();
   }

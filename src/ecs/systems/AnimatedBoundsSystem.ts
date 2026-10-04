@@ -14,6 +14,7 @@ export class AnimatedBoundsSystem {
   private readonly max = new Float32Array(3);
   private readonly unionMin = new Float32Array(3);
   private readonly unionMax = new Float32Array(3);
+  /** Expands base boxes by signed morph extrema and unions joint-transformed boxes without CPU vertex deformation. */
   update(
     world: World,
     meshes: MeshManager,

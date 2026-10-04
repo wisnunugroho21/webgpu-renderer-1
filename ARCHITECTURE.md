@@ -168,3 +168,7 @@ Small math, ECS stores, sampling kernels, visibility structures, mesh preparatio
 ## Code quality tools
 
 ESLint's flat config covers TypeScript and JavaScript with recommended correctness rules. Prettier owns formatting; eslint-config-prettier disables competing style rules. WGSL uses the existing token-preserving formatter. Validation runs lint before formatting, tests and build. `tools/lint` owns a locked TypeScript 6 parser runtime because typescript-eslint's supported peer range excludes the project's TypeScript 7 build compiler. The pnpm workspace installs that isolated package alongside the root using one committed lockfile; ordinary runtime/build imports do not reference it.
+
+## Function documentation
+
+Implemented TypeScript/JavaScript functions, constructors, accessors and callbacks have adjacent explanations, as do WGSL helpers and entry points. Named functions use JSDoc; anonymous callbacks use a first-body comment or an inline expression comment. Interface methods describe the ownership contract callers depend on. Keep comments synchronized with behavior, especially coordinate spaces, units, cancellation, resource lifetime, dirty tracking and cold versus frame work. The game integration walkthrough is [GAME_DEVELOPMENT_GUIDE.md](GAME_DEVELOPMENT_GUIDE.md).

@@ -9,9 +9,11 @@ export interface AnimationState {
 export class AnimationStateMachine {
   private readonly states = new Map<string, AnimationState>();
   private current: string | null = null;
+  /** Returns the selected gameplay animation state name, or null before selection. */
   get state(): string | null {
     return this.current;
   }
+  /** Initializes named animation states and transition choices; invalid input is rejected. */
   constructor(
     readonly animator: Animator,
     states: Readonly<Record<string, AnimationState>>,
@@ -28,6 +30,7 @@ export class AnimationStateMachine {
       this.states.set(name, Object.freeze({ ...state }));
     }
   }
+  /** Selects a named state and starts the configured crossfade only when changing state. */
   transition(name: string): boolean {
     const state = this.states.get(name);
     if (!state) throw new Error("Unknown animation state");

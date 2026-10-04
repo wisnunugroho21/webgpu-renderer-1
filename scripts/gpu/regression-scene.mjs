@@ -344,7 +344,7 @@ export const runRegressionScene = async () => {
     await textures.prepare(testAsset);
     cachedSamples.push(performance.now() - t);
   }
-  cachedSamples.sort((a, b) => a - b);
+  cachedSamples.sort((a, b) => /** Computes the a - b result. */ a - b);
   const textureChecks = {
     coldMs,
     warmMs,
@@ -386,7 +386,9 @@ export const runRegressionScene = async () => {
   textureChecks.failedCacheEntries = textures.cache.size - failedBefore;
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   const hash = Array.from(new Uint8Array(digest), (b) =>
-    b.toString(16).padStart(2, "0"),
+    /** Delegates this operation to b.toString(16).padStart. */ b
+      .toString(16)
+      .padStart(2, "0"),
   ).join("");
   for (const format of ["rgba8unorm", "rgba8unorm-srgb"]) {
     const texture = await textures.cache.get(`${hash}:${format}`);
@@ -515,7 +517,9 @@ export const runRegressionScene = async () => {
   }
 
   app.skeletonSystem.update(app.world, app.skeletons);
-  const initialMatrices = instances.map((i) => Array.from(i.matrices));
+  const initialMatrices = instances.map((i) =>
+    /** Delegates this operation to Array.from. */ Array.from(i.matrices),
+  );
   const changed = app.skeletonSystem.updatedJoints;
   app.skeletonSystem.update(app.world, app.skeletons);
   const unchanged = app.skeletonSystem.updatedJoints;
@@ -538,6 +542,7 @@ export const runRegressionScene = async () => {
     ),
   };
 
+  /** Returns an empty fixture handle for a controlled test dependency. */
   const renderJoints = () => {
     app.animatedBounds.update(
       app.world,
@@ -575,7 +580,8 @@ export const runRegressionScene = async () => {
   gpu.queue.submit([copyJoint.finish()]);
   await readJoint.mapAsync(GPUMapMode.READ);
   const gpuJointX = [...new Float32Array(readJoint.getMappedRange())].filter(
-    (_, i) => i === 12 || i === 44,
+    (_, i) =>
+      /** Evaluates the i === 12 || i === 44 condition. */ i === 12 || i === 44,
   );
   readJoint.unmap();
   readJoint.destroy();
@@ -590,7 +596,7 @@ export const runRegressionScene = async () => {
     unchanged: unchangedJointStats,
     partial: partialJointStats,
     gpuJointX,
-    offsets: instances.map((i) => i.jointOffset),
+    offsets: instances.map((i) => /** Returns i joint offset. */ i.jointOffset),
     writes: app.renderer.joints.writes,
     resourcesBefore: jointResources,
     resourcesAfter: { ...app.renderer.resources.stats },
@@ -631,6 +637,7 @@ export const runRegressionScene = async () => {
   app.materials.set(materialId, { metallic: 0, roughness: 1, textures: tex });
   renderer.cullingEnabled = false;
   rw.count = 1;
+  /** Returns pixel. */
   const sampleSkin = async () => {
     const texture = gpu.context.getCurrentTexture(),
       enc = gpu.device.createCommandEncoder(),
@@ -684,6 +691,8 @@ export const runRegressionScene = async () => {
   const originalWrite = gpu.queue.writeBuffer.bind(gpu.queue);
   let vertexWrites = 0;
   gpu.queue.writeBuffer = (...args) => {
+    // Delegates this operation to originalWrite.
+
     if (args[0] === renderer.meshes.get(skinnedMesh).vertex) vertexWrites++;
     return originalWrite(...args);
   };
@@ -737,7 +746,7 @@ export const runRegressionScene = async () => {
     gpu.queue.submit([enc.finish()]);
     await gpu.queue.onSubmittedWorkDone();
   }
-  skinSamples.sort((a, b) => a - b);
+  skinSamples.sort((a, b) => /** Computes the a - b result. */ a - b);
   const gpuSkinChecks = {
     skinPixel,
     referencePixel,
@@ -821,6 +830,7 @@ export const runRegressionScene = async () => {
   gpu.queue.submit([unchangedMorph.finish()]);
   morphBufferChecks.unchangedBytes = renderer.stats.morphUploadBytes;
 
+  /** Creates Float32Array storage for this operation. */
   const repeat = (v) => new Float32Array([...v, ...v, ...v]);
   const morphMesh = renderer.meshes.upload({
     mode: 4,
@@ -889,6 +899,8 @@ export const runRegressionScene = async () => {
     write = gpu.queue.writeBuffer.bind(gpu.queue);
   let morphVertexWrites = 0;
   gpu.queue.writeBuffer = (...args) => {
+    // Delegates this operation to write.
+
     if (args[0] === baseVertex) morphVertexWrites++;
     return write(...args);
   };
@@ -942,7 +954,7 @@ export const runRegressionScene = async () => {
     gpu.queue.submit([enc.finish()]);
     await gpu.queue.onSubmittedWorkDone();
   }
-  morphSamples.sort((a, b) => a - b);
+  morphSamples.sort((a, b) => /** Computes the a - b result. */ a - b);
   const gpuMorphChecks = {
     morphedPixel,
     referencePixel: morphReferencePixel,
@@ -1032,7 +1044,7 @@ export const runRegressionScene = async () => {
     gpu.queue.submit([enc.finish()]);
     await gpu.queue.onSubmittedWorkDone();
   }
-  combinedSamples.sort((a, b) => a - b);
+  combinedSamples.sort((a, b) => /** Computes the a - b result. */ a - b);
   const combinedChecks = {
     medianCpuMs: combinedSamples[5],
     p95CpuMs: combinedSamples[9],
@@ -1176,6 +1188,8 @@ export const runRegressionScene = async () => {
   const originalGroup = gpu.device.createBindGroup.bind(gpu.device);
   let lightGroups = 0;
   gpu.device.createBindGroup = (...args) => {
+    // Delegates this operation to originalGroup.
+
     lightGroups++;
     return originalGroup(...args);
   };
@@ -1273,8 +1287,8 @@ export const runRegressionScene = async () => {
         completion.push(performance.now() - t);
       }
     }
-    cpu.sort((a, b) => a - b);
-    completion.sort((a, b) => a - b);
+    cpu.sort((a, b) => /** Computes the a - b result. */ a - b);
+    completion.sort((a, b) => /** Computes the a - b result. */ a - b);
     lightingBenchmark[count] = {
       lights: count,
       cpuMedianMs: cpu[2],
@@ -1283,6 +1297,7 @@ export const runRegressionScene = async () => {
     };
   }
 
+  /** Renders the current cluster configuration and captures pixels for reference comparison. */
   const captureClusters = async () => {
     const texture = gpu.context.getCurrentTexture(),
       enc = gpu.device.createCommandEncoder(),
@@ -1303,6 +1318,7 @@ export const runRegressionScene = async () => {
     rb.destroy();
     return bytes;
   };
+  /** Builds a record containing max difference, differing bytes. */
   const compareImages = (a, b) => {
     let maxDifference = 0,
       differingBytes = 0;
@@ -1339,14 +1355,15 @@ export const runRegressionScene = async () => {
         completion.push(performance.now() - t);
       }
     }
-    cpu.sort((a, b) => a - b);
-    completion.sort((a, b) => a - b);
+    cpu.sort((a, b) => /** Computes the a - b result. */ a - b);
+    completion.sort((a, b) => /** Computes the a - b result. */ a - b);
     clusterChecks.timings[mode] = {
       cpuMedianMs: cpu[3],
       completionMedianMs: completion[3],
       completionP95Ms: completion[6],
     };
   }
+  /** Builds a record containing clusters, mean candidates, max candidates, overflow clusters, invalid offsets. */
   const readClusters = async () => {
     const n =
         renderer.clusters.tilesX *
@@ -1439,6 +1456,7 @@ export const runRegressionScene = async () => {
   app.world.transforms.setScale(caster, 0.5, 0.5, 0.5);
   app.world.meshes.set(caster, 0, casterMaterial);
   app.world.bounds.setAABB(caster, [-1, -1, -1], [1, 1, 1]);
+  /** Applies app.transformSystem.update, app.skeletonSystem.update, app.animatedBounds.update to extract shadows. */
   const extractShadows = () => {
     app.transformSystem.update(app.world.transforms);
     app.skeletonSystem.update(app.world, app.skeletons);
@@ -1456,6 +1474,7 @@ export const runRegressionScene = async () => {
     );
   };
   extractShadows();
+  /** Delegates this operation to Array.from. */
   const shadowSample = (bytes, p = [-1.1, -0.1, 0]) => {
     const m = renderer.camera.viewProjection,
       clip = [0, 0, 0, 0];
@@ -1532,7 +1551,7 @@ export const runRegressionScene = async () => {
   shadowChecks.multipleLights = {
     stats: { ...renderer.stats },
     ranges: Array.from(rw.lightData.slice(0, 32)).filter(
-      (_, i) => i % 16 >= 14,
+      (_, i) => /** Evaluates the i % 16 >= 14 condition. */ i % 16 >= 14,
     ),
   };
   const multiCompletion = [];
@@ -1545,7 +1564,7 @@ export const runRegressionScene = async () => {
     await gpu.queue.onSubmittedWorkDone();
     if (f >= 3) multiCompletion.push(performance.now() - t);
   }
-  multiCompletion.sort((a, b) => a - b);
+  multiCompletion.sort((a, b) => /** Computes the a - b result. */ a - b);
   shadowChecks.multipleLights.completionMedianMs = multiCompletion[2];
   app.world.destroy(secondLight);
   app.world.destroy(secondCaster);
@@ -1630,7 +1649,9 @@ export const runRegressionScene = async () => {
     pixel: shadowSample(cascadeImage),
     stats: { ...renderer.stats },
     splits: Array.from(renderer.shadows.data).filter(
-      (_, i) => i < 80 && i % 20 === 16,
+      (_, i) =>
+        /** Evaluates the i < 80 && i % 20 === 16 condition. */ i < 80 &&
+        i % 20 === 16,
     ),
     resourcesBefore: cascadeResources,
     resourcesAfter: { ...renderer.resources.stats },
@@ -1645,7 +1666,7 @@ export const runRegressionScene = async () => {
     await gpu.queue.onSubmittedWorkDone();
     if (f >= 3) cascadeCompletion.push(performance.now() - t);
   }
-  cascadeCompletion.sort((a, b) => a - b);
+  cascadeCompletion.sort((a, b) => /** Computes the a - b result. */ a - b);
   shadowChecks.cascades.completionMedianMs = cascadeCompletion[2];
   renderer.shadows.cascades = 1;
   for (const enabled of [false, true]) {
@@ -1662,8 +1683,8 @@ export const runRegressionScene = async () => {
       await gpu.queue.onSubmittedWorkDone();
       if (f >= 3) completion.push(performance.now() - t);
     }
-    cpu.sort((a, b) => a - b);
-    completion.sort((a, b) => a - b);
+    cpu.sort((a, b) => /** Computes the a - b result. */ a - b);
+    completion.sort((a, b) => /** Computes the a - b result. */ a - b);
     shadowChecks.timings[enabled ? "on" : "off"] = {
       cpuMedianMs: cpu[4],
       completionMedianMs: completion[2],
@@ -1712,7 +1733,7 @@ export const runRegressionScene = async () => {
     await gpu.queue.onSubmittedWorkDone();
     if (f >= 3) cacheCompletion.push(performance.now() - t);
   }
-  cacheCompletion.sort((a, b) => a - b);
+  cacheCompletion.sort((a, b) => /** Computes the a - b result. */ a - b);
   shadowChecks.cache.completionMedianMs = cacheCompletion[2];
   shadowChecks.cache.resourcesAfter = { ...renderer.resources.stats };
 
@@ -1817,8 +1838,8 @@ export const runRegressionScene = async () => {
         await gpu.queue.onSubmittedWorkDone();
         if (f >= 3) completion.push(performance.now() - t);
       }
-      cpu.sort((a, b) => a - b);
-      completion.sort((a, b) => a - b);
+      cpu.sort((a, b) => /** Computes the a - b result. */ a - b);
+      completion.sort((a, b) => /** Computes the a - b result. */ a - b);
       results[enabled ? "on" : "off"] = {
         cpuMedianMs: cpu[4],
         completionMedianMs: completion[2],
@@ -1851,6 +1872,7 @@ export const runRegressionScene = async () => {
   renderer.depthPrepass.enabled = true;
   const hizResources = { ...renderer.resources.stats };
   await captureClusters();
+  /** Returns mips. */
   const readHiZ = async () => {
     const entries = [],
       enc = gpu.device.createCommandEncoder();
@@ -1876,6 +1898,8 @@ export const runRegressionScene = async () => {
     await rb.mapAsync(GPUMapMode.READ);
     const raw = rb.getMappedRange(),
       mips = entries.map(({ width, height, row, offset }) => {
+        // Builds a record containing width, height, values.
+
         const values = new Float32Array(width * height);
         for (let y = 0; y < height; y++)
           values.set(new Float32Array(raw, offset + y * row, width), y * width);
@@ -1885,6 +1909,7 @@ export const runRegressionScene = async () => {
     rb.destroy();
     return mips;
   };
+  /** Builds a record containing max error, checked, levels, top. */
   const validateHiZ = (mips) => {
     let maxError = 0,
       checked = 0;
@@ -1914,7 +1939,12 @@ export const runRegressionScene = async () => {
     return {
       maxError,
       checked,
-      levels: mips.map((m) => [m.width, m.height]),
+      levels: mips.map(
+        (m) => /** Returns the ordered values needed by this operation. */ [
+          m.width,
+          m.height,
+        ],
+      ),
       top: Array.from(mips.at(-1).values),
     };
   };
@@ -1937,8 +1967,8 @@ export const runRegressionScene = async () => {
       await gpu.queue.onSubmittedWorkDone();
       if (f >= 3) completion.push(performance.now() - t);
     }
-    completion.sort((a, b) => a - b);
-    cpu.sort((a, b) => a - b);
+    completion.sort((a, b) => /** Computes the a - b result. */ a - b);
+    cpu.sort((a, b) => /** Computes the a - b result. */ a - b);
     hizChecks.timings[enabled ? "on" : "off"] = {
       completionMedianMs: completion[2],
       cpuMedianMs: cpu[4],
@@ -1970,7 +2000,12 @@ export const runRegressionScene = async () => {
     }),
     oddView = oddDepth.createView();
   const oddShader = gpu.device.createShaderModule({
-    code: `@vertex fn vs(@builtin(vertex_index) v:u32)->@builtin(position) vec4<f32>{let p=array<vec2<f32>,3>(vec2<f32>(-1,-1),vec2<f32>(3,-1),vec2<f32>(-1,3));return vec4<f32>(p[v],0,1);} @fragment fn fs(@builtin(position) p:vec4<f32>)->@builtin(frag_depth) f32{return .1+.05*floor(p.x)+.03*floor(p.y);}`,
+    // Defines the analytic stepped-depth shader used to verify odd-sized Hi-Z reductions.
+    code: `
+// Emits a fullscreen triangle for the controlled Hi-Z depth fixture.
+@vertex fn vs(@builtin(vertex_index) v:u32)->@builtin(position) vec4<f32>{let p=array<vec2<f32>,3>(vec2<f32>(-1,-1),vec2<f32>(3,-1),vec2<f32>(-1,3));return vec4<f32>(p[v],0,1);}
+// Writes a deterministic stepped depth pattern so mip reductions have analytic references.
+@fragment fn fs(@builtin(position) p:vec4<f32>)->@builtin(frag_depth) f32{return .1+.05*floor(p.x)+.03*floor(p.y);}`,
   });
   const oddPipeline = gpu.device.createRenderPipeline({
     layout: "auto",
@@ -2019,6 +2054,7 @@ export const runRegressionScene = async () => {
     resourcesBefore: { ...renderer.resources.stats },
     results: {},
   };
+  /** Maps diagnostic GPU visibility flags after queued work is submitted. */
   const readVisibility = async (culler) => {
     const rb = gpu.device.createBuffer({
         size: Math.max(4, culler.count * 4),
@@ -2104,8 +2140,8 @@ export const runRegressionScene = async () => {
     if (gpuFlags[i] !== referenceFlags[i]) mismatches++;
     visibleCount += gpuFlags[i];
   }
-  largeCpu.sort((a, b) => a - b);
-  largeCompletion.sort((a, b) => a - b);
+  largeCpu.sort((a, b) => /** Computes the a - b result. */ a - b);
+  largeCompletion.sort((a, b) => /** Computes the a - b result. */ a - b);
   gpuVisibilityChecks.large = {
     count: 100000,
     visible: visibleCount,
@@ -2195,6 +2231,7 @@ export const runRegressionScene = async () => {
   gpu.queue.submit([testEncoder.finish()]);
   occlusionChecks.boundary = Array.from(await readVisibility(testFrustum));
   // Independent CPU projection/Hi-Z reference; no actual vertex deformation or GPU readback in runtime.
+  /** Delegates this operation to Number. */
   const occlusionReference = (world, id) => {
     if (!cpuCuller.intersects(world, id, renderer.frustum, "sphere")) return 0;
     const m = renderer.camera.viewProjection,
@@ -2208,7 +2245,11 @@ export const runRegressionScene = async () => {
       hi = [0, 0],
       nearest = 1;
     for (let corner = 0; corner < 8; corner++) {
-      const p = c.map((value, axis) => value + ((corner >> axis) & 1 ? r : -r)),
+      const p = c.map(
+          (value, axis) =>
+            /** Computes the value + ((corner >> axis) & 1 ? r : -r) result. */ value +
+            ((corner >> axis) & 1 ? r : -r),
+        ),
         clip = [0, 0, 0, 0];
       for (let axis = 0; axis < 4; axis++)
         clip[axis] =
@@ -2227,8 +2268,18 @@ export const runRegressionScene = async () => {
       }
       nearest = Math.min(nearest, clip[2] / clip[3]);
     }
-    lo = lo.map((x) => Math.max(0, Math.min(1, x)));
-    hi = hi.map((x) => Math.max(0, Math.min(1, x)));
+    lo = lo.map((x) =>
+      /** Computes Math.max(0, Math.min(1, x)) without allocating intermediate vectors. */ Math.max(
+        0,
+        Math.min(1, x),
+      ),
+    );
+    hi = hi.map((x) =>
+      /** Computes Math.max(0, Math.min(1, x)) without allocating intermediate vectors. */ Math.max(
+        0,
+        Math.min(1, x),
+      ),
+    );
     const extent = Math.max(
         (hi[0] - lo[0]) * gpu.canvas.width,
         (hi[1] - lo[1]) * gpu.canvas.height,
@@ -2272,7 +2323,7 @@ export const runRegressionScene = async () => {
     await gpu.queue.onSubmittedWorkDone();
     if (f >= 3) occlusionSamples.push(performance.now() - t);
   }
-  occlusionSamples.sort((a, b) => a - b);
+  occlusionSamples.sort((a, b) => /** Computes the a - b result. */ a - b);
   const refined = await readVisibility(testFrustum);
   let occlusionMismatches = 0,
     falseInvisible = 0,
@@ -2309,6 +2360,7 @@ export const runRegressionScene = async () => {
     count: 100000,
     bvhBuildMs: performance.now() - buildStart,
   };
+  /** Builds a record containing median ms, visible. */
   const cpuVisibilityMeasure = (fn) => {
     const samples = [];
     let count = 0;
@@ -2317,21 +2369,31 @@ export const runRegressionScene = async () => {
       count = fn();
       if (f >= 5) samples.push(performance.now() - t);
     }
-    samples.sort((a, b) => a - b);
+    samples.sort((a, b) => /** Computes the a - b result. */ a - b);
     return { medianMs: samples[2], visible: count };
   };
   visibilityMatrix.noCulling = cpuVisibilityMeasure(() => {
+    // Returns test world count.
+
     for (let i = 0; i < testWorld.count; i++) enumeration[i] = i;
     return testWorld.count;
   });
   visibilityMatrix.cpuFrustum = cpuVisibilityMeasure(() =>
-    visibilityCPU.cull(testWorld, renderer.frustum, "sphere"),
+    /** Delegates this operation to visibilityCPU.cull. */ visibilityCPU.cull(
+      testWorld,
+      renderer.frustum,
+      "sphere",
+    ),
   );
   const cpuSphereFlags = new Uint8Array(100000);
   for (let i = 0; i < visibilityCPU.visibleObjects; i++)
     cpuSphereFlags[visibilityCPU.visible[i]] = 1;
   visibilityMatrix.bvh = cpuVisibilityMeasure(() =>
-    visibilityBVH.cull(testWorld, renderer.frustum, visibilityCPU),
+    /** Delegates this operation to visibilityBVH.cull. */ visibilityBVH.cull(
+      testWorld,
+      renderer.frustum,
+      visibilityCPU,
+    ),
   );
   const frustumSamples = [];
   for (let f = 0; f < 8; f++) {
@@ -2349,7 +2411,7 @@ export const runRegressionScene = async () => {
     frustumMatrixVisible += frustumOnly[i];
     if (frustumOnly[i] !== cpuSphereFlags[i]) frustumMatrixMismatch++;
   }
-  frustumSamples.sort((a, b) => a - b);
+  frustumSamples.sort((a, b) => /** Computes the a - b result. */ a - b);
   visibilityMatrix.gpuFrustum = {
     completionMedianMs: frustumSamples[2],
     visible: frustumMatrixVisible,
@@ -2368,6 +2430,7 @@ export const runRegressionScene = async () => {
   await captureClusters();
   occlusionChecks.resourcesAfter = { ...renderer.resources.stats };
 
+  /** Returns result. */
   const readCompacted = async (compactor, capacity) => {
     const rb = gpu.device.createBuffer({
         size: 256 + capacity * 4,
@@ -2409,7 +2472,9 @@ export const runRegressionScene = async () => {
     local: {
       count: localCompacted.count,
       overflow: localCompacted.overflow,
-      ids: Array.from(localCompacted.ids).sort((a, b) => a - b),
+      ids: Array.from(localCompacted.ids).sort(
+        (a, b) => /** Computes the a - b result. */ a - b,
+      ),
     },
     timings: {},
   };
@@ -2454,8 +2519,8 @@ export const runRegressionScene = async () => {
       await gpu.queue.onSubmittedWorkDone();
       if (f >= 3) completion.push(performance.now() - t);
     }
-    completion.sort((a, b) => a - b);
-    cpu.sort((a, b) => a - b);
+    completion.sort((a, b) => /** Computes the a - b result. */ a - b);
+    cpu.sort((a, b) => /** Computes the a - b result. */ a - b);
     compactionChecks.timings[mode] = {
       completionMedianMs: completion[2],
       cpuMedianMs: cpu[4],
@@ -2491,6 +2556,7 @@ export const runRegressionScene = async () => {
     supported: renderer.gpuDraws.supported,
     scenarios: {},
   };
+  /** Maps indexed indirect arguments for explicit draw-range validation. */
   const readIndirect = async () => {
     const count = renderer.gpuDraws.batches.count,
       rb = gpu.device.createBuffer({
@@ -2509,7 +2575,9 @@ export const runRegressionScene = async () => {
     await rb.mapAsync(GPUMapMode.READ);
     const words = new Uint32Array(rb.getMappedRange()),
       args = Array.from({ length: count }, (_, i) =>
-        Array.from(words.slice(i * 5, i * 5 + 5)),
+        /** Delegates this operation to Array.from. */ Array.from(
+          words.slice(i * 5, i * 5 + 5),
+        ),
       );
     rb.unmap();
     rb.destroy();
@@ -2625,8 +2693,8 @@ export const runRegressionScene = async () => {
         await gpu.queue.onSubmittedWorkDone();
         if (frame >= 4) completion.push(performance.now() - t);
       }
-      cpu.sort((a, b) => a - b);
-      completion.sort((a, b) => a - b);
+      cpu.sort((a, b) => /** Computes the a - b result. */ a - b);
+      completion.sort((a, b) => /** Computes the a - b result. */ a - b);
       indirectChecks.timings[mode] = {
         cpuMedianMs: cpu[6],
         completionMedianMs: completion[4],
@@ -2646,6 +2714,7 @@ export const runRegressionScene = async () => {
     renderer.gpuFrustum.enabled = renderer.gpuCompaction.enabled = false;
   }
 
+  /** Maps GPU LOD selections/counters for authored-mesh checks. */
   const readLOD = async (selector, count) => {
     const rb = gpu.device.createBuffer({
         size: Math.max(4, count * 8) + 32,
@@ -2738,35 +2807,44 @@ export const runRegressionScene = async () => {
   if (renderer.gpuDraws.supported) {
     for (let e = 0; e < app.world.nextEntity; e++)
       if (app.world.alive[e] && e !== light) app.world.destroy(e);
-    const stream = (v, count) =>
-        new Float32Array(Array.from({ length: count }, () => v).flat()),
-      makeMorphLOD = (positions, indices) => {
-        const n = positions.length / 3;
-        return renderer.meshes.upload({
-          mode: 4,
-          material: 0,
-          indices: new Uint32Array(indices),
-          targets: [
-            {
-              POSITION: stream([0, 0, 0.5], n),
-              NORMAL: stream([0.25, 0, -0.1], n),
-              TANGENT: stream([0, 0.1, 0], n),
+    const stream = /** Creates Float32Array storage for this operation. */ (
+        v,
+        count,
+      ) =>
+        new Float32Array(
+          Array.from({ length: count }, () => /** Returns v. */ v).flat(),
+        ),
+      makeMorphLOD =
+        /** Delegates this operation to renderer.meshes.upload. */ (
+          positions,
+          indices,
+        ) => {
+          const n = positions.length / 3;
+          return renderer.meshes.upload({
+            mode: 4,
+            material: 0,
+            indices: new Uint32Array(indices),
+            targets: [
+              {
+                POSITION: stream([0, 0, 0.5], n),
+                NORMAL: stream([0.25, 0, -0.1], n),
+                TANGENT: stream([0, 0.1, 0], n),
+              },
+              {
+                POSITION: stream([0.25, 0, 0], n),
+                NORMAL: stream([0, 0.1, 0], n),
+                TANGENT: stream([0, 0, 0.2], n),
+              },
+            ],
+            attributes: {
+              POSITION: new Float32Array(positions),
+              NORMAL: stream([0, 0, 1], n),
+              TANGENT: stream([1, 0, 0, 1], n),
+              JOINTS_0: new Uint32Array(n * 4),
+              WEIGHTS_0: stream([1, 0, 0, 0], n),
             },
-            {
-              POSITION: stream([0.25, 0, 0], n),
-              NORMAL: stream([0, 0.1, 0], n),
-              TANGENT: stream([0, 0, 0.2], n),
-            },
-          ],
-          attributes: {
-            POSITION: new Float32Array(positions),
-            NORMAL: stream([0, 0, 1], n),
-            TANGENT: stream([1, 0, 0, 1], n),
-            JOINTS_0: new Uint32Array(n * 4),
-            WEIGHTS_0: stream([1, 0, 0, 0], n),
-          },
-        });
-      };
+          });
+        };
     const morphLODBase = makeMorphLOD(
         [-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0],
         [0, 1, 2, 0, 2, 3],
@@ -2856,6 +2934,7 @@ export const runRegressionScene = async () => {
   // Temporal assumptions are valid only for exact stable camera/scene snapshots.
   for (let e = 0; e < app.world.nextEntity; e++)
     if (app.world.alive[e] && e !== light) app.world.destroy(e);
+  /** Refreshes the scene and captures a temporal-visibility comparison image. */
   const captureTemporal = async () => {
     extractShadows();
     return captureClusters();
@@ -2923,6 +3002,7 @@ export const runRegressionScene = async () => {
   await captureTemporal();
   temporalChecks.motionReset = !renderer.temporal.reuse;
   const temporalResources = { ...renderer.resources.stats };
+  /** Measures visibility reuse with explicit diagnostic image capture and timing. */
   const measureTemporal = async (enabled) => {
     renderer.temporal.enabled = enabled;
     const timings = [];
@@ -2931,7 +3011,7 @@ export const runRegressionScene = async () => {
       await captureTemporal();
       if (f >= 5) timings.push(performance.now() - t);
     }
-    timings.sort((a, b) => a - b);
+    timings.sort((a, b) => /** Computes the a - b result. */ a - b);
     return timings[2];
   };
   temporalChecks.readbackInclusiveMedianMs = {
@@ -2953,6 +3033,7 @@ export const runRegressionScene = async () => {
   renderer.camera.setPosition(0, 0, 20);
   renderer.camera.setTarget(0, 0, 0);
   renderer.hiz.enabled = renderer.depthPrepass.enabled = false;
+  /** Refreshes streamed scene state and captures a diagnostic image. */
   const streamCapture = async () => {
     extractShadows();
     return captureClusters();
@@ -2967,7 +3048,9 @@ export const runRegressionScene = async () => {
     lodGroup,
     1,
     "triangle",
-    async () => triangleAsset.meshes[0].primitives[0],
+    async () =>
+      /** Returns triangle asset meshes[0] primitives[0]. */ triangleAsset
+        .meshes[0].primitives[0],
   );
   const streamingChecks = { lodLoadMs: performance.now() - tStream };
   const streamedMesh = renderer.lodGroups.entries[lodGroup].meshes[1];
@@ -3032,7 +3115,7 @@ export const runRegressionScene = async () => {
   await renderer.streaming.bindMaterial(
     depthMaterial,
     "blue",
-    async () => textureAsset,
+    async () => /** Returns texture asset. */ textureAsset,
   );
   streamingChecks.textureLoadMs = performance.now() - tStream;
   const textureImage = await streamCapture();
@@ -3044,7 +3127,7 @@ export const runRegressionScene = async () => {
   await renderer.streaming.bindMaterial(
     spareMaterial,
     "blue",
-    async () => textureAsset,
+    async () => /** Returns texture asset. */ textureAsset,
   );
   renderer.streaming.releaseMaterial(depthMaterial);
   await streamCapture();
@@ -3082,7 +3165,7 @@ export const runRegressionScene = async () => {
     await renderer.streaming.bindMaterial(
       depthMaterial,
       "nativeBC",
-      async () => nativeAsset,
+      async () => /** Returns native asset. */ nativeAsset,
     );
     compressedChecks.coldMs = performance.now() - nativeStart;
     const nativeImage = await streamCapture();
@@ -3110,7 +3193,9 @@ export const runRegressionScene = async () => {
     await nativeRB.mapAsync(GPUMapMode.READ);
     const nativeRaw = new Uint8Array(nativeRB.getMappedRange());
     compressedChecks.mipBlocks = Array.from({ length: 4 }, (_, mip) =>
-      Array.from(nativeRaw.slice(mip * 512, mip * 512 + 8)),
+      /** Delegates this operation to Array.from. */ Array.from(
+        nativeRaw.slice(mip * 512, mip * 512 + 8),
+      ),
     );
     nativeRB.unmap();
     nativeRB.destroy();
@@ -3130,7 +3215,7 @@ export const runRegressionScene = async () => {
     await renderer.streaming.bindMaterial(
       depthMaterial,
       "redRGBA",
-      async () => redAsset,
+      async () => /** Returns red asset. */ redAsset,
     );
     compressedChecks.pngColdMs = performance.now() - pngStart;
     compressedChecks.image = compareImages(nativeImage, await streamCapture());
@@ -3193,7 +3278,7 @@ export const runRegressionScene = async () => {
   await renderer.streaming.bindMaterial(
     maskStreamMaterial,
     "transparentMask",
-    async () => maskAsset,
+    async () => /** Returns mask asset. */ maskAsset,
   );
   const revealedImage = await streamCapture();
   streamedMaskChecks.afterFlags = Array.from(
@@ -3304,8 +3389,8 @@ export const runRegressionScene = async () => {
     await gpu.queue.onSubmittedWorkDone();
     if (frame >= 3) lodTimes.push(performance.now() - t);
   }
-  lodTimes.sort((a, b) => a - b);
-  lodCPUTimes.sort((a, b) => a - b);
+  lodTimes.sort((a, b) => /** Computes the a - b result. */ a - b);
+  lodCPUTimes.sort((a, b) => /** Computes the a - b result. */ a - b);
   gpuLODChecks.large = {
     count: 100000,
     frustumVisible: lodVisible,
@@ -3318,7 +3403,7 @@ export const runRegressionScene = async () => {
   const validationError = await gpu.device.popErrorScope();
   const samples = Array.from(app.encodingTimes)
     .slice(20, Math.min(app.frames, 600))
-    .sort((a, b) => a - b);
+    .sort((a, b) => /** Computes the a - b result. */ a - b);
   const info = gpu.adapter.info;
   const report = {
     adapter: {
@@ -3369,11 +3454,13 @@ export const runRegressionScene = async () => {
     streamingChecks,
     compressedChecks,
     streamedMaskChecks,
-    graphOrder: renderer.graph.order.map((pass) => ({
-      name: pass.name,
-      reads: pass.reads,
-      writes: pass.writes,
-    })),
+    graphOrder: renderer.graph.order.map(
+      (pass) => /** Builds a record containing name, reads, writes. */ ({
+        name: pass.name,
+        reads: pass.reads,
+        writes: pass.writes,
+      }),
+    ),
     errors: gpu.errors,
     validationError: validationError?.message ?? null,
     cpuEncodingMs: {
@@ -3387,7 +3474,9 @@ export const runRegressionScene = async () => {
   // Destroy simulates loss and verifies the application's lost-device callback.
   gpu.device.destroy();
   await gpu.device.lost;
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) =>
+    /** Delegates this operation to setTimeout. */ setTimeout(resolve, 0),
+  );
   report.lossHandled =
     gpu.lost && app.status.textContent.includes("GPU device lost");
   return report;

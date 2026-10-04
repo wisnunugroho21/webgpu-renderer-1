@@ -9,16 +9,25 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("pageerror", (e) =>
+    /** Delegates this operation to errors.push. */ errors.push(e.message),
+  );
   await page.goto("http://127.0.0.1:5194");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const report = await page.evaluate(async () => {
+    // Builds a record containing baseline resources, setup ms, restored difference, values, doubled, halved.
+
     const app = window.rendererApp,
       r = app.renderer,
       w = app.world,
       device = app.gpu.device;
     app.stop();
     device.pushErrorScope("validation");
+    /** Refreshes transforms, palettes and compact rendering records before diagnostic drawing. */
     const extract = () => {
       app.transformSystem.update(w.transforms);
       app.skeletonSystem.update(w, app.skeletons);
@@ -29,6 +38,7 @@ try {
         app.animations.morphPool,
       );
     };
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       extract();
       const texture = app.gpu.context.getCurrentTexture(),
@@ -57,8 +67,14 @@ try {
           ],
       };
     };
+    /** Compares diagnostic pixel buffers and reports their differing values. */
     const difference = (a, b) =>
-      a.reduce((n, v, i) => n + Number(v !== b[i]), 0);
+      a.reduce(
+        (n, v, i) =>
+          /** Computes the n + Number(v !== b[i]) result. */ n +
+          Number(v !== b[i]),
+        0,
+      );
     const baseline = await draw(),
       baselineResources = { ...r.resources.stats };
     const start = performance.now();
@@ -134,14 +150,23 @@ try {
     const data = {
       diffuse: {
         size: 1,
-        faces: Array.from({ length: 6 }, () => new Float32Array([4, 4, 4, 1])),
+        faces: Array.from(
+          { length: 6 },
+          () =>
+            /** Creates Float32Array storage for this operation. */ new Float32Array(
+              [4, 4, 4, 1],
+            ),
+        ),
       },
       specular: [
         {
           size: 1,
           faces: Array.from(
             { length: 6 },
-            () => new Float32Array([4, 4, 4, 1]),
+            () =>
+              /** Creates Float32Array storage for this operation. */ new Float32Array(
+                [4, 4, 4, 1],
+              ),
           ),
         },
       ],
@@ -167,6 +192,7 @@ try {
     }
     r.submissionMode = "instanced";
     const resources = { ...r.resources.stats };
+    /** Runs enabled/disabled diagnostic frames and summarizes their timings. */
     const benchmark = async (enabled) => {
       r.hdr.enabled = enabled;
       extract();
@@ -185,7 +211,11 @@ try {
           completion.push(performance.now() - start);
         }
       }
-      const median = (a) => a.sort((a, b) => a - b)[Math.floor(a.length / 2)];
+      /** Returns the middle sorted timing sample to summarize diagnostic measurements. */
+      const median = (a) =>
+        a.sort((a, b) => /** Computes the a - b result. */ a - b)[
+          Math.floor(a.length / 2)
+        ];
       return { cpuEncodeMs: median(cpu), gpuCompletionMs: median(completion) };
     };
     const off = await benchmark(false),
@@ -250,6 +280,7 @@ try {
       gpuErrors: app.gpu.errors,
     };
   });
+  /** Converts a linear reference value into an 8-bit sRGB display value. */
   const srgb = (x) =>
     Math.round(
       255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055),
@@ -287,12 +318,18 @@ try {
   for (const mode of report.environmentModes)
     assert.equal(mode.difference, 0, mode.mode);
   if (report.timestamps.length)
-    assert.ok(report.timestamps.some((t) => t.pass === 11));
+    assert.ok(
+      report.timestamps.some(
+        (t) => /** Evaluates the t.pass === 11 condition. */ t.pass === 11,
+      ),
+    );
   assert.equal(report.validationError, null);
   assert.deepEqual(report.gpuErrors, []);
   assert.deepEqual(errors, []);
   await page.setViewportSize({ width: 800, height: 600 });
   await page.evaluate(async () => {
+    // Applies app.gpu.resize, app.renderer.resize, app.gpu.device.createCommandEncoder to the current callback state.
+
     const app = window.rendererApp;
     app.gpu.resize();
     app.renderer.resize();
@@ -315,37 +352,63 @@ try {
   });
   await page.goto("http://127.0.0.1:5194/?example=lighting");
   await page.waitForFunction(
-    () => window.environmentDemoReady && window.rendererApp.frames > 3,
+    () =>
+      /** Evaluates the window.environmentDemoReady && window.rendererApp.frames > 3 condition. */ window.environmentDemoReady &&
+      window.rendererApp.frames > 3,
   );
   assert.equal(
-    await page.evaluate(() => window.rendererApp.renderer.hdr.enabled),
+    await page.evaluate(
+      () =>
+        /** Returns window renderer app renderer hdr enabled. */ window
+          .rendererApp.renderer.hdr.enabled,
+    ),
     true,
   );
-  const demoResources = await page.evaluate(() => ({
-    ...window.rendererApp.renderer.resources.stats,
-  }));
+  const demoResources = await page.evaluate(
+    () => /** Returns an empty fixture handle for a controlled test dependency. */ ({
+      ...window.rendererApp.renderer.resources.stats,
+    }),
+  );
   await page.locator("canvas").click();
   await page.keyboard.press("h");
-  await page.waitForFunction(() => !window.rendererApp.renderer.hdr.enabled);
+  await page.waitForFunction(
+    () =>
+      /** Returns !window.rendererApp.renderer.hdr.enabled. */ !window
+        .rendererApp.renderer.hdr.enabled,
+  );
   await page.keyboard.press("h");
-  await page.waitForFunction(() => window.rendererApp.renderer.hdr.enabled);
+  await page.waitForFunction(
+    () =>
+      /** Returns window renderer app renderer hdr enabled. */ window
+        .rendererApp.renderer.hdr.enabled,
+  );
   await page.keyboard.press("=");
   await page.waitForFunction(
-    () => window.rendererApp.renderer.hdr.exposure === 0.5,
+    () =>
+      /** Evaluates the window.rendererApp.renderer.hdr.exposure === 0.5 condition. */ window
+        .rendererApp.renderer.hdr.exposure === 0.5,
   );
   await page.keyboard.press("-");
   await page.waitForFunction(
-    () => window.rendererApp.renderer.hdr.exposure === 0,
+    () =>
+      /** Evaluates the window.rendererApp.renderer.hdr.exposure === 0 condition. */ window
+        .rendererApp.renderer.hdr.exposure === 0,
   );
   await page.screenshot({ path: "artifacts/hdr-lighting.png" });
   assert.deepEqual(
-    await page.evaluate(() => ({
-      ...window.rendererApp.renderer.resources.stats,
-    })),
+    await page.evaluate(
+      () => /** Returns an empty fixture handle for a controlled test dependency. */ ({
+        ...window.rendererApp.renderer.resources.stats,
+      }),
+    ),
     demoResources,
   );
   assert.deepEqual(
-    await page.evaluate(() => window.rendererApp.gpu.errors),
+    await page.evaluate(
+      () =>
+        /** Returns window renderer app gpu errors. */ window.rendererApp.gpu
+          .errors,
+    ),
     [],
   );
   assert.deepEqual(errors, []);

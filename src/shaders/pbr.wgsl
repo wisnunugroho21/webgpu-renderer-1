@@ -29,6 +29,7 @@ struct VisibleRecord {
 }
 
 @group(0) @binding(15) var<storage, read> visibleRecords: array<VisibleRecord>;
+// Applies shared morph/skin/model deformation and emits clip position plus world-space PBR varyings.
 fn vertexOutput(p: vec3<f32>, color: vec4<f32>, normal: vec3<f32>, uv0: vec2<f32>, tangent: vec4<f32>, uv1: vec2<f32>, jointIndices: vec4<u32>, weights: vec4<f32>, vertexIndex: u32, info: Instance) -> Output {
   let vertex = deformVertex(LocalVertex(p, normal, tangent), info, vertexIndex, jointIndices, weights, transforms[info.transformIndex]);
   var out: Output;
@@ -43,10 +44,12 @@ fn vertexOutput(p: vec3<f32>, color: vec4<f32>, normal: vec3<f32>, uv0: vec2<f32
   return out;
 }
 
+// Reads the direct instance record and emits shared deformed PBR vertex output.
 @vertex fn vs(@location(0) p: vec3<f32>, @location(1) color: vec4<f32>, @location(2) normal: vec3<f32>, @location(3) uv0: vec2<f32>, @location(4) tangent: vec4<f32>, @location(5) uv1: vec2<f32>, @location(6) jointIndices: vec4<u32>, @location(7) weights: vec4<f32>, @builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance: u32) -> Output {
   return vertexOutput(p, color, normal, uv0, tangent, uv1, jointIndices, weights, vertexIndex, instances[instance]);
 }
 
+// Resolves a GPU-visible instance/LOD record, clips invalid transparent slots and emits deformed vertex output.
 @vertex fn vsIndirect(@location(0) p: vec3<f32>, @location(1) color: vec4<f32>, @location(2) normal: vec3<f32>, @location(3) uv0: vec2<f32>, @location(4) tangent: vec4<f32>, @location(5) uv1: vec2<f32>, @location(6) jointIndices: vec4<u32>, @location(7) weights: vec4<f32>, @builtin(vertex_index) vertexIndex: u32, @builtin(instance_index) instance: u32) -> Output {
   let record = visibleRecords[instance];
   if ((record.instance & 0x80000000u) != 0u) {
@@ -61,10 +64,12 @@ fn vertexOutput(p: vec3<f32>, color: vec4<f32>, normal: vec3<f32>, uv0: vec2<f32
   return vertexOutput(p, color, normal, uv0, tangent, uv1, jointIndices, weights, vertexIndex, info);
 }
 
+// Selects UV0 or UV1 according to the packed material texture-coordinate index.
 fn coords(input: Output, index: f32) -> vec2<f32> {
   return select(input.uv0, input.uv1, index == 1.0);
 }
 
+// Samples material maps, applies alpha/normal handling and combines direct, ambient and emissive linear radiance.
 @fragment fn fs(input: Output, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
   let m = materials[input.materialId];
   let base = m.baseColor * input.color * textureSample(baseMap, baseSampler, coords(input, m.uv.x));

@@ -8,19 +8,23 @@ export class MorphDeltaBuffers {
   readonly normal: GPUBuffer;
   readonly tangent: GPUBuffer;
   private readonly arena: RangeAllocator;
+  /** Returns the number of shared GPU morph-delta arenas currently owned. */
   get count(): number {
     return this.arena.count;
   }
+  /** Returns a static deformation allocation to the shared arena without relocating surviving mesh offsets. */
   release(offset: number): void {
     this.arena.release(offset);
   }
   uploadBytes = 0;
+  /** Initializes static position/normal/tangent deformation arenas. */
   constructor(
     resources: Resources,
     private readonly queue: GPUQueue,
     readonly capacity = 500000,
   ) {
     this.arena = new RangeAllocator(capacity);
+    /** Reserves compatible shared position/normal/tangent storage for a prepared mesh. */
     const create = (label: string) =>
       resources.buffers.create({
         label,
@@ -34,6 +38,7 @@ export class MorphDeltaBuffers {
     this.normal = create("Shared morph normal deltas");
     this.tangent = create("Shared morph tangent deltas");
   }
+  /** Copies a mesh target-major deformation payload into its reserved shared GPU ranges. */
   append(
     data?: MorphTargetData,
     secondary?: Influences,

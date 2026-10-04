@@ -22,9 +22,12 @@ export function withFlatNormals(primitive: RuntimePrimitive): RuntimePrimitive {
   } else throw new Error(`Unsupported primitive mode ${primitive.mode}`);
   for (const index of triangles)
     if (index >= count) throw new Error("Primitive index out of range");
+  /** Delegates this operation to Object.fromEntries. */
   const expand = (attributes: Record<string, Float32Array>) =>
     Object.fromEntries(
       Object.entries(attributes).map(([name, data]) => {
+        // Returns the ordered values needed by this operation.
+
         const stride = data.length / count;
         if (!Number.isInteger(stride))
           throw new Error("Invalid mesh attribute size");
@@ -56,6 +59,6 @@ export function withFlatNormals(primitive: RuntimePrimitive): RuntimePrimitive {
     attributes,
     targets: primitive.targets.map(expand),
     mode: 4,
-    indices: Uint32Array.from(triangles, (_, i) => i),
+    indices: Uint32Array.from(triangles, (_, i) => /** Returns i. */ i),
   };
 }

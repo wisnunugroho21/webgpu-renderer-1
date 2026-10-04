@@ -30,10 +30,14 @@ function sphere(app: Application): number {
     targets: [],
   });
 }
-export async function createLightingExample(
-  app: Application,
-): Promise<{ dispose(): void }> {
+/** Installs a shared baked environment and material sphere grid, then registers camera/HDR controls and teardown. */
+export async function createLightingExample(app: Application): Promise<{
+  /** Releases this owner or scene lifetime according to its independent ownership contract. */
+  dispose(): void;
+}> {
   const data = bakeEnvironment((direction, out) => {
+    // Updates out[0], out[1], out[2] for this callback.
+
     // Smooth linear HDR sky plus a broad warm light; no external asset dependency.
     const sky = Math.max(0, direction[1]!),
       sun = Math.max(0, direction[0]! * 0.6 + direction[1]! * 0.8) ** 32;
@@ -67,6 +71,7 @@ export async function createLightingExample(
   camera.setPosition(0, 0, 18);
   camera.setTarget(0, 0, 0);
   let aspect = -1;
+  /** Applies camera.setOrthographic to fit. */
   const fit = () => {
     const next = app.canvas.width / app.canvas.height;
     if (next === aspect) return;
@@ -92,12 +97,14 @@ export async function createLightingExample(
     "ArrowLeft",
     "ArrowRight",
   ]);
+  /** Delegates this operation to app.canvas.focus. */
   const focus = () => app.canvas.focus();
   app.canvas.addEventListener("pointerdown", focus);
   const hud = document.createElement("output");
   hud.style.cssText =
     "position:fixed;left:16px;top:16px;max-width:calc(100vw - 32px);box-sizing:border-box;color:white;background:#152033dd;padding:12px;font:14px system-ui;pointer-events:none";
   document.body.append(hud);
+  /** Applies app.renderer.hdr.exposure.toFixed to describe. */
   const describe = () => {
     hud.textContent = `Top: dielectric · Bottom: metal · Roughness increases → | E: ${app.renderer.environment.enabled ? "IBL on" : "IBL off"} · B: ${app.renderer.skybox.enabled ? "skybox on" : "skybox off"} · H: ${app.renderer.hdr.enabled ? "HDR on" : "HDR off"} · −/+: ${app.renderer.hdr.exposure.toFixed(1)} stops · ←/→ rotate`;
   };
@@ -110,6 +117,8 @@ export async function createLightingExample(
   app.status.textContent =
     "Environment lighting and HDR · shared sphere geometry";
   const unsubscribe = app.onUpdate((delta) => {
+    // Applies lighting-demo projection, environment, skybox and exposure controls, then refreshes the status text.
+
     fit();
     if (input.consumePressed("KeyE")) {
       app.renderer.environment.enabled = !app.renderer.environment.enabled;
@@ -138,6 +147,7 @@ export async function createLightingExample(
     if (turn) app.renderer.environment.rotationY += turn * delta;
   });
   return {
+    /** Applies unsubscribe, input.dispose, app.canvas.removeEventListener to dispose. */
     dispose() {
       unsubscribe();
       app.renderer.hdr.enabled = false;

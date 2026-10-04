@@ -6,6 +6,7 @@ import { RenderFlags } from "./RenderFlags";
 /** The ECS/rendering boundary: pack persistent arrays before culling; render passes never query ECS. */
 export class RenderExtractor {
   private readonly lightScratch = new Float32Array(16);
+  /** Compacts live renderable entities and copies transforms, conservative bounds and deformation references into RenderWorld. */
   extract(
     world: World,
     out: RenderWorld,

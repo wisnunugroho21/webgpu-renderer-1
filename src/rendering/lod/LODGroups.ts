@@ -7,6 +7,7 @@ export interface LODGroup {
 /** Authored LOD assets share material/deformation layout and fit the base envelopes. */
 export class LODGroups {
   readonly entries: LODGroup[] = [];
+  /** Validates compatible authored meshes and thresholds before assigning a new LOD group ID. */
   register(
     meshIds: ArrayLike<number>,
     thresholds: ArrayLike<number>,
@@ -38,6 +39,7 @@ export class LODGroups {
       }) - 1
     );
   }
+  /** Replaces one resident authored LOD mesh while preserving group compatibility. */
   replace(
     groupId: number,
     level: number,
@@ -57,6 +59,7 @@ export class LODGroups {
     this.validateMeshes(ids, meshes);
     group.meshes[level] = meshId;
   }
+  /** Rejects topology/material/deformation layouts that cannot share a LOD draw family. */
   private validateMeshes(
     meshIds: ArrayLike<number>,
     meshes: MeshManager,

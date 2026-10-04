@@ -3,18 +3,27 @@ import { GPUOcclusionCuller } from "../src/rendering/visibility/GPUOcclusionCull
 import { GPUFrustumCuller } from "../src/rendering/visibility/GPUFrustumCuller";
 import { Resources } from "../src/gpu/Resources";
 describe("GPU occlusion lifecycle", () => {
+  // Groups checks for GPU occlusion lifecycle.
+
   it("binds shared visibility and refreshes groups only for a changed pyramid", () => {
+    // Verifies binds shared visibility and refreshes groups only for a changed pyramid.
+
     vi.stubGlobal("GPUShaderStage", { COMPUTE: 1 });
-    const createBindGroup = vi.fn((d) => d),
-      getCompute = vi.fn((d) => d),
+    const createBindGroup = vi.fn((d) => /** Returns d. */ d),
+      getCompute = vi.fn((d) => /** Returns d. */ d),
       device = {
+        /** Returns d. */
         createBindGroupLayout: (d: unknown) => d,
+        /** Returns d. */
         createPipelineLayout: (d: unknown) => d,
         createBindGroup,
       } as unknown as GPUDevice,
       resources = {
         pipelines: { getCompute },
-        shaders: { get: () => ({}) },
+        shaders: {
+          /** Returns an empty fixture handle for a controlled test dependency. */
+          get: () => ({}),
+        },
       } as unknown as Resources,
       frustum = {
         count: 128,
@@ -28,7 +37,10 @@ describe("GPU occlusion lifecycle", () => {
         [{} as GPUBuffer, {} as GPUBuffer, {} as GPUBuffer],
         frustum,
       ),
-      texture = { createView: () => ({}) } as unknown as GPUTexture;
+      texture = {
+        /** Returns an empty fixture handle for a controlled test dependency. */
+        createView: () => ({}),
+      } as unknown as GPUTexture;
     culler.resize(texture);
     culler.resize(texture);
     expect(createBindGroup).toHaveBeenCalledTimes(3);
@@ -40,7 +52,7 @@ describe("GPU occlusion lifecycle", () => {
         end: vi.fn(),
       },
       encoder = {
-        beginComputePass: vi.fn(() => pass),
+        beginComputePass: vi.fn(() => /** Returns pass. */ pass),
       } as unknown as GPUCommandEncoder;
     culler.encode(encoder, 0);
     expect(encoder.beginComputePass).not.toHaveBeenCalled();

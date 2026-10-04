@@ -9,10 +9,18 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } }),
     errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("pageerror", (e) =>
+    /** Delegates this operation to errors.push. */ errors.push(e.message),
+  );
   await page.goto("http://127.0.0.1:5195");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const report = await page.evaluate(async () => {
+    // Builds a record containing cycles, failed retry, automatic, unload, gpu errors, buffers.
+
     const app = window.rendererApp;
     app.stop();
     app.autoRecoverDevice = false;
@@ -32,7 +40,10 @@ try {
         size: 1,
         faces: Array.from(
           { length: 6 },
-          () => new Float32Array([0.5, 0.5, 0.5, 1]),
+          () =>
+            /** Creates Float32Array storage for this operation. */ new Float32Array(
+              [0.5, 0.5, 0.5, 1],
+            ),
         ),
       },
       specular: [
@@ -40,7 +51,10 @@ try {
           size: 1,
           faces: Array.from(
             { length: 6 },
-            () => new Float32Array([0.25, 0.25, 0.25, 1]),
+            () =>
+              /** Creates Float32Array storage for this operation. */ new Float32Array(
+                [0.25, 0.25, 0.25, 1],
+              ),
           ),
         },
       ],
@@ -51,6 +65,7 @@ try {
       state.weights.fill(0.05);
       state.dirty = true;
     }
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       const r = app.renderer,
         w = app.world,
@@ -127,7 +142,12 @@ try {
       if (
         app.world.count !== entityCount ||
         app.world.nextEntity !== ids ||
-        nodes.some((h) => app.world.resolve(h) === null)
+        nodes.some(
+          (h) =>
+            /** Evaluates the app.world.resolve(h) === null condition. */ app.world.resolve(
+              h,
+            ) === null,
+        )
       )
         throw new Error("Recovery changed ECS identities");
       if (animator.currentTime !== 0.7)
@@ -159,18 +179,29 @@ try {
       i < 200 && (app.gpu === old || app.deviceState !== "ready");
       i++
     )
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise((r) =>
+        /** Delegates this operation to setTimeout. */ setTimeout(r, 10),
+      );
     if (app.gpu === old || app.deviceState !== "ready")
       throw new Error("Automatic recovery failed");
     const frames = app.frames;
-    await new Promise((r) => setTimeout(r, 100));
+    await new Promise((r) =>
+      /** Delegates this operation to setTimeout. */ setTimeout(r, 100),
+    );
     if (app.frames <= frames) throw new Error("Recovered loop did not resume");
     app.stop();
     if (instance.disposed || instance.animator !== animator)
       throw new Error("Recovery lost scene-instance ownership");
     await instance.dispose();
     await app.unloadAsset("/regression/crowd-combined.glb");
-    if (nodes.some((h) => app.world.resolve(h) !== null))
+    if (
+      nodes.some(
+        (h) =>
+          /** Evaluates the app.world.resolve(h) !== null condition. */ app.world.resolve(
+            h,
+          ) !== null,
+      )
+    )
       throw new Error("Recovered asset did not unload");
     const gpuErrors = [...app.gpu.errors];
     await app.dispose();

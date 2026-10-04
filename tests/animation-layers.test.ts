@@ -6,6 +6,7 @@ import { AnimationChannel } from "../src/animation/AnimationChannel";
 import { AnimationSampler } from "../src/animation/AnimationSampler";
 import { AnimationLayerPlayback } from "../src/animation/AnimationLayerPlayback";
 
+/** Creates AnimationChannel storage for this operation. */
 const channel = (
   node: number,
   path: "translation" | "scale" | "rotation" | "weights",
@@ -38,6 +39,7 @@ const clips = [
   ]),
   new AnimationClip("next", [channel(0, "translation", [3, 0, 0])]),
 ];
+/** Builds controlled test dependencies and reusable state for animation-layers. */
 function setup() {
   const world = new World(2),
     entities = new Int32Array([world.create(), world.create()]);
@@ -59,6 +61,8 @@ function setup() {
 }
 
 it("composes override/additive TRS and morphs without accumulating across frames", () => {
+  // Verifies composes override/additive TRS and morphs without accumulating across frames.
+
   const { world, animator, morph } = setup();
   const layer = animator.addLayer({
     clip: 1,
@@ -100,6 +104,8 @@ it("composes override/additive TRS and morphs without accumulating across frames
 });
 
 it("has independent masked playback, reverse/nonloop clocks and controller pause/stop", () => {
+  // Verifies has independent masked playback, reverse/nonloop clocks and controller pause/stop.
+
   const a = setup(),
     b = setup();
   const nodes = [1];
@@ -139,29 +145,39 @@ it("has independent masked playback, reverse/nonloop clocks and controller pause
   a.animator.stop();
   expect(layer.time).toBe(0);
   expect(() => {
+    // Updates layer weight for this callback.
+
     layer.weight = 2;
   }).toThrow();
   expect(() => {
+    // Updates layer speed for this callback.
+
     layer.speed = NaN;
   }).toThrow();
   expect(() => {
+    // Updates layer time for this callback.
+
     layer.time = Infinity;
   }).toThrow();
   expect(() =>
-    a.animator.addLayer({ clip: 99, mode: "override", time: 0, weight: 1 }),
+    /** Delegates this operation to a.animator.addLayer. */ a.animator.addLayer(
+      { clip: 99, mode: "override", time: 0, weight: 1 },
+    ),
   ).toThrow();
   expect(() =>
-    a.animator.addLayer({
-      clip: 1,
-      mode: "override",
-      time: 0,
-      weight: 1,
-      nodes: [-1],
-    }),
+    /** Delegates this operation to a.animator.addLayer. */ a.animator.addLayer(
+      {
+        clip: 1,
+        mode: "override",
+        time: 0,
+        weight: 1,
+        nodes: [-1],
+      },
+    ),
   ).toThrow();
   expect(
     () =>
-      new AnimationLayerPlayback(
+      /** Creates AnimationLayerPlayback storage for this operation. */ new AnimationLayerPlayback(
         { clip: 0, mode: "additive", time: 0, weight: 1, referenceTime: NaN },
         2,
       ),
@@ -169,6 +185,8 @@ it("has independent masked playback, reverse/nonloop clocks and controller pause
 });
 
 it("does not double-apply layers when a base crossfade is interrupted", () => {
+  // Verifies does not double-apply layers when a base crossfade is interrupted.
+
   const layered = setup(),
     base = setup();
   layered.animator.addLayer({

@@ -4,11 +4,21 @@ import { EnvironmentBakeOptions } from "./bakeEnvironment";
 import { EnvironmentData } from "./EnvironmentData";
 export { decodeEnvironmentPanorama } from "./decodeEnvironmentPanorama";
 export type { EnvironmentPanorama } from "./decodeEnvironmentPanorama";
+/** Sums retained environment pixel-array byte lengths for decoded-cache accounting. */
 function dataBytes(data: EnvironmentData): number {
   return (
-    data.diffuse.faces.reduce((n, f) => n + f.byteLength, 0) +
+    data.diffuse.faces.reduce(
+      (n, f) => /** Computes the n + f.byteLength result. */ n + f.byteLength,
+      0,
+    ) +
     data.specular.reduce(
-      (n, l) => n + l.faces.reduce((m, f) => m + f.byteLength, 0),
+      (n, l) =>
+        /** Computes the n + l.faces.reduce((m, f) => m + f.byteLength, 0) result. */ n +
+        l.faces.reduce(
+          (m, f) =>
+            /** Computes the m + f.byteLength result. */ m + f.byteLength,
+          0,
+        ),
       0,
     ) +
     data.brdf.pixels.byteLength
@@ -22,6 +32,7 @@ export class EnvironmentLoader {
   private readonly pending = new Map<string, Promise<EnvironmentData>>();
   private bytes = 0;
   private epoch = 0;
+  /** Initializes HDR decoding/baking and bounded content-addressed caching; invalid input is rejected. */
   constructor(
     readonly maxEntries = 8,
     readonly maxBytes = 64 * 1024 * 1024,
@@ -34,12 +45,15 @@ export class EnvironmentLoader {
     )
       throw new Error("Invalid environment cache budget");
   }
+  /** Returns the number of prepared environment assets retained by the cache. */
   get size(): number {
     return this.cache.size;
   }
+  /** Returns the retained environment-array byte total for cache-budget accounting. */
   get cachedBytes(): number {
     return this.bytes;
   }
+  /** Drops decoded/baked cache ownership and terminates the preparation worker. */
   clear(): void {
     this.epoch++;
     this.preparation.clear();
@@ -47,6 +61,7 @@ export class EnvironmentLoader {
     this.cache.clear();
     this.bytes = 0;
   }
+  /** Fetches an environment URL with cancellation and prepares archive/HDR data through the bounded loader cache. */
   async load(
     url: string,
     options: EnvironmentBakeOptions = {},
@@ -60,6 +75,7 @@ export class EnvironmentLoader {
       throw new Error("Environment file exceeds 64 MiB");
     return this.decode(bytes, options, signal);
   }
+  /** Deduplicates content/options preparation and returns a validated linear environment definition. */
   async decode(
     bytes: Uint8Array,
     options: EnvironmentBakeOptions = {},
@@ -90,6 +106,8 @@ export class EnvironmentLoader {
     else {
       const epoch = this.epoch;
       operation = (async () => {
+        // Decodes or bakes the requested environment, publishes it to the cache and enforces its budget.
+
         const { data: baked, precomputed } = await this.preparation.prepare(
           source,
           options,
@@ -114,6 +132,8 @@ export class EnvironmentLoader {
         }
         return baked;
       })().finally(() => {
+        // Removes the completed cache-preparation promise only if it is still the tracked transaction.
+
         if (this.pending.get(key) === operation) this.pending.delete(key);
       });
       this.pending.set(key, operation);

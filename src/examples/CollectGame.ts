@@ -8,10 +8,12 @@ export class CollectGame {
   previousX = 0;
   previousZ = 0;
   score = 0;
+  /** Restores player position, collectible flags and score for a new round. */
   reset(): void {
     this.x = this.z = this.previousX = this.previousZ = this.score = 0;
     this.collected.fill(0);
   }
+  /** Normalizes movement input, advances fixed-step gameplay and collects nearby items using simulation coordinates. */
   step(dt: number, horizontal: number, vertical: number): void {
     if (
       !Number.isFinite(dt) ||

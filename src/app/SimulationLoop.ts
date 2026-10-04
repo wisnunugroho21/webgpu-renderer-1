@@ -20,6 +20,7 @@ export class SimulationLoop {
   private tolerance = 1e-12;
   private maxDelta = 0.25;
   private maxSteps = 8;
+  /** Validates fixed-step/catch-up limits and resets accumulated fractional time. */
   configure(options: {
     stepSeconds?: number;
     maxFrameSeconds?: number;
@@ -43,12 +44,15 @@ export class SimulationLoop {
     this.maxSteps = maxSteps;
     this.resetAccumulator();
   }
+  /** Subscribes a fixed-step callback; the returned closure disables and removes that subscription. */
   onFixedUpdate(callback: FixedUpdate): () => void {
     return this.subscribe("fixed", callback);
   }
+  /** Subscribes a once-per-frame callback receiving clamped delta seconds and fixed-step interpolation alpha. */
   onUpdate(callback: FrameUpdate): () => void {
     return this.subscribe("updates", callback);
   }
+  /** Publishes a new subscription array so callbacks added during dispatch wait until the next dispatch. */
   private subscribe(
     kind: "fixed" | "updates",
     callback: FixedUpdate,
@@ -57,15 +61,22 @@ export class SimulationLoop {
     // Replacing the array defers newly added callbacks until the next dispatch.
     this[kind] = [...this[kind], entry];
     return () => {
+      // Deactivates and removes this subscription so later simulation/frame dispatches skip it.
+
       if (entry.active) {
         entry.active = false;
-        this[kind] = this[kind].filter((item) => item !== entry);
+        this[kind] = this[kind].filter(
+          (item) =>
+            /** Evaluates the item !== entry condition. */ item !== entry,
+        );
       }
     };
   }
+  /** Clears fractional simulation time and interpolation alpha without resetting the simulation clock. */
   resetAccumulator(): void {
     this.accumulator = this.alpha = 0;
   }
+  /** Runs bounded fixed ticks, accounts for dropped catch-up time, then invokes variable updates and returns clamped delta. */
   advance(deltaSeconds: number): number {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0)
       throw new Error("Invalid frame delta");
@@ -95,6 +106,7 @@ export class SimulationLoop {
       if (entry.active) entry.callback(delta, this.alpha);
     return delta;
   }
+  /** Deactivates all subscriptions and clears interpolation state for teardown. */
   clear(): void {
     for (const entry of this.fixed) entry.active = false;
     for (const entry of this.updates) entry.active = false;

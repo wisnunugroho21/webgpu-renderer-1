@@ -13,16 +13,28 @@ const pads = [
     connected: true,
     mapping: "standard",
     axes: [0.5, 0.2, -0.4, 0.6],
-    buttons: Array.from({ length: 16 }, () => ({ pressed: false, value: 0 })),
+    buttons: Array.from(
+      { length: 16 },
+      () => /** Builds a record containing pressed, value. */ ({
+        pressed: false,
+        value: 0,
+      }),
+    ),
   },
 ] as unknown as Gamepad[];
-const input = new GamepadInput(undefined, () => pads);
+const input = new GamepadInput(undefined, () => /** Returns pads. */ pads);
 bench("1000 orbit updates", () => {
+  // Measures 1000 orbit updates.
+
   for (let i = 0; i < 1000; i++) orbit.update(1, 0.5, 0);
 });
 bench("1000 follow updates", () => {
+  // Measures 1000 follow updates.
+
   for (let i = 0; i < 1000; i++) follow.follow(1 / 60, target, 0, 1);
 });
 bench("1000 standard gamepad polls (provider cost excluded)", () => {
+  // Measures 1000 standard gamepad polls (provider cost excluded).
+
   for (let i = 0; i < 1000; i++) input.update();
 });

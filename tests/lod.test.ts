@@ -9,8 +9,14 @@ const bounds = {
     max: new Float32Array([1, 1, 1]),
   },
   mesh = { topology: 0, bounds },
-  meshes = { get: () => mesh } as unknown as MeshManager;
+  meshes = {
+    /** Returns mesh. */
+    get: () => mesh,
+  } as unknown as MeshManager;
 describe("screen-space LOD", () => {
+  // Groups checks for screen-space LOD.
+
+  /** Builds controlled test dependencies and reusable state for screen-space LOD. */
   const setup = () => {
     const groups = new LODGroups(),
       id = groups.register([10, 11, 12], [128, 64, 16], meshes),
@@ -26,6 +32,8 @@ describe("screen-space LOD", () => {
     return { groups, selector, world, camera };
   };
   it("selects detail by projected physical pixels and culls tiny objects", () => {
+    // Verifies selects detail by projected physical pixels and culls tiny objects.
+
     const { selector, world, camera } = setup();
     for (const [distance, lod, id] of [
       [5, 0, 10],
@@ -42,7 +50,10 @@ describe("screen-space LOD", () => {
     }
   });
   it("holds LOD across boundary jitter in both directions", () => {
+    // Verifies holds LOD across boundary jitter in both directions.
+
     const { selector, world, camera } = setup();
+    /** Returns world lod selection[0]. */
     const select = (pixels: number) => {
       camera.setPosition(0, 0, 1 + (camera.projection[5]! * 800) / pixels);
       camera.update(1);
@@ -61,6 +72,8 @@ describe("screen-space LOD", () => {
     expect(select(20)).toBe(2);
   });
   it("preserves input visibility order and leaves unassigned meshes active", () => {
+    // Verifies preserves input visibility order and leaves unassigned meshes active.
+
     const { selector, world, camera } = setup();
     world.count = 2;
     world.entityId[1] = 1;
@@ -71,9 +84,18 @@ describe("screen-space LOD", () => {
     expect(selector.distribution[0]).toBe(1);
   });
   it("rejects nondecreasing thresholds and geometry outside base bounds", () => {
+    // Verifies rejects nondecreasing thresholds and geometry outside base bounds.
+
     const groups = new LODGroups();
-    expect(() => groups.register([0, 1], [32, 128], meshes)).toThrow();
+    expect(() =>
+      /** Delegates this operation to groups.register. */ groups.register(
+        [0, 1],
+        [32, 128],
+        meshes,
+      ),
+    ).toThrow();
     const bad = {
+      /** Selects the result according to id === 0. */
       get: (id: number) =>
         id === 0
           ? mesh
@@ -82,6 +104,12 @@ describe("screen-space LOD", () => {
               bounds: { min: new Float32Array([-2, -1, -1]), max: bounds.max },
             },
     } as unknown as MeshManager;
-    expect(() => groups.register([0, 1], [128, 32], bad)).toThrow("bounds");
+    expect(() =>
+      /** Delegates this operation to groups.register. */ groups.register(
+        [0, 1],
+        [128, 32],
+        bad,
+      ),
+    ).toThrow("bounds");
   });
 });

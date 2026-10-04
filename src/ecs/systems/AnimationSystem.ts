@@ -10,6 +10,7 @@ export class AnimationSystem {
   activeAnimators = 0;
   readonly morphPool = new MorphStatePool();
   readonly morphStates = this.morphPool.states;
+  /** Builds shared clip definitions and creates per-instance playback bindings for the supplied scene entities. */
   attach(
     asset: RuntimeAsset,
     entities: Int32Array,
@@ -83,6 +84,7 @@ export class AnimationSystem {
         )!;
     this.morphPool.releaseUnused(world);
   }
+  /** Advances registered live controllers and counts active animators without touching mesh vertex buffers. */
   update(deltaSeconds: number): void {
     this.activeAnimators = 0;
     for (const animator of this.animators) {

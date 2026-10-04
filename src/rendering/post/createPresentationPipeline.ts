@@ -3,7 +3,9 @@ import { Resources } from "../../gpu/Resources";
 import shader from "../../shaders/tone-mapping.wgsl?raw";
 import postShader from "../../shaders/post-present.wgsl?raw";
 const plainHelpers = `
+// Returns identity exposure for presentation without automatic exposure.
 fn postExposure() -> f32 { return 1.0; }
+// Returns zero bloom radiance for presentation without post effects.
 fn postRadiance(pixel: vec2<i32>) -> vec3<f32> { return vec3<f32>(0.0); }
 `;
 /** Two bounded fullscreen variants. Targets/bind groups stay owned by HDRRendering. */

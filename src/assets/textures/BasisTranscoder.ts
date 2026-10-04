@@ -3,6 +3,7 @@ import type { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 import basisJS from "three/examples/jsm/libs/basis/basis_transcoder.js?url";
 import basisWasm from "three/examples/jsm/libs/basis/basis_transcoder.wasm?url";
 import { compressedTexture } from "./CompressedTexture";
+/** Detects Basis Universal payloads requiring transcoding rather than native compressed upload. */
 export function isBasis(bytes: Uint8Array): boolean {
   return read(bytes).vkFormat === 0;
 }
@@ -14,7 +15,9 @@ export type TranscodedTexture = Omit<
 export class BasisTranscoder {
   private readonly loaders = new Map<boolean, Promise<KTX2Loader>>();
   private disposed = false;
+  /** Initializes lazy Basis texture transcoding with adapter-compatible output. */
   constructor(private readonly device: GPUDevice) {}
+  /** Transcodes Basis KTX2 data into a supported compressed GPU format or an RGBA fallback. */
   async decode(bytes: Uint8Array, srgb: boolean): Promise<TranscodedTexture> {
     if (this.disposed) throw new Error("Basis transcoder disposed");
     const container = read(bytes),
@@ -52,10 +55,14 @@ export class BasisTranscoder {
     let pending = this.loaders.get(rgba);
     if (!pending) {
       pending = (async () => {
+        // Returns loader.
+
         const { KTX2Loader } =
           await import("three/addons/loaders/KTX2Loader.js");
         const manager = new three.LoadingManager().setURLModifier((url) =>
-          url.endsWith("basis_transcoder.js")
+          /** Selects the result according to url.endsWith("basis_transcoder.js"). */ url.endsWith(
+            "basis_transcoder.js",
+          )
             ? basisJS
             : url.endsWith("basis_transcoder.wasm")
               ? basisWasm
@@ -67,11 +74,14 @@ export class BasisTranscoder {
         // KTX2Loader accepts a feature-reporting adapter; no Three renderer is constructed.
         loader.detectSupport({
           isWebGPURenderer: true,
+          /** Checks the supplied adapter capability set before selecting compressed output. */
           hasFeature: (feature: string) =>
             !rgba && this.device.features.has(feature as GPUFeatureName),
         } as unknown as Parameters<KTX2Loader["detectSupport"]>[0]);
         return loader;
       })().catch((error) => {
+        // Handles asynchronous failure so basis transcoder can report or retire the failed operation.
+
         this.loaders.delete(rgba);
         throw error;
       });
@@ -79,7 +89,12 @@ export class BasisTranscoder {
     }
     const loader = await pending;
     const texture = await new Promise<import("three").CompressedTexture>(
-      (resolve, reject) => loader.parse(bytes.slice().buffer, resolve, reject),
+      (resolve, reject) =>
+        /** Delegates this operation to loader.parse. */ loader.parse(
+          bytes.slice().buffer,
+          resolve,
+          reject,
+        ),
     );
     try {
       if (this.disposed)
@@ -123,6 +138,8 @@ export class BasisTranscoder {
         throw new Error("Unsupported Basis transcode output");
       const [format, feature, block, blockBytes] = info;
       const levels = texture.mipmaps.map((level, mip) => {
+        // Builds a record containing data, width, height, bytes per row, rows.
+
         const width = Math.max(1, container.pixelWidth >> mip),
           height = Math.max(1, container.pixelHeight >> mip),
           columns = Math.ceil(width / block),
@@ -153,12 +170,16 @@ export class BasisTranscoder {
       texture.dispose();
     }
   }
+  /** Terminates the lazy transcoder worker and rejects outstanding requests. */
   dispose(): void {
     this.disposed = true;
     for (const loader of this.loaders.values())
       void loader.then(
-        (value) => value.dispose(),
-        () => {},
+        (value) =>
+          /** Continues basis transcoder after the preceding asynchronous operation succeeds. */ value.dispose(),
+        () => {
+          // Intentionally performs no work at this optional callback boundary.
+        },
       );
     this.loaders.clear();
   }

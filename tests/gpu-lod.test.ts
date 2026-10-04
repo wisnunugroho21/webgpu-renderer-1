@@ -5,20 +5,30 @@ import { LODGroups } from "../src/rendering/lod/LODGroups";
 import { RenderWorld } from "../src/rendering/RenderWorld";
 import { Resources } from "../src/gpu/Resources";
 describe("GPU LOD metadata", () => {
+  // Groups checks for GPU LOD metadata.
+
   it("updates persistent authored groups and entity metadata without warm allocations", () => {
+    // Verifies updates persistent authored groups and entity metadata without warm allocations.
+
     vi.stubGlobal("GPUShaderStage", { COMPUTE: 1 });
     vi.stubGlobal("GPUBufferUsage", { STORAGE: 1, COPY_SRC: 2, COPY_DST: 4 });
-    const create = vi.fn((d) => d),
-      getCompute = vi.fn((d) => d),
+    const create = vi.fn((d) => /** Returns d. */ d),
+      getCompute = vi.fn((d) => /** Returns d. */ d),
       device = {
+        /** Returns d. */
         createBindGroupLayout: (d: unknown) => d,
+        /** Returns d. */
         createPipelineLayout: (d: unknown) => d,
+        /** Returns d. */
         createBindGroup: (d: unknown) => d,
       } as unknown as GPUDevice,
       resources = {
         buffers: { create },
         pipelines: { getCompute },
-        shaders: { get: () => ({}) },
+        shaders: {
+          /** Returns an empty fixture handle for a controlled test dependency. */
+          get: () => ({}),
+        },
       } as unknown as Resources,
       frustum = {
         capacity: 10,
@@ -71,6 +81,7 @@ describe("GPU LOD metadata", () => {
       },
       encoder = {
         clearBuffer: vi.fn(),
+        /** Returns pass. */
         beginComputePass: () => pass,
       } as unknown as GPUCommandEncoder;
     selector.encode(encoder, 0);
@@ -80,7 +91,12 @@ describe("GPU LOD metadata", () => {
     expect(create).toHaveBeenCalledTimes(6);
     expect(getCompute).toHaveBeenCalledTimes(1);
     world.entityId[0] = 10;
-    expect(() => selector.prepare(world, queue)).toThrow(/capacity/);
+    expect(() =>
+      /** Delegates this operation to selector.prepare. */ selector.prepare(
+        world,
+        queue,
+      ),
+    ).toThrow(/capacity/);
     vi.unstubAllGlobals();
   });
 });

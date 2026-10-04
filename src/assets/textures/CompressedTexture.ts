@@ -9,6 +9,7 @@ interface BlockFormat {
   srgb: boolean;
 }
 const formats = new Map<number, BlockFormat>();
+/** Applies formats.set to add. */
 const add = (
   vk: number,
   format: string,
@@ -70,6 +71,7 @@ for (const [i, size] of [
     size[0],
     size[1],
   );
+/** Validates native compressed KTX2 metadata, adapter support and authored mip/block layout. */
 export function compressedTexture(bytes: Uint8Array, srgb: boolean) {
   const container = read(bytes),
     block = formats.get(container.vkFormat);
@@ -120,6 +122,8 @@ export function compressedTexture(bytes: Uint8Array, srgb: boolean) {
   )
     throw new Error("Invalid compressed data format descriptor");
   const levels = container.levels.map((level, mip) => {
+    // Builds a record containing data, width, height, bytes per row, rows.
+
     const width = Math.max(1, Math.floor(container.pixelWidth / 2 ** mip)),
       height = Math.max(1, Math.floor(container.pixelHeight / 2 ** mip));
     const columns = Math.ceil(width / block.width),
@@ -146,6 +150,7 @@ export function compressedTexture(bytes: Uint8Array, srgb: boolean) {
     levels,
   };
 }
+/** Copies validated compressed mip payloads into an adapter-compatible GPU texture. */
 export function uploadCompressed(
   device: GPUDevice,
   resources: Resources,

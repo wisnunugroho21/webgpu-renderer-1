@@ -11,6 +11,7 @@ export class MaterialManager {
   count = 0;
   readonly alive: Uint8Array;
   private readonly free: number[] = [];
+  /** Computes the this.capacity - this.count + this.free.length result. */
   get available(): number {
     return this.capacity - this.count + this.free.length;
   }
@@ -18,6 +19,7 @@ export class MaterialManager {
   uploadBytes = 0;
   private dirtyStart = Infinity;
   private dirtyEnd = 0;
+  /** Initializes packed PBR parameters, material IDs and dirty uploads. */
   constructor(readonly capacity = 2048) {
     this.alive = new Uint8Array(capacity);
     this.data = new Float32Array(capacity * MATERIAL_WORDS);
@@ -25,6 +27,7 @@ export class MaterialManager {
     this.alphaMode = new Uint8Array(capacity);
     this.doubleSided = new Uint8Array(capacity);
   }
+  /** Reserves a material ID and initializes validated PBR factors with defaults. */
   create(material: Material = {}): number {
     if (!this.available) throw new Error("Material capacity exceeded");
     const id = this.free.at(-1) ?? this.count;
@@ -45,6 +48,7 @@ export class MaterialManager {
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
   }
+  /** Validates and packs material factor changes while marking the material record dirty. */
   set(id: number, material: Material, creating = false): void {
     if (
       !Number.isInteger(id) ||
@@ -60,7 +64,10 @@ export class MaterialManager {
     if (
       baseColor.length !== 4 ||
       [...baseColor, metallic, roughness, cutoff].some(
-        (v) => !Number.isFinite(v) || v < 0,
+        (v) =>
+          /** Evaluates the !Number.isFinite(v) || v < 0 condition. */ !Number.isFinite(
+            v,
+          ) || v < 0,
       ) ||
       metallic > 1 ||
       roughness > 1 ||
@@ -78,11 +85,16 @@ export class MaterialManager {
       occlusion = material.occlusionStrength ?? 1;
     if (
       [emissive[0], emissive[1], emissive[2], normalScale, occlusion].some(
-        (v) => v === undefined || !Number.isFinite(v) || v < 0,
+        (v) =>
+          /** Evaluates the v === undefined || !Number.isFinite(v) || v < 0 condition. */ v ===
+            undefined ||
+          !Number.isFinite(v) ||
+          v < 0,
       ) ||
       occlusion > 1
     )
       throw new Error("Invalid PBR properties");
+    /** Reads packed texture-coordinate selection for a material. */
     const uv = (role: string) => material.textures?.[role]?.texCoord ?? 0;
     for (const role of [
       "baseColor",
@@ -121,6 +133,7 @@ export class MaterialManager {
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
   }
+  /** Returns the texture layout metadata associated with a material. */
   textureLayout(id: number): Float32Array {
     if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
@@ -134,6 +147,7 @@ export class MaterialManager {
       this.data[o + 19]!,
     ]);
   }
+  /** Updates texture-coordinate/normal-map metadata and invalidates the packed material state. */
   setTextureLayout(id: number, layout: ArrayLike<number>): void {
     if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
@@ -149,6 +163,7 @@ export class MaterialManager {
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
   }
+  /** Attaches material texture slots while retaining scalar PBR factors. */
   setTextureSlots(id: number, slots: NonNullable<Material["textures"]>): void {
     this.setTextureLayout(id, [
       slots.emissive?.texCoord ?? 0,
@@ -159,11 +174,13 @@ export class MaterialManager {
       slots.occlusion?.texCoord ?? 0,
     ]);
   }
+  /** Encodes alpha mode and sidedness into the bounded material pipeline variant index. */
   pipelineIndex(id: number): number {
     if (id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
     return this.alphaMode[id]! * 2 + this.doubleSided[id]!;
   }
+  /** Creates fixed-capacity shared material storage during renderer setup. */
   createBuffer(manager: BufferManager): GPUBuffer {
     this.dirtyStart = 0;
     this.dirtyEnd = this.count;
@@ -173,6 +190,7 @@ export class MaterialManager {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
   }
+  /** Writes dirty material records to shared GPU storage and clears their dirty flags. */
   upload(queue: GPUQueue, buffer: GPUBuffer): void {
     this.uploadBytes = 0;
     if (this.dirtyStart === Infinity) return;

@@ -29,6 +29,7 @@ export class IndirectDraws {
   private objects = -1;
   private batchCount = -1;
   uploadBytes = 0;
+  /** Initializes candidate batch metadata, visible records and indexed indirect arguments. */
   constructor(
     device: GPUDevice,
     resources: Resources,
@@ -42,6 +43,7 @@ export class IndirectDraws {
     this.objectData = new Uint32Array(capacity * 12);
     this.previousData = new Uint32Array(this.data.length);
     this.previousObjects = new Uint32Array(this.objectData.length);
+    /** Delegates this operation to resources.buffers.create. */
     const create = (label: string, size: number, usage: number) =>
       resources.buffers.create({ label, size: Math.max(4, size), usage });
     this.arguments = create(
@@ -72,28 +74,34 @@ export class IndirectDraws {
       GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     );
     const layout = device.createBindGroupLayout({
-      entries: Array.from({ length: 8 }, (_, binding) => ({
-        binding,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: {
-          type:
-            binding === 0
-              ? ("uniform" as const)
-              : binding === 5 || binding === 6
-                ? ("storage" as const)
-                : ("read-only-storage" as const),
-          minBindingSize:
-            binding === 0 || binding === 3 || binding === 6
-              ? 16
-              : binding === 1
-                ? 32
-                : binding === 2
-                  ? 48
-                  : binding === 5
-                    ? 20
-                    : 4,
-        },
-      })),
+      entries: Array.from(
+        { length: 8 },
+        (
+          _,
+          binding,
+        ) => /** Builds a record containing binding, visibility, buffer. */ ({
+          binding,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: {
+            type:
+              binding === 0
+                ? ("uniform" as const)
+                : binding === 5 || binding === 6
+                  ? ("storage" as const)
+                  : ("read-only-storage" as const),
+            minBindingSize:
+              binding === 0 || binding === 3 || binding === 6
+                ? 16
+                : binding === 1
+                  ? 32
+                  : binding === 2
+                    ? 48
+                    : binding === 5
+                      ? 20
+                      : 4,
+          },
+        }),
+      ),
     });
     this.group = device.createBindGroup({
       layout,
@@ -123,6 +131,7 @@ export class IndirectDraws {
       compute: { module, entryPoint: "buildArguments" },
     });
   }
+  /** Builds candidate batch/LOD mappings while retaining transparent rank ordering and selected deformation layouts. */
   prepare(
     world: RenderWorld,
     queue: RenderQueue,
@@ -213,6 +222,7 @@ export class IndirectDraws {
     this.objects = world.count;
     this.batchCount = this.batches.count;
   }
+  /** Transfers changed candidate batch metadata, visible records and indexed indirect arguments into its existing shared GPU storage. */
   private upload(
     buffer: GPUBuffer,
     input: Uint32Array,
@@ -240,6 +250,7 @@ export class IndirectDraws {
       this.uploadBytes += (last - first) * 4;
     }
   }
+  /** Initializes indexed arguments and appends compacted visible objects without CPU visibility readback. */
   encode(encoder: GPUCommandEncoder, profiler?: GPUProfiler): void {
     if (!this.enabled || this.objects <= 0 || this.batchCount <= 0) return;
     const initialize = encoder.beginComputePass({

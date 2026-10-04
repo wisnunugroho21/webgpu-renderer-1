@@ -11,6 +11,7 @@ export class RenderQueue {
   maskCount = 0;
   transparentCount = 0;
   count = 0;
+  /** Initializes persistent opaque, masked and transparent object ordering. */
   constructor(readonly capacity: number) {
     this.opaque = new Uint32Array(capacity);
     this.mask = new Uint32Array(capacity);
@@ -19,6 +20,7 @@ export class RenderQueue {
     this.depth = new Float32Array(capacity);
     this.pipeline = new Uint8Array(capacity);
   }
+  /** Classifies candidate objects by alpha mode and records camera-space depth for sorting. */
   build(
     world: RenderWorld,
     materials: MaterialManager,

@@ -24,13 +24,21 @@ const cache = new ShadowSceneCache(world),
   records = new Uint32Array(world.capacity * 12);
 cache.update(world, records, world.count, 0);
 describe("shadow camera", () => {
+  // Groups checks for shadow camera.
+
   bench("compare 10,000 unchanged shadow casters", () => {
+    // Measures compare 10,000 unchanged shadow casters.
+
     cache.update(world, records, world.count, 0);
   });
   bench("cull 10,000 shadow caster bounds", () => {
+    // Measures cull 10,000 shadow caster bounds.
+
     culler.cull(world, frustum);
   });
   bench("fit 10,000 caster bounds", () => {
+    // Measures fit 10,000 caster bounds.
+
     shadow.fit(camera, world, 0, 0.1, 30, 1024);
   });
 });

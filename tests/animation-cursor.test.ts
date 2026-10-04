@@ -8,11 +8,18 @@ import { AnimationClip } from "../src/animation/AnimationClip";
 import { Animator, MorphState } from "../src/animation/Animator";
 import { World } from "../src/ecs/World";
 
+/** Builds a record containing times, values. */
 function data(size: number, mode: Interpolation) {
-  const times = Float32Array.from({ length: 129 }, (_, i) => 1 + (i * i) / 512);
+  const times = Float32Array.from(
+    { length: 129 },
+    (_, i) => /** Computes the 1 + (i * i) / 512 result. */ 1 + (i * i) / 512,
+  );
   const values = Float32Array.from(
     { length: times.length * size * (mode === "CUBICSPLINE" ? 3 : 1) },
-    (_, i) => Math.sin(i * 0.73),
+    (_, i) =>
+      /** Computes Math.sin(i * 0.73) without allocating intermediate vectors. */ Math.sin(
+        i * 0.73,
+      ),
   );
   return { times, values };
 }
@@ -20,6 +27,8 @@ function data(size: number, mode: Interpolation) {
 for (const mode of ["STEP", "LINEAR", "CUBICSPLINE"] as const)
   for (const size of [3, 4, 16])
     it(`${mode}/${size}: hinted samples exactly match binary search through boundaries and jumps`, () => {
+      // Applies data, Array.from(times).reverse, Array.from to the current callback state.
+
       const { times, values } = data(size, mode);
       const sampler = new AnimationSampler(times, values, mode, size === 4);
       const expected = new Float32Array(size),
@@ -45,6 +54,8 @@ for (const mode of ["STEP", "LINEAR", "CUBICSPLINE"] as const)
     });
 
 it("handles one-key clips and invalid sampling arguments with a hint", () => {
+  // Verifies handles one-key clips and invalid sampling arguments with a hint.
+
   const sampler = new AnimationSampler(
     new Float32Array([2]),
     new Float32Array([7]),
@@ -54,24 +65,44 @@ it("handles one-key clips and invalid sampling arguments with a hint", () => {
   expect(sampler.sample(-1, out, 999)).toBe(0);
   expect(out[0]).toBe(7);
   expect(sampler.sample(20, out, 0)).toBe(0);
-  expect(() => sampler.sample(NaN, out, 0)).toThrow();
-  expect(() => sampler.sample(0, new Float32Array(0), 0)).toThrow();
+  expect(() =>
+    /** Delegates this operation to sampler.sample. */ sampler.sample(
+      NaN,
+      out,
+      0,
+    ),
+  ).toThrow();
+  expect(() =>
+    /** Delegates this operation to sampler.sample. */ sampler.sample(
+      0,
+      new Float32Array(0),
+      0,
+    ),
+  ).toThrow();
 });
 
 it("preserves long-clip playback, independent phases, reverse loops and interrupted fades", () => {
+  // Verifies preserves long-clip playback, independent phases, reverse loops and interrupted fades.
+
   class Stateless extends AnimationSampler {
+    /** Delegates this operation to super.sample. */
     override sample(time: number, out: Float32Array): number {
       return super.sample(time, out);
     }
   }
+  /** Builds controlled test dependencies and reusable state for preserves long-clip playback, independent phases, reverse loops and interrupted fades. */
   const setup = (Sampler: typeof AnimationSampler) => {
     const world = new World(3),
       animators: Animator[] = [],
       morphs: MorphState[] = [];
     const clips = ["LINEAR", "CUBICSPLINE", "STEP"].map((mode) => {
+      // Creates AnimationClip storage for this operation.
+
       const channels = (
         ["translation", "rotation", "scale", "weights"] as const
       ).map((path) => {
+        // Creates AnimationChannel storage for this operation.
+
         const size = path === "rotation" ? 4 : path === "weights" ? 16 : 3;
         const { times, values } = data(size, mode as Interpolation);
         return new AnimationChannel(

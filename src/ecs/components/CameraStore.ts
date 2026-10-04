@@ -12,6 +12,7 @@ export class CameraStore extends ComponentStore {
   readonly fovY: Float32Array;
   readonly near: Float32Array;
   readonly far: Float32Array;
+  /** Initializes validated per-entity perspective/orthographic projection data. */
   constructor(capacity: number) {
     super(capacity);
     this.type = new Uint8Array(capacity);
@@ -21,6 +22,7 @@ export class CameraStore extends ComponentStore {
     this.near = new Float32Array(capacity).fill(0.1);
     this.far = new Float32Array(capacity).fill(100);
   }
+  /** Validates and stores a perspective projection for an ECS camera entity. */
   setPerspective(entity: number, options: PerspectiveOptions = {}): void {
     const camera = this.validation;
     camera.setPerspective(options);
@@ -31,6 +33,7 @@ export class CameraStore extends ComponentStore {
     this.far[entity] = camera.far;
     this.aspect[entity] = options.aspect ?? 0;
   }
+  /** Validates and stores an orthographic projection for an ECS camera entity. */
   setOrthographic(entity: number, options: OrthographicOptions = {}): void {
     const camera = this.validation;
     camera.setOrthographic(options);

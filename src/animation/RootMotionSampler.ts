@@ -32,10 +32,12 @@ function compose(out: Float32Array, a: Float32Array, b: Float32Array): void {
   out[5] = rz / length;
   out[6] = rw / length;
 }
+/** Writes a no-translation identity root rotation into caller-owned pose storage. */
 function identity(out: Float32Array): void {
   out.fill(0);
   out[6] = 1;
 }
+/** Inverts a rigid root pose into caller-owned scratch for relative root-motion composition. */
 function inverse(
   out: Float32Array,
   pose: Float32Array,
@@ -71,6 +73,7 @@ export class RootMotionSampler {
   private readonly factor = new Float32Array(7);
   private readonly sampleTranslation = new Float32Array(3);
   private readonly sampleRotation = new Float32Array(4);
+  /** Initializes mesh-independent root-transform sampling scratch; invalid input is rejected. */
   constructor(
     readonly clip: AnimationClip,
     readonly node: number,
@@ -78,10 +81,14 @@ export class RootMotionSampler {
     if (!Number.isInteger(node) || node < 0)
       throw new Error("Invalid root-motion node");
     this.translation = clip.channels.find(
-      (channel) => channel.node === node && channel.path === "translation",
+      (channel) =>
+        /** Evaluates the channel.node === node && channel.path === "translation" condition. */ channel.node ===
+          node && channel.path === "translation",
     )?.sampler;
     this.rotation = clip.channels.find(
-      (channel) => channel.node === node && channel.path === "rotation",
+      (channel) =>
+        /** Evaluates the channel.node === node && channel.path === "rotation" condition. */ channel.node ===
+          node && channel.path === "rotation",
     )?.sampler;
     if (!this.translation && !this.rotation)
       throw new Error("Root-motion node has no motion channels");
@@ -90,6 +97,7 @@ export class RootMotionSampler {
     this.sampleRaw(clip.duration, this.raw);
     compose(this.cycle, this.inverseOrigin, this.raw);
   }
+  /** Samples root translation/rotation channels at a clip-local time into reusable scratch. */
   private sampleRaw(time: number, out: Float32Array): void {
     identity(out);
     if (this.translation) {
@@ -101,6 +109,7 @@ export class RootMotionSampler {
       out.set(this.sampleRotation, 3);
     }
   }
+  /** Evaluates the root transform for an arbitrary playback time with loop displacement included. */
   private pose(time: number, loop: boolean, out: Float32Array): void {
     const duration = this.clip.duration;
     let cycles = loop && duration > 0 ? Math.floor(time / duration) : 0;

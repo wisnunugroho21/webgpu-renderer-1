@@ -24,11 +24,12 @@ export function assertRegressionReport(
     ? [36, 20, 10, 255]
     : [10, 20, 36, 255];
   report.pixel.forEach((value, i) =>
-    assert.ok(
+    /** Delegates this operation to assert.ok. */ assert.ok(
       Math.abs(value - expected[i]) <= 1,
       `clear pixel channel ${i}: ${value}`,
     ),
   );
+  /** Selects the result according to report.format.startsWith("bgra"). */
   const rgb = (pixel) =>
     report.format.startsWith("bgra")
       ? [pixel[2], pixel[1], pixel[0]]
@@ -52,10 +53,12 @@ export function assertRegressionReport(
     asset[2] > asset[0] && asset[0] > asset[1],
     "glTF metallic color ordering",
   );
+  /** Selects the result according to byte / 255 <= 0.04045. */
   const linear = (byte) =>
     byte / 255 <= 0.04045
       ? byte / 255 / 12.92
       : ((byte / 255 + 0.055) / 1.055) ** 2.4;
+  /** Converts a linear reference value into an 8-bit sRGB display value. */
   const srgb = (value) =>
     Math.round(
       255 *
@@ -64,20 +67,25 @@ export function assertRegressionReport(
           : 1.055 * value ** (1 / 2.4) - 0.055),
     );
   const blendExpected = report.centerPixel.map((v, i) =>
-    i === 3 ? 255 : srgb((linear(v) + linear(expected[i])) / 2),
+    /** Selects the result according to i === 3. */ i === 3
+      ? 255
+      : srgb((linear(v) + linear(expected[i])) / 2),
   );
   report.materialChecks.blend.forEach((v, i) =>
-    assert.ok(
+    /** Delegates this operation to assert.ok. */ assert.ok(
       Math.abs(v - blendExpected[i]) <= 2,
       "alpha blends in linear space",
     ),
   );
   const pbr = report.pbrChecks;
   rgb(pbr.emissive).forEach((v, i) =>
-    assert.ok(Math.abs(v - [128, 64, 32][i]) <= 1, "sRGB emissive roundtrip"),
+    /** Delegates this operation to assert.ok. */ assert.ok(
+      Math.abs(v - [128, 64, 32][i]) <= 1,
+      "sRGB emissive roundtrip",
+    ),
   );
   rgb(pbr.uv1).forEach((v, i) =>
-    assert.ok(
+    /** Delegates this operation to assert.ok. */ assert.ok(
       Math.abs(v - [32, 128, 64][i]) <= 1,
       "TEXCOORD_1 selects second emissive texel",
     ),
@@ -86,12 +94,16 @@ export function assertRegressionReport(
   assert.notDeepEqual(pbr.metal, pbr.flat, "metallic factor changes BRDF");
   assert.notDeepEqual(pbr.smooth, pbr.flat, "roughness factor changes BRDF");
   assert.ok(
-    rgb(pbr.ao).every((v, i) => v < rgb(pbr.flat)[i]),
+    rgb(pbr.ao).every(
+      (v, i) =>
+        /** Evaluates the v < rgb(pbr.flat)[i] condition. */ v <
+        rgb(pbr.flat)[i],
+    ),
     "AO reduces indirect illumination",
   );
   assert.deepEqual(pbr.culled, expected, "single-sided back face is culled");
   rgb(pbr.doubleSided).forEach((v, i) =>
-    assert.ok(
+    /** Delegates this operation to assert.ok. */ assert.ok(
       Math.abs(v - [128, 64, 32][i]) <= 1,
       "double-sided back face renders",
     ),
@@ -127,7 +139,7 @@ export function assertRegressionReport(
     mip.pixel
       .slice(0, 3)
       .forEach((v) =>
-        assert.ok(
+        /** Delegates this operation to assert.ok. */ assert.ok(
           Math.abs(v - expected) <= 1,
           "odd-sized mip averages in correct color space",
         ),
@@ -138,7 +150,9 @@ export function assertRegressionReport(
   assert.equal(report.animationChecks.position, 5);
   assert.equal(report.animationChecks.scale, 0.75);
   report.animationChecks.rotation.forEach((v) =>
-    assert.ok(Math.abs(v - Math.SQRT1_2) < 1e-6),
+    /** Delegates this operation to assert.ok. */ assert.ok(
+      Math.abs(v - Math.SQRT1_2) < 1e-6,
+    ),
   );
   assert.deepEqual(report.animationChecks.weights, [0.5]);
   assert.equal(
@@ -159,12 +173,16 @@ export function assertRegressionReport(
   assert.equal(report.skinChecks.jointCount, 2);
   assert.deepEqual(report.skinChecks.parents, [-1, 0]);
   assert.equal(new Set(report.skinChecks.renderIds).size, 2);
-  report.skinChecks.renderIds.forEach((id) => assert.ok(id >= 0));
+  report.skinChecks.renderIds.forEach((id) =>
+    /** Delegates this operation to assert.ok. */ assert.ok(id >= 0),
+  );
   assert.ok(Math.abs(report.skinChecks.weights[0] - 128 / 255) < 1e-6);
   assert.ok(Math.abs(report.skinChecks.weights[1] - 127 / 255) < 1e-6);
   assert.equal(report.skinChecks.changed, 4);
   assert.equal(report.skinChecks.unchanged, 0);
-  const matrixX = report.skinChecks.initialMatrices.map((m) => m[12]);
+  const matrixX = report.skinChecks.initialMatrices.map(
+    (m) => /** Returns m[12]. */ m[12],
+  );
   assert.ok(
     matrixX.includes(0) && matrixX.includes(-4),
     "each palette uses its mesh world inverse",
@@ -180,7 +198,7 @@ export function assertRegressionReport(
   assert.deepEqual(report.jointChecks.offsets, [0, 2]);
   assert.deepEqual(
     report.jointChecks.gpuJointX,
-    report.skinChecks.initialMatrices.map((m) => m[12]),
+    report.skinChecks.initialMatrices.map((m) => /** Returns m[12]. */ m[12]),
     "GPU palettes match CPU instance order",
   );
   assert.deepEqual(
@@ -188,7 +206,7 @@ export function assertRegressionReport(
     report.jointChecks.resourcesAfter,
   );
   report.gpuSkinChecks.skinPixel.forEach((v, i) =>
-    assert.ok(
+    /** Delegates this operation to assert.ok. */ assert.ok(
       Math.abs(v - report.gpuSkinChecks.referencePixel[i]) <= 1,
       "GPU-skinned position/normal/tangent matches static reference",
     ),
@@ -206,17 +224,28 @@ export function assertRegressionReport(
     report.gpuSkinChecks.resourcesBefore,
     report.gpuSkinChecks.resourcesAfter,
   );
-  assert.equal(new Set(report.morphChecks.states.map((s) => s.offset)).size, 2);
+  assert.equal(
+    new Set(
+      report.morphChecks.states.map((s) => /** Returns s offset. */ s.offset),
+    ).size,
+    2,
+  );
   report.morphChecks.states.forEach((s) => {
+    // Applies assert.ok, assert.equal to the current callback state.
+
     assert.ok(s.shared);
     assert.equal(s.count, 1);
   });
-  const defaults = report.morphChecks.states.map((s) => s.weights[0]).sort();
+  const defaults = report.morphChecks.states
+    .map((s) => /** Returns s weights[0]. */ s.weights[0])
+    .sort();
   assert.ok(
     Math.abs(defaults[0] - 0.1) < 1e-6 && Math.abs(defaults[1] - 0.2) < 1e-6,
     "node override and mesh defaults",
   );
   report.morphChecks.targets.forEach((t) => {
+    // Applies assert.equal, assert.deepEqual to the current callback state.
+
     assert.equal(t.count, 1);
     assert.equal(t.vertices, 3);
     assert.deepEqual(t.position, [0, 0, 1]);
@@ -232,7 +261,7 @@ export function assertRegressionReport(
   assert.equal(report.morphBufferChecks.changedBytes, 4);
   assert.equal(report.morphBufferChecks.unchangedBytes, 0);
   report.gpuMorphChecks.morphedPixel.forEach((v, i) =>
-    assert.ok(
+    /** Delegates this operation to assert.ok. */ assert.ok(
       Math.abs(v - report.gpuMorphChecks.referencePixel[i]) <= 1,
       "GPU position/normal/tangent morphing matches weighted static reference",
     ),
@@ -248,7 +277,7 @@ export function assertRegressionReport(
     report.gpuMorphChecks.resourcesAfter,
   );
   report.combinedChecks.pixel.forEach((v, i) =>
-    assert.ok(
+    /** Delegates this operation to assert.ok. */ assert.ok(
       Math.abs(v - report.combinedChecks.reference[i]) <= 1,
       "morph-before-skin matches static reference",
     ),
@@ -292,11 +321,15 @@ export function assertRegressionReport(
   assert.equal(report.blendingChecks.weight, 0.75);
   assert.equal(report.blendingChecks.crossfading, true);
   assert.deepEqual(
-    report.lodChecks.results.map((r) => r.selection),
+    report.lodChecks.results.map(
+      (r) => /** Returns r selection. */ r.selection,
+    ),
     [0, 1, 2, -1],
   );
   assert.deepEqual(
-    report.lodChecks.results.map((r) => r.stats.triangles),
+    report.lodChecks.results.map(
+      (r) => /** Returns r stats triangles. */ r.stats.triangles,
+    ),
     [12, 8, 1, 0],
   );
   assert.equal(report.lodChecks.results[3].stats.lodCulled, 1);
@@ -426,7 +459,7 @@ export function assertRegressionReport(
     report.shadowChecks.cache.resourcesAfter,
   );
   assert.deepEqual(
-    report.graphOrder.map((p) => p.name),
+    report.graphOrder.map((p) => /** Returns p name. */ p.name),
     [
       "gpu-frustum",
       "shadows",
@@ -447,7 +480,9 @@ export function assertRegressionReport(
   assert.ok(report.profilingChecks.cpuFrames >= 150);
   assert.equal(report.profilingChecks.cpuStages.length, 9);
   report.profilingChecks.cpuStages.forEach((ms) =>
-    assert.ok(Number.isFinite(ms) && ms >= 0),
+    /** Delegates this operation to assert.ok. */ assert.ok(
+      Number.isFinite(ms) && ms >= 0,
+    ),
   );
   if (report.profilingChecks.supported) {
     assert.equal(report.profilingChecks.droppedCaptures, 1);
@@ -457,7 +492,13 @@ export function assertRegressionReport(
         Number.isFinite(sample.milliseconds) && sample.milliseconds >= 0,
       );
     assert.deepEqual(
-      [...new Set(report.profilingChecks.gpuTimings.map((t) => t.pass))].sort(),
+      [
+        ...new Set(
+          report.profilingChecks.gpuTimings.map(
+            (t) => /** Returns t pass. */ t.pass,
+          ),
+        ),
+      ].sort(),
       [0, 1, 2],
     );
   }
@@ -562,14 +603,14 @@ export function assertRegressionReport(
     }
     assert.equal(
       report.indirectChecks.scenarios.frustum.args.reduce(
-        (sum, a) => sum + a[1],
+        (sum, a) => /** Computes the sum + a[1] result. */ sum + a[1],
         0,
       ),
       3,
     );
     assert.equal(
       report.indirectChecks.scenarios.occlusion.args.reduce(
-        (sum, a) => sum + a[1],
+        (sum, a) => /** Computes the sum + a[1] result. */ sum + a[1],
         0,
       ),
       2,
@@ -597,7 +638,10 @@ export function assertRegressionReport(
       0,
     );
     assert.equal(
-      report.indirectChecks.offscreenArgs.reduce((sum, a) => sum + a[1], 0),
+      report.indirectChecks.offscreenArgs.reduce(
+        (sum, a) => /** Computes the sum + a[1] result. */ sum + a[1],
+        0,
+      ),
       0,
     );
     assert.deepEqual(
@@ -607,17 +651,26 @@ export function assertRegressionReport(
   }
   if (report.indirectChecks.supported) {
     assert.deepEqual(
-      report.gpuLODChecks.results.map((r) => r.level),
+      report.gpuLODChecks.results.map((r) => /** Returns r level. */ r.level),
       [0, 1, 2, -1],
     );
     assert.deepEqual(
       report.gpuLODChecks.results.map((r) =>
-        r.args.reduce((sum, a) => sum + (a[0] * a[1]) / 3, 0),
+        /** Accumulates the input entries into one result. */ r.args.reduce(
+          (sum, a) =>
+            /** Computes the sum + (a[0] * a[1]) / 3 result. */ sum +
+            (a[0] * a[1]) / 3,
+          0,
+        ),
       ),
       [12, 8, 1, 0],
     );
     report.gpuLODChecks.results.forEach((r) =>
-      assert.equal(r.image.maxDifference, 0, "GPU LOD matches CPU rendering"),
+      /** Delegates this operation to assert.equal. */ assert.equal(
+        r.image.maxDifference,
+        0,
+        "GPU LOD matches CPU rendering",
+      ),
     );
     assert.deepEqual(report.gpuLODChecks.hysteresis, [0, 0, 1, 1, 0]);
     assert.deepEqual(

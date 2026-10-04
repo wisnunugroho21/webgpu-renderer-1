@@ -24,6 +24,7 @@ export class HiZPyramid {
   passes = 0;
   private width = 0;
   private height = 0;
+  /** Initializes maximum-depth mip reduction and optional debug presentation. */
   constructor(
     private readonly device: GPUDevice,
     private readonly resources: Resources,
@@ -92,6 +93,7 @@ export class HiZPyramid {
       primitive: { topology: "triangle-list" },
     });
   }
+  /** Recreates the depth mip chain and retained reduction/debug bind groups for a new viewport. */
   resize(width: number, height: number, depth: GPUTextureView): void {
     if (width === this.width && height === this.height) return;
     if (this.texture) this.resources.textures.destroy(this.texture);
@@ -139,6 +141,7 @@ export class HiZPyramid {
       );
     }
   }
+  /** Copies camera depth and reduces successive mip levels using maximum depth. */
   encode(encoder: GPUCommandEncoder, profiler?: GPUProfiler): void {
     this.passes = 0;
     if (!this.enabled && !this.debugEnabled) return;
@@ -158,6 +161,7 @@ export class HiZPyramid {
       this.passes++;
     }
   }
+  /** Presents the selected depth mip over the final image for explicit diagnostics. */
   debug(encoder: GPUCommandEncoder, view: GPUTextureView): void {
     if (!this.debugEnabled) return;
     const level = Math.max(

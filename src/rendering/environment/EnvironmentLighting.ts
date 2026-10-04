@@ -23,29 +23,37 @@ export class EnvironmentLighting {
   private readonly params = new Float32Array([1, 0, 1, 0]);
   private dirty = false;
   private angle = 0;
+  /** Initializes one shared linear diffuse/specular environment and BRDF lookup. */
   constructor(
     private readonly device: GPUDevice,
     private readonly resources: Resources,
     private readonly preparePipelines: (layout: GPUBindGroupLayout) => void,
   ) {}
+  /** Returns installed? data. */
   get data(): EnvironmentData | undefined {
     return this.installed?.data;
   }
+  /** Evaluates the this.enabledValue && !!this.installed condition. */
   get active(): boolean {
     return this.enabledValue && !!this.installed;
   }
+  /** Returns installed? group. */
   get group(): GPUBindGroup | undefined {
     return this.installed?.group;
   }
+  /** Reports whether environment contributions are requested. */
   get enabled(): boolean {
     return this.enabledValue;
   }
+  /** Toggles use of the installed environment without discarding its resident resources. */
   set enabled(value: boolean) {
     this.enabledValue = value;
   }
+  /** Returns the radiance multiplier applied to environment lighting. */
   get intensity(): number {
     return this.params[0]!;
   }
+  /** Validates the environment radiance multiplier and marks its uniform dirty. */
   set intensity(value: number) {
     if (!Number.isFinite(value) || value < 0 || value > 65504)
       throw new Error("Invalid environment intensity");
@@ -54,9 +62,11 @@ export class EnvironmentLighting {
       this.dirty = true;
     }
   }
+  /** Returns the environment rotation about the vertical axis in radians. */
   get rotationY(): number {
     return this.angle;
   }
+  /** Validates world-Y environment rotation in radians and marks lookup parameters dirty. */
   set rotationY(value: number) {
     if (!Number.isFinite(value))
       throw new Error("Invalid environment rotation");
@@ -65,17 +75,26 @@ export class EnvironmentLighting {
     this.params[3] = Math.sin(value);
     this.dirty = true;
   }
+  /** Serializes transactional environment replacement and retires the previous GPU resources safely. */
   set(data: EnvironmentData | null): Promise<void> {
-    const operation = this.sequence.then(() => this.install(data));
-    this.sequence = operation.catch(() => {});
+    const operation = this.sequence.then(() =>
+      /** Continues environment lighting after the preceding asynchronous operation succeeds. */ this.install(
+        data,
+      ),
+    );
+    this.sequence = operation.catch(() => {
+      // Intentionally performs no work at this optional callback boundary.
+    });
     return operation;
   }
+  /** Uploads changed environment intensity/rotation parameters only when active. */
   flush(skybox = false): void {
     if (this.dirty && this.installed && (this.active || skybox)) {
       this.device.queue.writeBuffer(this.installed!.buffer, 0, this.params);
       this.dirty = false;
     }
   }
+  /** Computes the this.bindingLayout ??= this.device.createBindGroupLayout({ entries: [ { binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform", minBindingSi result. */
   private get layout(): GPUBindGroupLayout {
     return (this.bindingLayout ??= this.device.createBindGroupLayout({
       entries: [
@@ -84,14 +103,18 @@ export class EnvironmentLighting {
           visibility: GPUShaderStage.FRAGMENT,
           buffer: { type: "uniform", minBindingSize: 16 },
         },
-        ...[1, 2].map((binding) => ({
-          binding,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: {
-            sampleType: "float" as const,
-            viewDimension: "cube" as const,
-          },
-        })),
+        ...[1, 2].map(
+          (
+            binding,
+          ) => /** Builds a record containing binding, visibility, texture. */ ({
+            binding,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: {
+              sampleType: "float" as const,
+              viewDimension: "cube" as const,
+            },
+          }),
+        ),
         {
           binding: 3,
           visibility: GPUShaderStage.FRAGMENT,
@@ -105,6 +128,7 @@ export class EnvironmentLighting {
       ],
     }));
   }
+  /** Uploads validated diffuse/specular cubes and the BRDF lookup before publishing the environment group. */
   private async install(data: EnvironmentData | null): Promise<void> {
     if (this.disposed) throw new Error("Environment lighting is disposed");
     let prepared: InstalledEnvironment | undefined;
@@ -116,6 +140,7 @@ export class EnvironmentLighting {
       this.device.pushErrorScope("validation");
       let failure: unknown;
       try {
+        /** Uploads one linear HDR cubemap mip chain with the correct face layout. */
         const cube = (levels: readonly EnvironmentCubeLevel[]) => {
           const texture = this.resources.textures.create({
             size: [levels[0]!.size, levels[0]!.size, 6],
@@ -213,11 +238,13 @@ export class EnvironmentLighting {
       this.release(previous);
     }
   }
+  /** Destroys retired environment textures and parameter storage after their queued uses are safe. */
   private release(environment: InstalledEnvironment): void {
     for (const texture of environment.textures)
       this.resources.textures.destroy(texture);
     this.resources.buffers.destroy(environment.buffer);
   }
+  /** Releases the installed environment and prevents further replacement publication. */
   dispose(): void {
     this.disposed = true;
     if (this.installed) this.release(this.installed);

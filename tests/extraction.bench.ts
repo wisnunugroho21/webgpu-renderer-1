@@ -13,6 +13,8 @@ for (let i = 0; i < 10000; i++) {
 }
 new TransformSystem(10000).update(world.transforms);
 bench("Phase 7: extract 10,000 renderables into persistent arrays", () => {
+  // Measures Phase 7: extract 10,000 renderables into persistent arrays.
+
   if (extractor.extract(world, out) !== 10000)
     throw new Error("Extraction count");
 });

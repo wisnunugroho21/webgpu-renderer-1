@@ -49,8 +49,12 @@ export function createAnimationLayer(
   const playback = new AnimationLayerPlayback(options, clip.duration);
   const nodes = playback.nodes ? new Set(playback.nodes) : undefined;
   const bindings = clipBindings[playback.clip]!.filter(
-    (binding) => !nodes || nodes.has(binding.channel.node),
+    (binding) =>
+      /** Evaluates the !nodes || nodes.has(binding.channel.node) condition. */ !nodes ||
+      nodes.has(binding.channel.node),
   ).map((binding) => {
+    // Builds a record containing channel, slot, output, key index, pose, reference.
+
     const pose = new AnimationPose(binding.channel.path, binding.output.length);
     const reference = new AnimationPose(
       binding.channel.path,

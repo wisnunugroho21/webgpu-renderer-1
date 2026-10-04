@@ -6,15 +6,18 @@ export class AnimationPose {
   private readonly delta = new Float32Array(4);
   private readonly weighted = new Float32Array(4);
   private readonly identity = new Float32Array([0, 0, 0, 1]);
+  /** Initializes packed translation, rotation, scale and morph-weight pose storage. */
   constructor(
     readonly path: AnimationPath,
     size: number,
   ) {
     this.values = new Float32Array(size);
   }
+  /** Copies a compatible packed pose into this retained pose buffer. */
   copy(values: ArrayLike<number>): void {
     for (let i = 0; i < this.values.length; i++) this.values[i] = values[i]!;
   }
+  /** Interpolates translations/scales/morph weights and quaternion rotations between compatible poses. */
   blend(other: AnimationPose, weight: number): void {
     this.require(other, weight);
     if (this.path === "rotation")
@@ -51,6 +54,7 @@ export class AnimationPose {
           this.values[i]! += (pose.values[i]! - reference.values[i]!) * weight;
       }
   }
+  /** Rejects pose operations when packed layouts are incompatible. */
   private require(other: AnimationPose, weight: number): void {
     if (
       this.path !== other.path ||

@@ -9,7 +9,11 @@ import { AnimationChannel } from "../src/animation/AnimationChannel";
 import { AnimationSampler } from "../src/animation/AnimationSampler";
 
 describe("recyclable entity handles", () => {
+  // Groups checks for recyclable entity handles.
+
   it("reuses slots for thousands of lifetimes without reviving stale, forged or foreign handles", () => {
+    // Verifies reuses slots for thousands of lifetimes without reviving stale, forged or foreign handles.
+
     const world = new World(2),
       foreign = new World(2).createHandle();
     const old = world.createHandle();
@@ -19,7 +23,9 @@ describe("recyclable entity handles", () => {
       const next = world.createHandle();
       expect(next.index).toBe(old.index);
       expect(world.resolve(old)).toBe(null);
-      expect(() => world.require(old)).toThrow("Stale");
+      expect(() =>
+        /** Delegates this operation to world.require. */ world.require(old),
+      ).toThrow("Stale");
       world.destroy(old); // must not destroy the replacement
       expect(world.resolve(next)).toBe(next.index);
       expect(world.resolve({ ...next })).toBe(null);
@@ -30,27 +36,37 @@ describe("recyclable entity handles", () => {
     expect(world.count).toBe(0);
   });
   it("never recycles legacy numeric IDs or allows legacy allocation to steal reusable slots", () => {
+    // Verifies never recycles legacy numeric IDs or allows legacy allocation to steal reusable slots.
+
     const world = new World(3),
       legacy = world.create(),
       handle = world.createHandle();
     world.destroy(legacy);
     world.destroy(handle);
     expect(world.create()).toBe(2);
-    expect(() => world.create()).toThrow("capacity");
+    expect(() =>
+      /** Delegates this operation to world.create. */ world.create(),
+    ).toThrow("capacity");
     const next = world.createHandle();
     expect(next.index).toBe(handle.index);
     world.destroy(legacy);
     expect(world.resolve(next)).toBe(handle.index);
   });
   it("retires a slot at generation exhaustion rather than wrapping", () => {
+    // Verifies retires a slot at generation exhaustion rather than wrapping.
+
     const world = new World(1),
       handle = world.createHandle();
     world.generation[handle.index] = Number.MAX_SAFE_INTEGER;
     world.destroy(handle.index);
     expect(world.availableHandleSlots).toBe(0);
-    expect(() => world.createHandle()).toThrow("capacity");
+    expect(() =>
+      /** Delegates this operation to world.createHandle. */ world.createHandle(),
+    ).toThrow("capacity");
   });
   it("cleans hierarchy, queued transforms and stale LOD/controller IDs on replacement", () => {
+    // Verifies cleans hierarchy, queued transforms and stale LOD/controller IDs on replacement.
+
     const world = new World(2),
       system = new TransformSystem(2),
       parent = world.createHandle(),
@@ -80,6 +96,8 @@ describe("recyclable entity handles", () => {
     expect(world.morphs.stateId[next.index]).toBe(-1);
   });
   it("does not animate or follow a replacement in a captured slot", () => {
+    // Verifies does not animate or follow a replacement in a captured slot.
+
     const world = new World(1),
       old = world.createHandle();
     world.transforms.add(old.index);

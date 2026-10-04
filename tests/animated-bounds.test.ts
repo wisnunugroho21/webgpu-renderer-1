@@ -15,6 +15,7 @@ import { FrustumCuller } from "../src/visibility/FrustumCuller";
 import { RenderWorld } from "../src/rendering/RenderWorld";
 import { RenderExtractor } from "../src/rendering/RenderExtractor";
 import { TransformSystem } from "../src/ecs/systems/TransformSystem";
+/** Builds controlled test dependencies and reusable state for animated-bounds. */
 const setup = () => {
   const world = new World(2),
     e = world.create();
@@ -61,7 +62,10 @@ const setup = () => {
       },
       morph,
     };
-  const meshes = { get: () => mesh } as unknown as MeshManager;
+  const meshes = {
+    /** Returns mesh. */
+    get: () => mesh,
+  } as unknown as MeshManager;
   return {
     world,
     e,
@@ -73,7 +77,11 @@ const setup = () => {
   };
 };
 describe("conservative animated bounds", () => {
+  // Groups checks for conservative animated bounds.
+
   it("encloses all convex skin blends after positive and negative morph weights", () => {
+    // Verifies encloses all convex skin blends after positive and negative morph weights.
+
     const { world, e, instance, skeletons, morphs, meshes, system } = setup();
     instance.matrixViews[1]![12] = 3;
     instance.matrixViews[1]![13] = -4;
@@ -106,6 +114,8 @@ describe("conservative animated bounds", () => {
         }
   });
   it("prevents bind-pose frustum rejection when the skin is visible elsewhere", () => {
+    // Verifies prevents bind-pose frustum rejection when the skin is visible elsewhere.
+
     const { world, e, instance, skeletons, morphs, meshes, system } = setup();
     world.transforms.setPosition(e, 100, 0, 0);
     new TransformSystem(2).update(world.transforms);
@@ -125,6 +135,8 @@ describe("conservative animated bounds", () => {
     expect(culler.cull(out, f)).toBe(1);
   });
   it("handles morph-only bounds and skips static objects", () => {
+    // Verifies handles morph-only bounds and skips static objects.
+
     const { world, e, skeletons, morphs, meshes, system } = setup();
     world.skins.remove(e);
     system.update(world, meshes, skeletons, morphs);

@@ -6,14 +6,30 @@ Object.assign(globalThis, {
   GPUBufferUsage: { STORAGE: 128, COPY_SRC: 4 },
   GPUShaderStage: { COMPUTE: 4 },
 });
+/** Builds controlled test dependencies and reusable state for clusters. */
 const setup = () => {
   const device = {
-    createBuffer: vi.fn((d) => ({ size: d.size, destroy: vi.fn() })),
-    createBindGroupLayout: vi.fn((d) => ({ descriptor: d })),
-    createBindGroup: vi.fn((d) => ({ descriptor: d })),
-    createPipelineLayout: vi.fn((d) => ({ descriptor: d })),
-    createShaderModule: vi.fn((d) => ({ descriptor: d })),
-    createComputePipeline: vi.fn((d) => ({ descriptor: d })),
+    createBuffer: vi.fn(
+      (d) => /** Builds a record containing size, destroy. */ ({
+        size: d.size,
+        destroy: vi.fn(),
+      }),
+    ),
+    createBindGroupLayout: vi.fn(
+      (d) => /** Builds a record containing descriptor. */ ({ descriptor: d }),
+    ),
+    createBindGroup: vi.fn(
+      (d) => /** Builds a record containing descriptor. */ ({ descriptor: d }),
+    ),
+    createPipelineLayout: vi.fn(
+      (d) => /** Builds a record containing descriptor. */ ({ descriptor: d }),
+    ),
+    createShaderModule: vi.fn(
+      (d) => /** Builds a record containing descriptor. */ ({ descriptor: d }),
+    ),
+    createComputePipeline: vi.fn(
+      (d) => /** Builds a record containing descriptor. */ ({ descriptor: d }),
+    ),
   } as unknown as GPUDevice;
   const resources = new Resources(device),
     clusters = new ClusteredLighting(
@@ -27,7 +43,11 @@ const setup = () => {
   return { device, resources, clusters };
 };
 describe("shared GPU light clusters", () => {
+  // Groups checks for shared GPU light clusters.
+
   it("keeps viewport tiling within fixed shared storage without new buffers", () => {
+    // Verifies keeps viewport tiling within fixed shared storage without new buffers.
+
     const { resources, clusters } = setup();
     for (const [w, h] of [
       [1, 1],
@@ -43,6 +63,8 @@ describe("shared GPU light clusters", () => {
     expect(resources.stats.bufferCreations).toBe(2);
   });
   it("uses bounded many-light scenes automatically and caches compute pipelines", () => {
+    // Verifies uses bounded many-light scenes automatically and caches compute pipelines.
+
     const { resources, clusters } = setup(),
       world = new RenderWorld(1);
     world.lightCount = 64;
@@ -58,7 +80,7 @@ describe("shared GPU light clusters", () => {
         end: vi.fn(),
       },
       encoder = {
-        beginComputePass: vi.fn(() => pass),
+        beginComputePass: vi.fn(() => /** Returns pass. */ pass),
       } as unknown as GPUCommandEncoder;
     for (let i = 0; i < 3; i++) clusters.encode(encoder, i);
     expect(pass.dispatchWorkgroups).toHaveBeenCalledWith(20, 15, 24);

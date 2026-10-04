@@ -7,11 +7,13 @@ struct Output {
   @location(0) clip: vec2<f32>,
 }
 
+// Emits a far-depth fullscreen triangle so scene geometry remains in front of the sky.
 @vertex fn vs(@builtin(vertex_index) vertex: u32) -> Output {
   let clip = vec2<f32>(f32((vertex << 1u) & 2u), f32(vertex & 2u)) * 2.0 - 1.0;
   return Output(vec4<f32>(clip, 1.0, 1.0), clip);
 }
 
+// Reconstructs a world look direction and samples the environment background radiance.
 @fragment fn fs(input: Output) -> @location(0) vec4<f32> {
   // Translation cancels between projected near/far points, also for orthographic cameras.
   let near = inverseVP * vec4<f32>(input.clip, 0.0, 1.0);

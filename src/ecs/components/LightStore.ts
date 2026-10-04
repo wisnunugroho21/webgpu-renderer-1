@@ -18,6 +18,7 @@ export class LightStore extends ComponentStore {
   readonly range: Float32Array;
   readonly innerCone: Float32Array;
   readonly outerCone: Float32Array;
+  /** Initializes packed directional, point and spot-light component data. */
   constructor(capacity: number) {
     super(capacity);
     this.type = new Uint8Array(capacity);
@@ -29,6 +30,7 @@ export class LightStore extends ComponentStore {
     this.innerCone = new Float32Array(capacity);
     this.outerCone = new Float32Array(capacity);
   }
+  /** Initializes defaults once when adding a new light component. */
   override add(entity: number): void {
     if (this.has[entity]) return;
     super.add(entity);
@@ -41,6 +43,7 @@ export class LightStore extends ComponentStore {
     this.innerCone[entity] = 0;
     this.outerCone[entity] = Math.PI / 4;
   }
+  /** Validates light type, color, direction, range/cones and shadow eligibility before storing normalized values. */
   set(entity: number, light: Light): void {
     const type =
         light.type === "directional"

@@ -1,5 +1,6 @@
 import { expect, it } from "vitest";
 import { KeyboardInput } from "../src/input/KeyboardInput";
+/** Returns event. */
 function key(target: EventTarget, type: string, code: string): Event {
   const event = new Event(type, { cancelable: true });
   Object.defineProperty(event, "code", { value: code });
@@ -7,6 +8,8 @@ function key(target: EventTarget, type: string, code: string): Event {
   return event;
 }
 it("tracks held keys and consumes edges once across repeated events", () => {
+  // Verifies tracks held keys and consumes edges once across repeated events.
+
   const target = new EventTarget(),
     input = new KeyboardInput(target as HTMLElement, ["KeyW"]);
   expect(key(target, "keydown", "KeyW").defaultPrevented).toBe(true);
@@ -23,6 +26,8 @@ it("tracks held keys and consumes edges once across repeated events", () => {
   expect(input.isDown("KeyW")).toBe(false);
 });
 it("ignores unbound shortcuts and clears keys/edges on focus loss", () => {
+  // Verifies ignores unbound shortcuts and clears keys/edges on focus loss.
+
   const target = new EventTarget(),
     input = new KeyboardInput(target as HTMLElement, ["ArrowUp"]);
   expect(key(target, "keydown", "KeyP").defaultPrevented).toBe(false);
@@ -33,6 +38,8 @@ it("ignores unbound shortcuts and clears keys/edges on focus loss", () => {
   input.dispose();
 });
 it("clears held keys when the browser loses focus or the document becomes hidden", () => {
+  // Verifies clears held keys when the browser loses focus or the document becomes hidden.
+
   const target = new EventTarget(),
     view = new EventTarget(),
     document = new EventTarget();
@@ -48,6 +55,8 @@ it("clears held keys when the browser loses focus or the document becomes hidden
   input.dispose();
 });
 it("leaves browser modifier shortcuts available even for a bound letter", () => {
+  // Verifies leaves browser modifier shortcuts available even for a bound letter.
+
   const target = new EventTarget(),
     input = new KeyboardInput(target as HTMLElement, ["KeyR"]);
   const event = new Event("keydown", { cancelable: true });

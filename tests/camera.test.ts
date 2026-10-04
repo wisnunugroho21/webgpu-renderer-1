@@ -6,11 +6,14 @@ import { World } from "../src/ecs/World";
 import { CameraSystem } from "../src/ecs/systems/CameraSystem";
 import { TransformSystem } from "../src/ecs/systems/TransformSystem";
 import { cascadeSplit } from "../src/rendering/shadows/CascadeSplits";
+/** Computes the (m[10]! * -z + m[14]!) / (m[11]! * -z + m[15]!) result. */
 function depth(camera: Camera, z: number): number {
   const m = camera.projection;
   return (m[10]! * -z + m[14]!) / (m[11]! * -z + m[15]!);
 }
 it("preserves defaults, maps configurable clipping planes to standard Z, and caches unchanged matrices", () => {
+  // Verifies preserves defaults, maps configurable clipping planes to standard Z, and caches unchanged matrices.
+
   const camera = new Camera();
   camera.update(2);
   expect(camera.projection[5]).toBeCloseTo(Math.sqrt(3));
@@ -25,6 +28,8 @@ it("preserves defaults, maps configurable clipping planes to standard Z, and cac
   expect(camera.update(3)).toBe(false);
 });
 it("supports orthographic resize, zero near planes, and projection/cluster flags without changing ABI", () => {
+  // Verifies supports orthographic resize, zero near planes, and projection/cluster flags without changing ABI.
+
   const camera = new Camera();
   camera.setOrthographic({ height: 8, near: 0, far: 40 });
   camera.update(2);
@@ -46,6 +51,8 @@ it("supports orthographic resize, zero near planes, and projection/cluster flags
   expect(cascadeSplit(0, 40, 1, 4, 0)).toBe(10);
 });
 it("follows parented camera poses, applies component projection changes, switches cameras, and detaches removed cameras", () => {
+  // Verifies follows parented camera poses, applies component projection changes, switches cameras, and detaches removed cameras.
+
   const world = new World(3),
     parent = world.create(),
     first = world.create(),
@@ -75,12 +82,34 @@ it("follows parented camera poses, applies component projection changes, switche
   expect(system.activeEntity).toBeNull();
 });
 it("rejects malformed projection values before changing the active configuration", () => {
+  // Verifies rejects malformed projection values before changing the active configuration.
+
   const camera = new Camera();
-  expect(() => camera.setPerspective({ far: Infinity })).toThrow();
-  expect(() => camera.setPerspective({ near: 0 })).toThrow();
-  expect(() => camera.setOrthographic({ height: -1 })).toThrow();
-  expect(() => camera.setUp(0, 0, 0)).toThrow();
-  expect(() => camera.setPosition(NaN, 0, 0)).toThrow();
+  expect(() =>
+    /** Delegates this operation to camera.setPerspective. */ camera.setPerspective(
+      { far: Infinity },
+    ),
+  ).toThrow();
+  expect(() =>
+    /** Delegates this operation to camera.setPerspective. */ camera.setPerspective(
+      { near: 0 },
+    ),
+  ).toThrow();
+  expect(() =>
+    /** Delegates this operation to camera.setOrthographic. */ camera.setOrthographic(
+      { height: -1 },
+    ),
+  ).toThrow();
+  expect(() =>
+    /** Delegates this operation to camera.setUp. */ camera.setUp(0, 0, 0),
+  ).toThrow();
+  expect(() =>
+    /** Delegates this operation to camera.setPosition. */ camera.setPosition(
+      NaN,
+      0,
+      0,
+    ),
+  ).toThrow();
   expect(camera.projectionType).toBe("perspective");
 });
 import { RuntimeAsset } from "../src/assets/gltf/RuntimeAsset";
@@ -89,6 +118,8 @@ import { MeshManager } from "../src/rendering/MeshManager";
 import { MaterialManager } from "../src/rendering/materials/MaterialManager";
 import { Mat4 } from "../src/math/Mat4";
 it("instantiates authored glTF camera components and selects their projection and orientation", () => {
+  // Verifies instantiates authored glTF camera components and selects their projection and orientation.
+
   const asset: RuntimeAsset = {
     meshes: [],
     materials: [],
@@ -117,18 +148,24 @@ it("instantiates authored glTF camera components and selects their projection an
         yMag: 4,
       },
     ],
-    nodes: Array.from({ length: 2 }, (_, i) => ({
-      name: "camera",
-      children: new Uint32Array(),
-      mesh: -1,
-      skin: -1,
-      camera: i,
-      position: new Float32Array([3, 2, 5]),
-      rotation: new Float32Array([0, Math.SQRT1_2, 0, Math.SQRT1_2]),
-      scale: new Float32Array([1, 1, 1]),
-      matrix: Mat4.create(),
-      weights: new Float32Array(),
-    })),
+    nodes: Array.from(
+      { length: 2 },
+      (
+        _,
+        i,
+      ) => /** Builds a record containing name, children, mesh, skin, camera, position. */ ({
+        name: "camera",
+        children: new Uint32Array(),
+        mesh: -1,
+        skin: -1,
+        camera: i,
+        position: new Float32Array([3, 2, 5]),
+        rotation: new Float32Array([0, Math.SQRT1_2, 0, Math.SQRT1_2]),
+        scale: new Float32Array([1, 1, 1]),
+        matrix: Mat4.create(),
+        weights: new Float32Array(),
+      }),
+    ),
   };
   const world = new World(2),
     materials = new MaterialManager();
@@ -145,9 +182,15 @@ it("instantiates authored glTF camera components and selects their projection an
   );
   new TransformSystem(2).update(world.transforms);
   const perspective = Array.from(nodes).find(
-      (e) => world.cameras.type[e] === 0,
+      (e) =>
+        /** Evaluates the world.cameras.type[e] === 0 condition. */ world
+          .cameras.type[e] === 0,
     )!,
-    orthographic = Array.from(nodes).find((e) => world.cameras.type[e] === 1)!;
+    orthographic = Array.from(nodes).find(
+      (e) =>
+        /** Evaluates the world.cameras.type[e] === 1 condition. */ world
+          .cameras.type[e] === 1,
+    )!;
   const system = new CameraSystem(),
     camera = new Camera();
   system.select(perspective, world);

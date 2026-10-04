@@ -1,14 +1,17 @@
 export type Mat4 = Float32Array;
 /** Column-major matrices, column vectors, right-handed coordinates, standard WebGPU Z [0,1]. */
 export const Mat4 = {
+  /** Allocates an identity column-major 4×4 matrix for cold setup or caller-owned scratch. */
   create(): Mat4 {
     return Mat4.identity(new Float32Array(16));
   },
+  /** Writes identity into an existing 4×4 matrix. */
   identity(out: Mat4): Mat4 {
     out.fill(0);
     out[0] = out[5] = out[10] = out[15] = 1;
     return out;
   },
+  /** Writes the column-vector product a × b into caller storage, supporting array offsets for packed matrices. */
   multiply(
     out: Mat4,
     a: ArrayLike<number>,
@@ -50,6 +53,7 @@ export const Mat4 = {
     }
     return out;
   },
+  /** Writes the inverse matrix into caller storage using the project column-major convention. */
   invert(out: Mat4, a: ArrayLike<number>): Mat4 {
     const a00 = a[0]!,
       a01 = a[1]!,
@@ -102,6 +106,7 @@ export const Mat4 = {
     out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * d;
     return out;
   },
+  /** Builds a WebGPU zero-to-one-depth orthographic projection from view extents and clip distances. */
   orthographic(
     out: Mat4,
     left: number,
@@ -123,6 +128,7 @@ export const Mat4 = {
     out[15] = 1;
     return out;
   },
+  /** Builds a WebGPU zero-to-one-depth perspective projection from vertical FOV, aspect and clip distances. */
   perspective(
     out: Mat4,
     fovY: number,
@@ -141,6 +147,7 @@ export const Mat4 = {
     out[14] = (near * far) / (near - far);
     return out;
   },
+  /** Builds the world-to-view matrix from eye, target and up vectors. */
   lookAt(
     out: Mat4,
     eye: ArrayLike<number>,
@@ -184,6 +191,7 @@ export const Mat4 = {
     out[15] = 1;
     return out;
   },
+  /** Writes a local affine transform from translation, quaternion rotation and scale. */
   fromTRS(
     out: Mat4,
     p: ArrayLike<number>,
@@ -248,6 +256,7 @@ export const Mat4 = {
     out[outOffset + 15] = 1;
     return out;
   },
+  /** Transforms a point through an affine matrix into caller-owned three-component storage. */
   transformPoint(
     out: Float32Array,
     m: ArrayLike<number>,

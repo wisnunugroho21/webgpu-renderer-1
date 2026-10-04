@@ -5,9 +5,11 @@ export class MorphStatePool {
   readonly data: Float32Array;
   readonly states: MorphState[] = [];
   private readonly arena: RangeAllocator;
+  /** Returns the number of retained morph-weight storage arenas. */
   get count(): number {
     return this.arena.count;
   }
+  /** Initializes shared per-instance morph weights and recyclable ranges. */
   constructor(readonly capacity = 65536) {
     this.arena = new RangeAllocator(capacity);
     this.data = new Float32Array(capacity);
@@ -34,6 +36,7 @@ export class MorphStatePool {
       if (world.alive[e] && world.morphs.has[e])
         world.morphs.stateId[e] = remap.get(world.morphs.stateId[e]!)!;
   }
+  /** Reserves a weight range for one morph instance, copies initial values and marks it dirty. */
   create(targetCount: number, initial: ArrayLike<number> = []): number {
     if (!Number.isInteger(targetCount) || targetCount < 1)
       throw new Error("Morph weight capacity exceeded");

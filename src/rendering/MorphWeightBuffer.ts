@@ -6,6 +6,7 @@ export class MorphWeightBuffer {
   uploadBytes = 0;
   writes = 0;
   updatedWeights = 0;
+  /** Initializes shared GPU morph weights and dirty-range uploads. */
   constructor(manager: BufferManager, capacity: number) {
     this.buffer = manager.create({
       label: "Shared morph weights",
@@ -16,6 +17,7 @@ export class MorphWeightBuffer {
         GPUBufferUsage.COPY_SRC,
     });
   }
+  /** Uploads dirty per-instance morph-weight ranges into shared storage. */
   upload(queue: GPUQueue, world: RenderWorld): void {
     this.uploadBytes = this.writes = this.updatedWeights = 0;
     // Visit one past the last weight to flush the final dirty run.

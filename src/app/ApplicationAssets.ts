@@ -21,6 +21,7 @@ export interface AssetInstance {
   readonly nodes: readonly EntityHandle[];
   readonly animator: InstanceLifetime["animator"];
   readonly disposed: boolean;
+  /** Releases this owner or scene lifetime according to its independent ownership contract. */
   dispose(): Promise<void>;
 }
 
@@ -31,10 +32,15 @@ interface ApplicationAssetContext {
   readonly skeletons: SkeletonRegistry;
   readonly materials: MaterialManager;
   readonly gltf: GLTFLoader;
+  /** Returns the currently published renderer, including replacements after device recovery. */
   renderer(): Renderer;
+  /** Returns the currently published GPU context for cold resource operations. */
   gpu(): GPUContext;
+  /** Reports whether teardown prevents further resource publication. */
   isDisposing(): boolean;
+  /** Throws if the current device cannot accept asset publication. */
   checkDevice(): void;
+  /** Refreshes scene membership after asset publication or removal. */
   refreshSnapshot(): void;
 }
 
@@ -42,6 +48,7 @@ interface ApplicationAssetContext {
 export class ApplicationAssets {
   readonly instances: AssetInstances;
   readonly decoder: AssetDecoder;
+  /** Initializes transactional scene loading, instantiation and unloading. */
   constructor(private readonly context: ApplicationAssetContext) {
     this.instances = new AssetInstances(
       context.world,
@@ -50,54 +57,81 @@ export class ApplicationAssets {
     );
     this.decoder = new AssetDecoder(context.gltf);
   }
+  /** Returns the persistent entity world shared by asset instances. */
   private get world() {
     return this.context.world;
   }
+  /** Returns the animation registry used to attach and detach imported animators. */
   private get animations() {
     return this.context.animations;
   }
+  /** Returns the skeleton registry shared by imported scenes. */
   private get skeletons() {
     return this.context.skeletons;
   }
+  /** Returns shared CPU material descriptions retained across device recovery. */
   private get materials() {
     return this.context.materials;
   }
+  /** Resolves the current renderer so uploads do not retain a pre-recovery GPU owner. */
   private get renderer() {
     return this.context.renderer();
   }
+  /** Resolves the current GPU context at the asset transaction boundary. */
   private get gpu() {
     return this.context.gpu();
   }
+  /** Returns the shared glTF fetch/decode adapter. */
   private get gltf() {
     return this.context.gltf;
   }
+  /** Reports whether application teardown prevents further scene publication. */
   private get disposing() {
     return this.context.isDisposing();
   }
   readonly loader = new AssetLoader<JSONDocument, RuntimeAsset, UploadedAsset>(
-    (url, signal) => this.gltf.fetch(url, signal),
-    (data, signal) => this.decoder.decode(data, signal),
-    (asset, signal) => this.uploadAsset(asset, signal),
+    (url, signal) =>
+      /** Delegates this operation to this.gltf.fetch. */ this.gltf.fetch(
+        url,
+        signal,
+      ),
+    (data, signal) =>
+      /** Delegates this operation to this.decoder.decode. */ this.decoder.decode(
+        data,
+        signal,
+      ),
+    (asset, signal) =>
+      /** Delegates this operation to this.uploadAsset. */ this.uploadAsset(
+        asset,
+        signal,
+      ),
     undefined,
     {
+      /** Accumulates the input entries into one result. */
       decodedBytes: (asset) =>
         transferableBuffers(asset).reduce(
-          (bytes, buffer) => bytes + buffer.byteLength,
+          (bytes, buffer) =>
+            /** Computes the bytes + buffer.byteLength result. */ bytes +
+            buffer.byteLength,
           0,
         ),
+      /** Applies this.assertCanUnloadAsset, this.instances.detach, this.context.refreshSnapshot to before unload. */
       beforeUnload: (uploaded, asset, url) => {
         if (!this.disposing) this.assertCanUnloadAsset(url, uploaded);
         this.instances.detach(url, asset);
         this.context.refreshSnapshot();
       },
+      /** Delegates this operation to releaseUploadedAsset. */
       release: (uploaded) =>
         releaseUploadedAsset(
           uploaded,
           this.renderer.meshes,
           this.materials,
           this.renderer.textures,
-          () => this.gpu.queue.onSubmittedWorkDone(),
+          () =>
+            /** Delegates this operation to this.gpu.queue.onSubmittedWorkDone. */ this.gpu.queue.onSubmittedWorkDone(),
         ),
+      /** Returns false. */
       canEvict: (record) => {
         if (!record.uploaded) return true;
         try {
@@ -109,6 +143,7 @@ export class ApplicationAssets {
       },
     },
   );
+  /** Uploads decoded shared mesh/material resources using the current device and cancellation boundary. */
   private async uploadAsset(
     asset: RuntimeAsset,
     signal: AbortSignal,
@@ -120,6 +155,8 @@ export class ApplicationAssets {
       this.materials,
       this.renderer.textures,
       () => {
+        // Checks cancellation and current-device validity between yielded asset upload chunks.
+
         signal.throwIfAborted();
         this.context.checkDevice();
       },
@@ -133,15 +170,18 @@ export class ApplicationAssets {
   async loadAssetHandles(url: string): Promise<readonly EntityHandle[]> {
     return (await this.loadAssetInstance(url, true)).handles;
   }
+  /** Returns an immutable independent scene lease; disposing it despawns its entities while retaining shared assets. */
   async instantiateAsset(url: string): Promise<AssetInstance> {
     const instance = await this.loadAssetInstance(url, true);
     return Object.freeze({
       url,
       nodes: instance.handles,
       animator: instance.lifetime.animator,
+      /** Reports whether this scene lease has already detached its entities. */
       get disposed() {
         return instance.lifetime.disposed;
       },
+      /** Despawns this scene lease and refreshes membership while retaining shared GPU assets for other scenes. */
       dispose: async () => {
         // CPU detachment performs no GPU wait or shared-buffer destruction.
         if (instance.lifetime.disposed) return;
@@ -150,6 +190,7 @@ export class ApplicationAssets {
       },
     });
   }
+  /** Shares canonical loading while publishing an independently disposable scene lease. */
   private async loadAssetInstance(
     url: string,
     recycle: boolean,
@@ -187,6 +228,7 @@ export class ApplicationAssets {
             available: recycle
               ? this.world.availableHandleSlots
               : this.world.capacity - this.world.nextEntity,
+            /** Instantiates an uploaded asset transactionally and rolls back partially published entities on failure. */
             create: () => {
               const handle = recycle
                 ? this.world.createHandle()
@@ -207,7 +249,9 @@ export class ApplicationAssets {
           nodes,
           lifetime,
           handles: Object.freeze(
-            Array.from(nodes, (index) => handles.get(index)!),
+            Array.from(nodes, (index) =>
+              /** Returns handles.get(index)!. */ handles.get(index)!,
+            ),
           ),
         };
       } catch (error) {
@@ -220,11 +264,16 @@ export class ApplicationAssets {
     }
   }
 
+  /** Checks scene and streaming consumers before an asset can release shared GPU resources. */
   private assertCanUnloadAsset(url: string, uploaded: UploadedAsset): void {
     this.instances.assertCanUnload(url, uploaded);
     const ids = new Set(uploaded.meshIds.flat());
     for (const group of this.renderer.lodGroups.entries)
-      if (group.meshes.some((id) => ids.has(id)))
+      if (
+        group.meshes.some((id) =>
+          /** Delegates this operation to ids.has. */ ids.has(id),
+        )
+      )
         throw new Error(
           "Asset is referenced by an LOD group; detach it before unloading",
         );

@@ -3,12 +3,17 @@ import { AnimationChannel, AnimationPath } from "./AnimationChannel";
 import { AnimationSampler, Interpolation } from "./AnimationSampler";
 export class AnimationClip {
   readonly duration: number;
+  /** Initializes immutable clip channels and their duration; invalid input is rejected. */
   constructor(
     readonly name: string,
     readonly channels: readonly AnimationChannel[],
   ) {
     this.duration = channels.reduce(
-      (duration, c) => Math.max(duration, c.sampler.duration),
+      (duration, c) =>
+        /** Computes Math.max(duration, c.sampler.duration) without allocating intermediate vectors. */ Math.max(
+          duration,
+          c.sampler.duration,
+        ),
       0,
     );
     const targets = new Set<string>();
@@ -18,6 +23,7 @@ export class AnimationClip {
       targets.add(key);
     }
   }
+  /** Builds immutable engine clip channels from decoded glTF animation targets and sampler data. */
   static fromAsset(
     animation: RuntimeAsset["animations"][number],
   ): AnimationClip {
@@ -25,7 +31,7 @@ export class AnimationClip {
       animation.name,
       animation.channels.map(
         (c) =>
-          new AnimationChannel(
+          /** Creates AnimationChannel storage for this operation. */ new AnimationChannel(
             c.node,
             c.path as AnimationPath,
             new AnimationSampler(

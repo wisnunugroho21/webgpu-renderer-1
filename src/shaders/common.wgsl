@@ -6,6 +6,7 @@ struct LocalVertex {
   tangent: vec4<f32>
 }
 
+// Normalizes a direction with an epsilon denominator so degenerate vectors do not divide by zero.
 fn safeNormalize(v: vec3<f32>) -> vec3<f32> {
   return v * inverseSqrt(max(dot(v, v), 1e-20));
 }

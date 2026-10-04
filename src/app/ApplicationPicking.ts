@@ -7,11 +7,13 @@ import { RayHit, SpatialQueries } from "../spatial/SpatialQueries";
 export class ApplicationPicking {
   private readonly ray = new Ray();
   private readonly hit = new RayHit();
+  /** Initializes CSS-coordinate picking scratch and live identity checks. */
   constructor(
     private readonly canvas: HTMLCanvasElement,
     private readonly world: World,
     private readonly spatial: SpatialQueries,
   ) {}
+  /** Converts client coordinates into a world ray, tests snapshot bounds and rejects stale entity generations. */
   pick(
     camera: Camera | undefined,
     clientX: number,

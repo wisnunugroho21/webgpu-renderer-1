@@ -32,7 +32,7 @@ for (const [name, extension] of [
         .setArray(
           Uint16Array.from(
             { length: primitive.getAttribute("POSITION").getCount() },
-            (_, i) => i,
+            (_, i) => /** Returns i. */ i,
           ),
         )
         .setBuffer(document.getRoot().listBuffers()[0]),

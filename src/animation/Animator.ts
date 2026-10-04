@@ -44,6 +44,7 @@ export class Animator {
   get evaluationInterval(): number {
     return this.interval;
   }
+  /** Validates the pose-evaluation interval while clock/event advancement remains independent. */
   set evaluationInterval(seconds: number) {
     if (!Number.isFinite(seconds) || seconds < 0 || seconds > 1)
       throw new RangeError(
@@ -56,12 +57,14 @@ export class Animator {
   get evaluationPhase(): number {
     return this.phase;
   }
+  /** Validates the frame phase used to stagger pose sampling across characters. */
   set evaluationPhase(value: number) {
     if (!Number.isFinite(value) || value < 0 || value >= 1)
       throw new RangeError("Animation evaluation phase must be in [0, 1)");
     this.phase = value;
     this.pendingEvaluation = value * this.interval;
   }
+  /** Determines whether this controller pose is sampled on the current staggered evaluation cadence. */
   private evaluateFrame(delta: number, force: boolean): void {
     this.pendingEvaluation += delta;
     if (
@@ -80,6 +83,7 @@ export class Animator {
   private readonly bindings: AnimationBinding[][];
   // Preserve construction and stable arrays used by the sampling loop. Layer setup lives separately.
   private readonly slots: AnimationSlot[] = [];
+  /** Initializes one character playback clock, bindings, crossfade poses and layer state; invalid input is rejected. */
   constructor(
     readonly clips: readonly AnimationClip[],
     private readonly world: World,
@@ -88,55 +92,67 @@ export class Animator {
   ) {
     const slots = new Map<string, AnimationSlot>();
     this.bindings = clips.map((clip) =>
-      clip.channels.map((channel) => {
-        const entity = entities[channel.node] ?? -1,
-          morph = morphs.get(entity),
-          key = `${channel.node}:${channel.path}`;
-        if (
-          channel.path === "weights" &&
-          entity >= 0 &&
-          (!morph || morph.weights.length !== channel.sampler.size)
-        )
-          throw new Error("Animation morph weight count mismatch");
-        let slot = slots.get(key);
-        if (!slot) {
-          const pose = () =>
-            new AnimationPose(channel.path, channel.sampler.size);
-          slot = {
-            entity,
-            node: channel.node,
-            generation: world.generation[entity] ?? -1,
-            morph,
-            path: channel.path,
-            base: pose(),
-            source: pose(),
-            target: pose(),
-            result: pose(),
+      /** Builds an output entry for each input item. */ clip.channels.map(
+        (channel) => {
+          // Builds a record containing channel, key index, slot, output.
+
+          const entity = entities[channel.node] ?? -1,
+            morph = morphs.get(entity),
+            key = `${channel.node}:${channel.path}`;
+          if (
+            channel.path === "weights" &&
+            entity >= 0 &&
+            (!morph || morph.weights.length !== channel.sampler.size)
+          )
+            throw new Error("Animation morph weight count mismatch");
+          let slot = slots.get(key);
+          if (!slot) {
+            /** Creates AnimationPose storage for this operation. */
+            const pose = () =>
+              new AnimationPose(channel.path, channel.sampler.size);
+            slot = {
+              entity,
+              node: channel.node,
+              generation: world.generation[entity] ?? -1,
+              morph,
+              path: channel.path,
+              base: pose(),
+              source: pose(),
+              target: pose(),
+              result: pose(),
+            };
+            this.readRest(slot, slot.base.values);
+            slots.set(key, slot);
+            this.slots.push(slot);
+          } else if (slot.base.values.length !== channel.sampler.size)
+            throw new Error("Animation clip target size mismatch");
+          return {
+            channel,
+            keyIndex: 0,
+            slot,
+            output: new Float32Array(channel.sampler.size),
           };
-          this.readRest(slot, slot.base.values);
-          slots.set(key, slot);
-          this.slots.push(slot);
-        } else if (slot.base.values.length !== channel.sampler.size)
-          throw new Error("Animation clip target size mismatch");
-        return {
-          channel,
-          keyIndex: 0,
-          slot,
-          output: new Float32Array(channel.sampler.size),
-        };
-      }),
+        },
+      ),
     );
   }
   /** Events belong to this controller; source clips in a crossfade do not emit duplicates. */
   setEvents(clip: number, markers: readonly AnimationMarker[]): void {
     (this.events ??= new AnimationEvents(this.clips)).set(clip, markers);
   }
+  /** Subscribes to clip markers and returns the listener removal function. */
   onEvent(listener: AnimationEventListener): () => void {
     return (this.events ??= new AnimationEvents(this.clips)).on(listener);
   }
   /** Remove root translation/rotation from visual playback when gameplay extracts it separately. */
   setInPlaceRoot(node: number | null): void {
-    if (node !== null && !this.slots.some((slot) => slot.node === node))
+    if (
+      node !== null &&
+      !this.slots.some(
+        (slot) =>
+          /** Evaluates the slot.node === node condition. */ slot.node === node,
+      )
+    )
       throw new Error("Unknown in-place animation root");
     this.inPlaceNode = node;
     this.apply();
@@ -146,6 +162,7 @@ export class Animator {
     this.pendingEvaluation = 0;
     this.apply();
   }
+  /** Returns the retained layer playback controls without exposing internal binding state. */
   get layers(): readonly AnimationLayerPlayback[] {
     return this.layerControls;
   }
@@ -160,35 +177,46 @@ export class Animator {
     const { playback } = state;
     this.layerStates.push(state);
     this.layerControls = Object.freeze(
-      this.layerStates.map((state) => state.playback),
+      this.layerStates.map(
+        (state) => /** Returns state playback. */ state.playback,
+      ),
     );
     this.apply();
     return playback;
   }
+  /** Removes the requested layer and recomposes the current pose so its contribution disappears immediately. */
   removeLayer(playback: AnimationLayerPlayback): boolean {
     const index = this.layerStates.findIndex(
-      (state) => state.playback === playback,
+      (state) =>
+        /** Evaluates the state.playback === playback condition. */ state.playback ===
+        playback,
     );
     if (index < 0) return false;
     this.layerStates.splice(index, 1);
     this.layerControls = Object.freeze(
-      this.layerStates.map((state) => state.playback),
+      this.layerStates.map(
+        (state) => /** Returns state playback. */ state.playback,
+      ),
     );
     this.apply(true);
     return true;
   }
+  /** Drops all layer controls and recomposes the unlayered base pose. */
   clearLayers(): void {
     if (!this.layerStates.length) return;
     this.layerStates = [];
     this.layerControls = Object.freeze([]);
     this.apply(true);
   }
+  /** Returns the current clip playback time in seconds. */
   get currentTime(): number {
     return this.time;
   }
+  /** Reports whether an active crossfade blends the source pose into the current clip. */
   get crossfading(): boolean {
     return !!this.fade;
   }
+  /** Clamps a finite seek to the clip duration, cancels a crossfade and immediately resamples the pose. */
   set currentTime(value: number) {
     if (!Number.isFinite(value)) throw new Error("Invalid animation time");
     this.time = Math.max(
@@ -198,6 +226,7 @@ export class Animator {
     this.fade = undefined;
     this.apply();
   }
+  /** Validates the clip, resets time when changing clips, enables playback and applies the current pose. */
   play(clip = this.clipIndex): void {
     if (!this.clips[clip]) throw new Error("Unknown animation clip");
     if (this.clipIndex !== clip) {
@@ -208,9 +237,11 @@ export class Animator {
     this.playing = true;
     this.apply();
   }
+  /** Stops clock advancement while retaining the current sampled pose. */
   pause(): void {
     this.playing = false;
   }
+  /** Stops playback, clears a pending crossfade and reapplies the clip start pose. */
   stop(): void {
     this.playing = false;
     this.time = 0;
@@ -218,6 +249,7 @@ export class Animator {
     this.fade = undefined;
     this.apply();
   }
+  /** Starts a bounded-duration transition using retained source/destination poses, including interrupted fades. */
   crossFade(clip: number, duration: number): void {
     if (!this.clips[clip] || !Number.isFinite(duration) || duration < 0)
       throw new Error("Invalid crossfade");
@@ -242,6 +274,7 @@ export class Animator {
     this.playing = true;
     this.apply();
   }
+  /** Advances clocks/events and evaluates the current pose according to the configured sampling cadence. */
   update(deltaSeconds: number): void {
     if (
       !Number.isFinite(deltaSeconds) ||
@@ -293,6 +326,7 @@ export class Animator {
       this.loop,
     );
   }
+  /** Advances a clip clock using playback speed, wrapping or clamping at clip boundaries. */
   private advance(time: number, duration: number, delta: number): number {
     if (duration === 0) return 0;
     const next = time + delta * this.speed;
@@ -300,6 +334,7 @@ export class Animator {
       ? ((next % duration) + duration) % duration
       : Math.max(0, Math.min(duration, next));
   }
+  /** Copies bound nodes and morph weights into the reusable rest-pose storage. */
   private readRest(slot: AnimationSlot, out: Float32Array): void {
     const e = slot.entity,
       t = this.world.transforms;
@@ -331,6 +366,7 @@ export class Animator {
         break;
     }
   }
+  /** Samples and blends the base pose, composes layers and writes the resulting ECS state. */
   private apply(restoreRest = false): void {
     this.evaluations++;
     if (!this.fade && !this.layerStates.length && !restoreRest) {
@@ -371,6 +407,7 @@ export class Animator {
     }
     this.applyLayers();
   }
+  /** Composes enabled override/additive layers using masks and independent clocks without accumulating prior frame deltas. */
   private applyLayers(): void {
     if (!this.layerStates.length) {
       for (const slot of this.slots) this.write(slot, slot.result.values);
@@ -391,6 +428,7 @@ export class Animator {
     }
     for (const slot of this.slots) this.write(slot, slot.layered!.values);
   }
+  /** Samples a clip into retained pose arrays using binding-local keyframe hints. */
   private sample(binding: AnimationBinding, time: number): void {
     const sampler = binding.channel.sampler;
     // Avoid cursor reads/writes for the common two-key fixture and constant clips.
@@ -398,6 +436,7 @@ export class Animator {
       binding.keyIndex = sampler.sample(time, binding.output, binding.keyIndex);
     else sampler.sample(time, binding.output);
   }
+  /** Writes the composed local node poses and morph weights, marking only changed runtime state dirty. */
   private write(slot: AnimationSlot, v: Float32Array): void {
     if (
       slot.node === this.inPlaceNode &&

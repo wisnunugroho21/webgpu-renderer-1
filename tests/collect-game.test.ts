@@ -1,6 +1,8 @@
 import { expect, it } from "vitest";
 import { CollectGame } from "../src/examples/CollectGame";
 it("keeps diagonal speed consistent, clamps the play area, and remembers prior poses", () => {
+  // Verifies keeps diagonal speed consistent, clamps the play area, and remembers prior poses.
+
   const game = new CollectGame();
   game.step(0.1, 1, 1);
   expect(Math.hypot(game.x, game.z)).toBeCloseTo(0.5);
@@ -10,6 +12,8 @@ it("keeps diagonal speed consistent, clamps the play area, and remembers prior p
   expect(game.z).toBe(5);
 });
 it("collects each item once and restarts without allocating new item state", () => {
+  // Verifies collects each item once and restarts without allocating new item state.
+
   const game = new CollectGame(),
     collected = game.collected;
   for (let i = 0; i < game.itemX.length; i++) {

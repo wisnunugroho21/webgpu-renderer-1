@@ -17,12 +17,17 @@ export class EnvironmentWorker {
       reject: (error: Error) => void;
     }
   >();
+  /** Initializes lazy environment preparation requests and worker ownership. */
   constructor(
     private readonly factory = () =>
-      new Worker(new URL("./environment.worker.ts", import.meta.url), {
-        type: "module",
-      }),
+      /** Creates Worker storage for this operation. */ new Worker(
+        new URL("./environment.worker.ts", import.meta.url),
+        {
+          type: "module",
+        },
+      ),
   ) {}
+  /** Runs environment decoding/baking in a lazy worker or falls back to the local preparation path. */
   prepare(
     bytes: Uint8Array,
     options: EnvironmentBakeOptions,
@@ -34,6 +39,8 @@ export class EnvironmentWorker {
       this.worker.onmessage = (
         event: MessageEvent<EnvironmentPrepareReply>,
       ) => {
+        // Matches an environment worker reply to its pending request and resolves prepared data or rejects its error.
+
         const pending = this.pending.get(event.data.id);
         if (!pending) return;
         this.pending.delete(event.data.id);
@@ -44,10 +51,14 @@ export class EnvironmentWorker {
         }
       };
       this.worker.onerror = (event) =>
-        this.clear(new Error(event.message || "Environment worker failed"));
+        /** Delegates this operation to this.clear. */ this.clear(
+          new Error(event.message || "Environment worker failed"),
+        );
     }
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
+      // Applies this.pending.set, this.worker!.postMessage, this.pending.delete to the current callback state.
+
       this.pending.set(id, { resolve, reject });
       try {
         this.worker!.postMessage({ id, bytes, options }, [bytes.buffer]);
@@ -58,6 +69,7 @@ export class EnvironmentWorker {
       }
     });
   }
+  /** Terminates the worker and rejects unresolved environment jobs. */
   clear(error = new Error("Environment preparation cleared")): void {
     this.worker?.terminate();
     this.worker = undefined;

@@ -9,6 +9,7 @@ struct ClusterHeader {
 @group(0) @binding(9) var<storage, read> lights: array<Light>;
 @group(1) @binding(0) var<storage, read_write> counts: array<ClusterHeader>;
 @group(1) @binding(1) var<storage, read_write> indices: array<u32>;
+// Builds one bounded screen/depth light list; overflow metadata makes fragment shading fall back to all lights.
 @compute @workgroup_size(64) fn cs(@builtin(workgroup_id) cell: vec3<u32>, @builtin(local_invocation_index) lane: u32) {
   let tiles = vec2<u32>(frame.cluster.xy);
   let index = (cell.z * tiles.y + cell.y) * tiles.x + cell.x;

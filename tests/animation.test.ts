@@ -6,6 +6,7 @@ import { AnimationClip } from "../src/animation/AnimationClip";
 import { Animator, MorphState } from "../src/animation/Animator";
 import { World } from "../src/ecs/World";
 import { TransformSystem } from "../src/ecs/systems/TransformSystem";
+/** Creates AnimationSampler storage for this operation. */
 const sampler = (
   input: number[],
   output: number[],
@@ -19,7 +20,11 @@ const sampler = (
     rotation,
   );
 describe("animation sampling", () => {
+  // Groups checks for animation sampling.
+
   it("clamps endpoints, handles exact keys and STEP discontinuities", () => {
+    // Verifies clamps endpoints, handles exact keys and STEP discontinuities.
+
     const step = sampler([1, 2, 3], [10, 20, 30], "STEP"),
       out = new Float32Array(1);
     for (const [t, value] of [
@@ -39,6 +44,8 @@ describe("animation sampling", () => {
     expect(out[0]).toBe(2.5);
   });
   it("scales Hermite tangents by the key interval", () => {
+    // Verifies scales Hermite tangents by the key interval.
+
     // f(t)=t on [0,2], with unit in/out derivatives.
     const s = sampler([0, 2], [1, 0, 1, 1, 2, 1], "CUBICSPLINE"),
       out = new Float32Array(1);
@@ -48,6 +55,8 @@ describe("animation sampling", () => {
     expect(out[0]).toBeCloseTo(1.5);
   });
   it("uses shortest-path quaternion SLERP and normalizes cubic rotations", () => {
+    // Verifies uses shortest-path quaternion SLERP and normalizes cubic rotations.
+
     const out = new Float32Array(4);
     sampler([0, 1], [0, 0, 0, 1, 0, 0, 0, -1], "LINEAR", true).sample(0.5, out);
     expect(Math.abs(out[3]!)).toBeCloseTo(1);
@@ -63,17 +72,39 @@ describe("animation sampling", () => {
     expect(Math.hypot(...out)).toBeCloseTo(1);
   });
   it("rejects malformed key times, output sizes and duplicate channels", () => {
-    expect(() => sampler([1, 1], [0, 1])).toThrow();
-    expect(() => sampler([0, NaN], [0, 1])).toThrow();
-    expect(() => sampler([0, 1], [1, 2, 3])).toThrow();
+    // Verifies rejects malformed key times, output sizes and duplicate channels.
+
+    expect(() =>
+      /** Delegates this operation to sampler. */ sampler([1, 1], [0, 1]),
+    ).toThrow();
+    expect(() =>
+      /** Delegates this operation to sampler. */ sampler([0, NaN], [0, 1]),
+    ).toThrow();
+    expect(() =>
+      /** Delegates this operation to sampler. */ sampler([0, 1], [1, 2, 3]),
+    ).toThrow();
     expect(
-      () => new AnimationChannel(0, "translation", sampler([0, 1], [0, 1])),
+      () =>
+        /** Creates AnimationChannel storage for this operation. */ new AnimationChannel(
+          0,
+          "translation",
+          sampler([0, 1], [0, 1]),
+        ),
     ).toThrow();
     const c = new AnimationChannel(0, "weights", sampler([0], [1]));
-    expect(() => new AnimationClip("bad", [c, c])).toThrow();
+    expect(
+      () =>
+        /** Creates AnimationClip storage for this operation. */ new AnimationClip(
+          "bad",
+          [c, c],
+        ),
+    ).toThrow();
   });
 });
 describe("animator ECS playback", () => {
+  // Groups checks for animator ECS playback.
+
+  /** Builds controlled test dependencies and reusable state for animator ECS playback. */
   const setup = () => {
     const w = new World(4),
       e = w.create(),
@@ -110,6 +141,8 @@ describe("animator ECS playback", () => {
     return { w, e, child, morph, a, clip };
   };
   it("samples TRS/morph state, propagates hierarchy and preserves scratch", () => {
+    // Verifies samples TRS/morph state, propagates hierarchy and preserves scratch.
+
     const { w, e, child, morph, a } = setup(),
       sys = new TransformSystem(4);
     sys.update(w.transforms);
@@ -129,6 +162,8 @@ describe("animator ECS playback", () => {
     expect(w.transforms.dirtyCount).toBe(0);
   });
   it("supports seek, stop, loop, negative speed and non-looping endpoints", () => {
+    // Verifies supports seek, stop, loop, negative speed and non-looping endpoints.
+
     const { a } = setup();
     a.play();
     a.update(5);
@@ -153,10 +188,14 @@ describe("animator ECS playback", () => {
     expect(a.currentTime).toBe(0);
     expect(a.playing).toBe(false);
     expect(() => {
+      // Updates a current time for this callback.
+
       a.currentTime = NaN;
     }).toThrow();
   });
   it("keeps instances independent and ignores destroyed targets", () => {
+    // Verifies keeps instances independent and ignores destroyed targets.
+
     const { a, clip, w, e } = setup(),
       b = new Animator([clip], w, new Int32Array([-1]), new Map());
     a.play();
@@ -166,12 +205,18 @@ describe("animator ECS playback", () => {
     expect(a.currentTime).toBe(0.25);
     expect(b.currentTime).toBe(1);
     w.destroy(e);
-    expect(() => a.update(0.1)).not.toThrow();
+    expect(() =>
+      /** Delegates this operation to a.update. */ a.update(0.1),
+    ).not.toThrow();
   });
 });
 
 describe("shared normalized quaternion keys", () => {
+  // Groups checks for shared normalized quaternion keys.
+
   it("matches uncached sampling for arbitrary signs, lengths, endpoints and seeks", () => {
+    // Verifies matches uncached sampling for arbitrary signs, lengths, endpoints and seeks.
+
     const times = new Float32Array([0, 0.2, 0.7, 1.5]);
     const keys = new Float32Array([
       0, 0, 0, 2, 0, 0, 0, -3, 1e30, -2e30, 3e30, 4e30, 0, 0, 0, 0,
@@ -216,6 +261,8 @@ describe("shared normalized quaternion keys", () => {
 });
 
 it("keeps constant rotation poses clean and propagates changed animation to descendants", () => {
+  // Verifies keeps constant rotation poses clean and propagates changed animation to descendants.
+
   const world = new World(2),
     parent = world.create(),
     child = world.create();

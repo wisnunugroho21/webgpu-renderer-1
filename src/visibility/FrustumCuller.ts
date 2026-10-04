@@ -6,9 +6,11 @@ export class FrustumCuller {
   frustumTested = 0;
   frustumRejected = 0;
   visibleObjects = 0;
+  /** Initializes allocation-free linear sphere-frustum culling. */
   constructor(capacity: number) {
     this.visible = new Uint32Array(capacity);
   }
+  /** Tests compact render-object spheres and writes surviving indices into reusable storage. */
   cull(
     world: RenderWorld,
     frustum: Frustum,
@@ -25,6 +27,7 @@ export class FrustumCuller {
     }
     return this.visibleObjects;
   }
+  /** Evaluates one conservative sphere against the prepared clipping planes. */
   intersects(
     world: RenderWorld,
     object: number,

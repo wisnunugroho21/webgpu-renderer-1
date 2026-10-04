@@ -5,6 +5,7 @@ import { GamepadInput } from "../src/input/GamepadInput";
 import { Camera } from "../src/rendering/Camera";
 import { OrbitCameraController } from "../src/camera/OrbitCameraController";
 import { ThirdPersonCameraController } from "../src/camera/ThirdPersonCameraController";
+/** Builds a record containing target, doc, view, captures. */
 function surface() {
   const target = new EventTarget(),
     doc = new EventTarget(),
@@ -19,19 +20,24 @@ function surface() {
     ownerDocument: doc,
     style: { touchAction: "pan-y" },
     clientHeight: 480,
+    /** Intentionally performs no work at this optional callback boundary. */
     focus() {},
+    /** Applies captures.add to set pointer capture. */
     setPointerCapture(id: number) {
       captures.add(id);
     },
+    /** Delegates this operation to captures.has. */
     hasPointerCapture(id: number) {
       return captures.has(id);
     },
+    /** Applies captures.delete to release pointer capture. */
     releasePointerCapture(id: number) {
       captures.delete(id);
     },
   });
   return { target: target as HTMLElement, doc, view, captures };
 }
+/** Returns event. */
 function send(target: EventTarget, type: string, fields: object) {
   const event = new Event(type, { cancelable: true });
   Object.assign(event, fields);
@@ -39,6 +45,8 @@ function send(target: EventTarget, type: string, fields: object) {
   return event;
 }
 it("consumes captured pointer deltas and normalized wheel once, clears on focus loss and disposal", () => {
+  // Verifies consumes captured pointer deltas and normalized wheel once, clears on focus loss and disposal.
+
   const { target, captures, view } = surface(),
     pointer = new PointerInput(target),
     out = new Float32Array(3);
@@ -59,13 +67,19 @@ it("consumes captured pointer deltas and normalized wheel once, clears on focus 
   view.dispatchEvent(new Event("blur"));
   expect(captures.size).toBe(0);
   expect(pointer.dragging).toBe(false);
-  expect(() => pointer.consume(new Float32Array(2))).toThrow();
+  expect(() =>
+    /** Delegates this operation to pointer.consume. */ pointer.consume(
+      new Float32Array(2),
+    ),
+  ).toThrow();
   pointer.dispose();
   expect(target.style.touchAction).toBe("pan-y");
   send(target, "pointerdown", { pointerId: 1, button: 0 });
   expect(pointer.dragging).toBe(false);
 });
 it("preserves completed drags, rejects secondary buttons, clears hidden/cancelled input", () => {
+  // Verifies preserves completed drags, rejects secondary buttons, clears hidden/cancelled input.
+
   const { target, doc } = surface(),
     pointer = new PointerInput(target),
     out = new Float32Array(3);
@@ -89,6 +103,8 @@ it("preserves completed drags, rejects secondary buttons, clears hidden/cancelle
   pointer.dispose();
 });
 it("normalizes one touch joystick radially and releases capture on cancellation", () => {
+  // Verifies normalizes one touch joystick radially and releases capture on cancellation.
+
   const { target, captures } = surface(),
     stick = new TouchJoystick(target, 50);
   send(target, "pointerdown", {
@@ -119,9 +135,17 @@ it("normalizes one touch joystick radially and releases capture on cancellation"
   expect(captures.size).toBe(0);
   stick.dispose();
   expect(target.style.touchAction).toBe("pan-y");
-  expect(() => new TouchJoystick(target, 0)).toThrow();
+  expect(
+    () =>
+      /** Creates TouchJoystick storage for this operation. */ new TouchJoystick(
+        target,
+        0,
+      ),
+  ).toThrow();
 });
 it("polls standard gamepads with radial deadzones and persistent edges, clears disconnect/focus", () => {
+  // Verifies polls standard gamepads with radial deadzones and persistent edges, clears disconnect/focus.
+
   const { target, doc } = surface();
   const pad = {
     index: 0,
@@ -132,7 +156,11 @@ it("polls standard gamepads with radial deadzones and persistent edges, clears d
     buttons: [{ pressed: true, value: 1 }],
   } as unknown as Gamepad;
   let pads: (Gamepad | null)[] = [pad];
-  const input = new GamepadInput(target, () => pads);
+  const input = new GamepadInput(
+    target,
+    () =>
+      /** Verifies polls standard gamepads with radial deadzones and persistent edges, clears disconnect/focus. */ pads,
+  );
   input.update();
   expect(input.axes[0]).toBe(0);
   expect(Math.hypot(input.axes[2]!, input.axes[3]!)).toBeCloseTo(1);
@@ -151,14 +179,20 @@ it("polls standard gamepads with radial deadzones and persistent edges, clears d
   pads = [];
   input.update();
   expect(input.connected).toBe(false);
-  expect(input.axes.every((x) => x === 0)).toBe(true);
-  expect(() => (input.deadzone = 1)).toThrow();
+  expect(
+    input.axes.every((x) => /** Evaluates the x === 0 condition. */ x === 0),
+  ).toBe(true);
+  expect(
+    () => /** Computes the input.deadzone = 1 result. */ (input.deadzone = 1),
+  ).toThrow();
   input.dispose();
   pads = [pad];
   input.update();
   expect(input.connected).toBe(false);
 });
 it("keeps orbit radius and projection, clamps zoom/poles, resynchronizes teleports", () => {
+  // Verifies keeps orbit radius and projection, clamps zoom/poles, resynchronizes teleports.
+
   const camera = new Camera();
   camera.setPosition(0, 0, 5);
   camera.setTarget(0, 0, 0);
@@ -181,10 +215,20 @@ it("keeps orbit radius and projection, clamps zoom/poles, resynchronizes telepor
   orbit.syncFromCamera();
   orbit.update();
   expect(camera.position[2]).toBeCloseTo(6);
-  expect(() => orbit.update(NaN)).toThrow();
-  expect(() => new OrbitCameraController(camera, { minDistance: 0 })).toThrow();
+  expect(() =>
+    /** Delegates this operation to orbit.update. */ orbit.update(NaN),
+  ).toThrow();
+  expect(
+    () =>
+      /** Creates OrbitCameraController storage for this operation. */ new OrbitCameraController(
+        camera,
+        { minDistance: 0 },
+      ),
+  ).toThrow();
 });
 it("follows stationary targets identically across update rates and supports heading/snap", () => {
+  // Verifies follows stationary targets identically across update rates and supports heading/snap.
+
   const a = new Camera(),
     b = new Camera(),
     ca = new ThirdPersonCameraController(a),
@@ -199,6 +243,10 @@ it("follows stationary targets identically across update rates and supports head
   const offset = a.position[2]! - 3;
   ca.follow(0, target, 0, 0, 0, 0, true);
   expect(a.position[2]! - 3).toBeCloseTo(-offset);
-  expect(() => ca.follow(-1, target)).toThrow();
-  expect(() => ca.follow(1, [NaN, 0, 0])).toThrow();
+  expect(() =>
+    /** Delegates this operation to ca.follow. */ ca.follow(-1, target),
+  ).toThrow();
+  expect(() =>
+    /** Delegates this operation to ca.follow. */ ca.follow(1, [NaN, 0, 0]),
+  ).toThrow();
 });

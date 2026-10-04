@@ -9,7 +9,11 @@ import { RenderExtractor } from "../src/rendering/RenderExtractor";
 import { World } from "../src/ecs/World";
 import { TransformSystem } from "../src/ecs/systems/TransformSystem";
 describe("flat static BVH", () => {
+  // Groups checks for flat static BVH.
+
   it("matches linear visibility with mixed static/dynamic objects and moving dynamics", () => {
+    // Verifies matches linear visibility with mixed static/dynamic objects and moving dynamics.
+
     const w = new RenderWorld(10000),
       f = new Frustum(),
       c = new FrustumCuller(10000),
@@ -28,14 +32,22 @@ describe("flat static BVH", () => {
       hierarchical = bvh.cull(w, f, c);
     expect(hierarchical).toBe(linear);
     expect(
-      Array.from(bvh.visible.subarray(0, hierarchical)).sort((a, b) => a - b),
-    ).toEqual(Array.from(c.visible.subarray(0, linear)).sort((a, b) => a - b));
+      Array.from(bvh.visible.subarray(0, hierarchical)).sort(
+        (a, b) => /** Computes the a - b result. */ a - b,
+      ),
+    ).toEqual(
+      Array.from(c.visible.subarray(0, linear)).sort(
+        (a, b) => /** Computes the a - b result. */ a - b,
+      ),
+    );
     w.boundsMin.set([0, 0, 0.4], 0);
     w.boundsMax.set([0.1, 0.1, 0.6], 0);
     expect(bvh.cull(w, f, c)).toBe(c.cull(w, f));
     expect(bvh.nodeCount).toBeLessThan(20000);
   });
   it("bulk accepts contained nodes, rejects outside subtrees and handles empty trees", () => {
+    // Verifies bulk accepts contained nodes, rejects outside subtrees and handles empty trees.
+
     const w = new RenderWorld(100),
       f = new Frustum(),
       c = new FrustumCuller(100),
@@ -60,6 +72,8 @@ describe("flat static BVH", () => {
     expect(bvh.nodesTested).toBe(1);
   });
   it("invalidates static snapshots for movement, membership and compaction", () => {
+    // Verifies invalidates static snapshots for movement, membership and compaction.
+
     const w = new World(2),
       out = new RenderWorld(2),
       extractor = new RenderExtractor(),

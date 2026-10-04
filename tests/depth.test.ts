@@ -9,8 +9,12 @@ import { MaterialTextures } from "../src/rendering/materials/MaterialTextures";
 import { BatchBuilder } from "../src/rendering/BatchBuilder";
 import { GPUProfiler } from "../src/profiling/GPUProfiler";
 describe("optional depth prepass", () => {
+  // Groups checks for optional depth prepass.
+
   it("submits opaque and mask batches through shared groups while excluding blend", () => {
-    const get = vi.fn((d) => d),
+    // Verifies submits opaque and mask batches through shared groups while excluding blend.
+
+    const get = vi.fn((d) => /** Returns d. */ d),
       groups = [{}],
       geometry = {
         descriptors: [{ depthStencil: { format: "depth32float" } }],
@@ -19,7 +23,10 @@ describe("optional depth prepass", () => {
       } as unknown as ShadowManager;
     const resources = { pipelines: { get } } as unknown as Resources,
       mesh = { indexCount: 6, topology: 0, vertex: {}, index: {} },
-      meshes = { get: () => mesh } as unknown as MeshManager;
+      meshes = {
+        /** Returns mesh. */
+        get: () => mesh,
+      } as unknown as MeshManager;
     const materials = {
         alphaMode: new Uint8Array([0, 1, 2]),
         doubleSided: new Uint8Array(3),
@@ -45,7 +52,7 @@ describe("optional depth prepass", () => {
         end: vi.fn(),
       },
       encoder = {
-        beginRenderPass: vi.fn(() => pass),
+        beginRenderPass: vi.fn(() => /** Returns pass. */ pass),
       } as unknown as GPUCommandEncoder,
       stats = new RendererStats();
     const batches = {
@@ -55,7 +62,10 @@ describe("optional depth prepass", () => {
         instanceCount: new Uint32Array([4, 2, 1]),
         firstInstance: new Uint32Array([0, 4, 6]),
       } as unknown as BatchBuilder,
-      profiler = { writes: () => undefined } as unknown as GPUProfiler;
+      profiler = {
+        /** Returns undefined. */
+        writes: () => undefined,
+      } as unknown as GPUProfiler;
     depth.encode(
       encoder,
       {} as GPUTextureView,

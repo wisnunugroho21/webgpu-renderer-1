@@ -8,7 +8,11 @@ for (let i = 0; i < positions.length / 3; i++) {
 }
 for (let i = 0; i < indices.length; i++) indices[i] = i % 100001;
 describe("Phase 44 optional geometry cold preparation", () => {
+  // Groups checks for Phase 44 optional geometry cold preparation.
+
   bench("200,000 triangles into conservative 256-triangle clusters", () => {
+    // Measures 200,000 triangles into conservative 256-triangle clusters.
+
     new MeshClusters(positions, indices);
   });
 });

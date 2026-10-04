@@ -2,12 +2,13 @@
 export class CacheKey {
   private nextId = 1;
   private readonly ids = new WeakMap<object, number>();
+  /** Serializes descriptor values with stable ordering and object identities for resource cache keys. */
   encode(value: unknown): string {
     if (value === undefined) return "undefined";
     if (value === null || typeof value !== "object")
       return JSON.stringify(value);
     if (Array.isArray(value))
-      return `[${value.map((v) => this.encode(v)).join(",")}]`;
+      return `[${value.map((v) => /** Delegates this operation to this.encode. */ this.encode(v)).join(",")}]`;
     if (
       Object.getPrototypeOf(value) !== Object.prototype &&
       Object.getPrototypeOf(value) !== null
@@ -21,9 +22,16 @@ export class CacheKey {
     }
     const object = value as Record<string, unknown>;
     return `{${Object.keys(object)
-      .filter((k) => k !== "label" && object[k] !== undefined)
+      .filter(
+        (k) =>
+          /** Evaluates the k !== "label" && object[k] !== undefined condition. */ k !==
+            "label" && object[k] !== undefined,
+      )
       .sort()
-      .map((k) => `${JSON.stringify(k)}:${this.encode(object[k])}`)
+      .map(
+        (k) =>
+          /** Returns `${JSON.stringify(k)}:${this.encode(object[k])}`. */ `${JSON.stringify(k)}:${this.encode(object[k])}`,
+      )
       .join(",")}}`;
   }
 }

@@ -9,16 +9,25 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } }),
     errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) =>
+    /** Delegates this operation to errors.push. */ errors.push(error.message),
+  );
   await page.goto("http://127.0.0.1:5198");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const report = await page.evaluate(async () => {
+    // Builds a record containing filmic, auto one, auto four, frozen, compensation, odd.
+
     const app = window.rendererApp;
     app.stop();
     let r = app.renderer;
     const w = app.world;
     app.gpu.device.pushErrorScope("validation");
     w.destroy(app.sceneEntity);
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       app.transformSystem.update(w.transforms);
       app.skeletonSystem.update(w, app.skeletons);
@@ -60,9 +69,12 @@ try {
           ],
       };
     };
+    /** Compares diagnostic pixel buffers and reports their differing values. */
     const difference = (a, b) =>
       a.bytes.reduce(
-        (n, value, index) => n + Number(value !== b.bytes[index]),
+        (n, value, index) =>
+          /** Computes the n + Number(value !== b.bytes[index]) result. */ n +
+          Number(value !== b.bytes[index]),
         0,
       );
     r.hdr.enabled = true;
@@ -111,7 +123,8 @@ try {
     const bloom = await draw();
     const halo = noBloom.bytes.reduce(
       (n, value, index) =>
-        n + Number(index % 4 === 0 && value === 0 && bloom.bytes[index] > 0),
+        /** Computes the n + Number(index % 4 === 0 && value === 0 && bloom.bytes[index] > 0) result. */ n +
+        Number(index % 4 === 0 && value === 0 && bloom.bytes[index] > 0),
       0,
     );
     r.hdr.bloomStrength = 0;
@@ -149,7 +162,7 @@ try {
         await app.gpu.queue.onSubmittedWorkDone();
         if (i >= 10) samples.push(performance.now() - start);
       }
-      samples.sort((a, b) => a - b);
+      samples.sort((a, b) => /** Computes the a - b result. */ a - b);
       timing.push({ effects, completionMedianMs: samples[10] });
     }
     const invalid = [];
@@ -202,12 +215,14 @@ try {
       finalLive: [r.resources.stats.buffers, r.resources.stats.textures],
     };
   });
+  /** Converts a linear reference value into an 8-bit sRGB display value. */
   const srgb = (linear) =>
     Math.round(
       (linear <= 0.0031308
         ? linear * 12.92
         : 1.055 * linear ** (1 / 2.4) - 0.055) * 255,
     );
+  /** Evaluates the reference filmic tone curve for analytic pixel assertions. */
   const curve = (x) =>
     Math.min(1, (x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14));
   assert.ok(Math.abs(report.filmic - srgb(curve(0.18))) <= 1);

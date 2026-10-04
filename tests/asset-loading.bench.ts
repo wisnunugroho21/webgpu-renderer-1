@@ -10,6 +10,7 @@ for (let i = 0; i < 100000; i++) {
   positions[i * 3 + 1] = Math.floor(i / 100) * 0.01;
   normals[i * 3 + 2] = 1;
 }
+/** Delegates this operation to document.createAccessor().setType("VEC3").setArray(data).setBuffer. */
 const attribute = (data: Float32Array) =>
   document.createAccessor().setType("VEC3").setArray(data).setBuffer(buffer);
 const primitive = document
@@ -20,7 +21,9 @@ const primitive = document
     document
       .createAccessor()
       .setType("SCALAR")
-      .setArray(Uint32Array.from({ length: 99999 }, (_, i) => i))
+      .setArray(
+        Uint32Array.from({ length: 99999 }, (_, i) => /** Returns i. */ i),
+      )
       .setBuffer(buffer),
   );
 document
@@ -33,6 +36,8 @@ document
 const bytes = await new NodeIO().writeBinary(document),
   loader = new GLTFLoader();
 bench("parse and convert 100000 glTF vertices", async () => {
+  // Measures parse and convert 100000 glTF vertices.
+
   const asset = await loader.parseGLB(bytes);
   if (asset.meshes[0]!.primitives[0]!.attributes.POSITION!.length !== 300000)
     throw new Error("Decode mismatch");
@@ -44,10 +49,20 @@ Object.assign(globalThis, {
 });
 const runtime = await loader.parseGLB(bytes);
 const meshes = new MeshManager(
-  { buffers: { create: () => ({}) } } as unknown as Resources,
-  { writeBuffer: () => {} } as unknown as GPUQueue,
+  {
+    buffers: {
+      /** Returns an empty fixture handle for a controlled test dependency. */
+      create: () => ({}),
+    },
+  } as unknown as Resources,
+  {
+    /** Intentionally performs no work at this optional callback boundary. */
+    writeBuffer: () => {},
+  } as unknown as GPUQueue,
 );
 bench("preprocess and pack 100000 mesh vertices (no GPU upload)", () => {
+  // Measures preprocess and pack 100000 mesh vertices (no GPU upload).
+
   meshes.upload(runtime.meshes[0]!.primitives[0]!);
   // Fake GPU benchmark must not retain one 10 MiB recovery array per sample.
   meshes.clearRecovery();
@@ -60,6 +75,8 @@ const prepared = prepareMesh(preparedPrimitive);
 bench(
   "publish worker-prepared 100000 vertices (fake GPU, no CPU packing)",
   () => {
+    // Measures publish worker-prepared 100000 vertices (fake GPU, no CPU packing).
+
     meshes.upload({ ...preparedPrimitive, prepared });
     meshes.clearRecovery();
     meshes.entries.length = 0;

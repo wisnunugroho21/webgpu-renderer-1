@@ -57,6 +57,7 @@ struct DrawIndexedArgs {
 @group(0) @binding(5) var<storage, read_write> arguments: array<DrawIndexedArgs>;
 @group(0) @binding(6) var<storage, read_write> visibleRecords: array<VisibleRecord>;
 @group(0) @binding(7) var<storage, read> lodSelections: array<i32>;
+// Resets indexed indirect counts and seeds transparent visible-record slots in stable CPU order.
 @compute @workgroup_size(64) fn initialize(@builtin(global_invocation_id) invocation: vec3<u32>) {
   let id = invocation.x;
   if (id < params.batches) {
@@ -82,6 +83,7 @@ struct DrawIndexedArgs {
   }
 }
 
+// Appends compacted visible objects to opaque argument ranges while preserving transparent ranks and LOD layout.
 @compute @workgroup_size(64) fn buildArguments(@builtin(global_invocation_id) invocation: vec3<u32>) {
   let id = invocation.x;
   if (id >= counter.count) {

@@ -8,6 +8,7 @@ const lightBytes = LIGHT_BYTES;
 export class LightBuffer {
   readonly buffer: GPUBuffer;
   uploadBytes = 0;
+  /** Initializes shared packed GPU light records. */
   constructor(manager: BufferManager, capacity: number) {
     this.buffer = manager.create({
       label: "Shared lights",
@@ -15,6 +16,7 @@ export class LightBuffer {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
   }
+  /** Uploads packed lights only when extraction reports changed light data. */
   upload(queue: GPUQueue, world: RenderWorld): void {
     this.uploadBytes = 0;
     // The extra sentinel iteration flushes a dirty run ending at the last record.

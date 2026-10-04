@@ -1,6 +1,7 @@
 import { EnvironmentData, validateEnvironment } from "./EnvironmentData";
 const MAGIC = 0x564e4557,
   HEADER = 24;
+/** Checks the archive magic before selecting the prepared-environment decoder. */
 export function isEnvironmentArchive(bytes: Uint8Array): boolean {
   return (
     bytes.byteLength >= HEADER &&
@@ -15,10 +16,16 @@ export function encodeEnvironmentArchive(data: EnvironmentData): Uint8Array {
   validateEnvironment(data, 512);
   const arrays = [
     ...data.diffuse.faces,
-    ...data.specular.flatMap((level) => level.faces),
+    ...data.specular.flatMap(
+      (level) => /** Returns level faces. */ level.faces,
+    ),
     data.brdf.pixels,
   ];
-  const count = arrays.reduce((sum, array) => sum + array.length, 0),
+  const count = arrays.reduce(
+      (sum, array) =>
+        /** Computes the sum + array.length result. */ sum + array.length,
+      0,
+    ),
     bytes = new Uint8Array(HEADER + count * 4);
   const view = new DataView(bytes.buffer);
   [
@@ -28,7 +35,13 @@ export function encodeEnvironmentArchive(data: EnvironmentData): Uint8Array {
     data.specular[0]!.size,
     data.brdf.size,
     count,
-  ].forEach((value, index) => view.setUint32(index * 4, value, true));
+  ].forEach((value, index) =>
+    /** Delegates this operation to view.setUint32. */ view.setUint32(
+      index * 4,
+      value,
+      true,
+    ),
+  );
   let offset = HEADER;
   for (const array of arrays)
     for (const value of array) {
@@ -37,6 +50,7 @@ export function encodeEnvironmentArchive(data: EnvironmentData): Uint8Array {
     }
   return bytes;
 }
+/** Validates archive headers/dimensions and restores the linear HDR cube/LUT arrays. */
 export function decodeEnvironmentArchive(bytes: Uint8Array): EnvironmentData {
   if (!isEnvironmentArchive(bytes))
     throw new Error("Invalid environment archive");
@@ -48,7 +62,11 @@ export function decodeEnvironmentArchive(bytes: Uint8Array): EnvironmentData {
     brdf = view.getUint32(16, true),
     count = view.getUint32(20, true);
   if (
-    [diffuse, specular, brdf].some((size) => size < 1 || size > 512) ||
+    [diffuse, specular, brdf].some(
+      (size) =>
+        /** Evaluates the size < 1 || size > 512 condition. */ size < 1 ||
+        size > 512,
+    ) ||
     !Number.isInteger(Math.log2(specular))
   )
     throw new Error("Invalid environment archive dimensions");
@@ -60,9 +78,12 @@ export function decodeEnvironmentArchive(bytes: Uint8Array): EnvironmentData {
   for (let i = 0; i < count; i++)
     pixels[i] = view.getFloat32(HEADER + i * 4, true);
   let offset = 0;
+  /** Builds a record containing size, faces. */
   const cube = (size: number) => ({
     size,
     faces: Array.from({ length: 6 }, () => {
+      // Returns face.
+
       const face = pixels.subarray(offset, offset + size * size * 4);
       offset += face.length;
       return face;

@@ -12,6 +12,7 @@ export class GPUOcclusionCuller {
   private readonly pipeline: GPUComputePipeline;
   private readonly groups: GPUBindGroup[] = [];
   private texture?: GPUTexture;
+  /** Initializes conservative current-frame Hi-Z occlusion refinement. */
   constructor(
     private readonly device: GPUDevice,
     resources: Resources,
@@ -56,6 +57,7 @@ export class GPUOcclusionCuller {
       },
     });
   }
+  /** Rebinds the current Hi-Z texture after pyramid recreation. */
   resize(texture: GPUTexture): void {
     if (this.texture === texture) return;
     this.texture = texture;
@@ -75,6 +77,7 @@ export class GPUOcclusionCuller {
         }),
       );
   }
+  /** Refines frustum visibility conservatively using current-frame projected bounds and maximum Hi-Z depth. */
   encode(
     encoder: GPUCommandEncoder,
     slot: number,

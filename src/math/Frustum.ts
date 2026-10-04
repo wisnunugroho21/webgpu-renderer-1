@@ -18,6 +18,7 @@ export class Frustum {
       for (let c = 0; c < 4; c++) this.planes[plane * 4 + c]! /= length;
     }
   }
+  /** Rejects a sphere only when it lies fully outside a clipping plane. */
   intersectsSphere(sphere: BoundingSphere): boolean {
     for (let p = 0; p < 24; p += 4)
       if (
@@ -30,6 +31,7 @@ export class Frustum {
         return false;
     return true;
   }
+  /** Tests the box positive vertex against each plane for conservative rejection. */
   intersectsAABB(box: AABB): boolean {
     for (let p = 0; p < 24; p += 4) {
       let distance = this.planes[p + 3]!;

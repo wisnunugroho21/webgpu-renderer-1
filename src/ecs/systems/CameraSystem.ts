@@ -6,6 +6,7 @@ export class CameraSystem {
   private generation = -1;
   private readonly values = new Float64Array(6);
   private readonly previous = new Float64Array(6).fill(NaN);
+  /** Validates the selected camera entity and records its identity; null clears ECS camera ownership. */
   select(entity: number | null, world: World): void {
     if (
       entity !== null &&
@@ -18,6 +19,7 @@ export class CameraSystem {
     this.generation = entity === null ? -1 : world.generation[entity]!;
     this.previous.fill(NaN);
   }
+  /** Copies the selected live camera projection and world-space pose into renderer camera state. */
   update(world: World, camera: Camera): void {
     const e = this.activeEntity;
     if (e === null) return;

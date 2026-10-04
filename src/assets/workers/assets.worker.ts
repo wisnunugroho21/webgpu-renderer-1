@@ -5,6 +5,8 @@ import { transferableBuffers } from "./transfer";
 const loader = new GLTFLoader();
 const scope = globalThis as unknown as AssetWorkerScope;
 scope.onmessage = async (event) => {
+  // Decodes and canonically prepares mesh data in the worker, then transfers engine arrays or a failure reply.
+
   const { id, json } = event.data;
   try {
     const start = performance.now(),

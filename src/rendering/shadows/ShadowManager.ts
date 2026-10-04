@@ -51,17 +51,21 @@ export class ShadowManager {
   private readonly drawLayer = new Uint8Array(16);
   private cascadeCount = 1;
   private distance = 30;
+  /** Returns the configured number of directional shadow cascades. */
   get cascades(): number {
     return this.cascadeCount;
   }
+  /** Validates the directional cascade count against the supported fixed shadow layout. */
   set cascades(value: number) {
     if (!Number.isInteger(value) || value < 1 || value > 4)
       throw new Error("Shadow cascades must be 1–4");
     this.cascadeCount = value;
   }
+  /** Returns the maximum camera distance covered by directional shadows in world units. */
   get shadowDistance(): number {
     return this.distance;
   }
+  /** Validates the farthest camera distance covered by directional shadows. */
   set shadowDistance(value: number) {
     if (!Number.isFinite(value) || value <= 0)
       throw new Error("Shadow distance must be positive");
@@ -71,6 +75,7 @@ export class ShadowManager {
   private readonly frustum = new Frustum();
   private readonly culler: FrustumCuller;
   private readonly visible: Uint8Array;
+  /** Initializes directional cascade maps, caster queues and shadow settings. */
   constructor(
     private readonly device: GPUDevice,
     resources: Resources,
@@ -96,11 +101,13 @@ export class ShadowManager {
     });
     this.view = this.texture.createView({ dimension: "2d-array" });
     this.views = Array.from({ length: this.capacity }, (_, layer) =>
-      this.texture.createView({
-        dimension: "2d",
-        baseArrayLayer: layer,
-        arrayLayerCount: 1,
-      }),
+      /** Delegates this operation to this.texture.createView. */ this.texture.createView(
+        {
+          dimension: "2d",
+          baseArrayLayer: layer,
+          arrayLayerCount: 1,
+        },
+      ),
     );
     this.sampler = resources.samplers.get({
       compare: "less-equal",
@@ -114,50 +121,64 @@ export class ShadowManager {
     });
     // Exclude the sampled shadow texture from depth-pass groups to avoid feedback hazards.
     const layout = device.createBindGroupLayout({
-      entries: Array.from({ length: 9 }, (_, binding) => ({
-        binding,
-        visibility:
-          binding === 2 ? GPUShaderStage.FRAGMENT : GPUShaderStage.VERTEX,
-        buffer: {
-          type:
-            binding === 0
-              ? ("uniform" as const)
-              : ("read-only-storage" as const),
-          minBindingSize:
-            binding === 0
-              ? 192
-              : binding === 2
-                ? 80
-                : binding === 3
-                  ? 48
-                  : binding === 5
-                    ? 4
-                    : binding >= 6
-                      ? 16
-                      : 64,
-          hasDynamicOffset: binding === 3,
-        },
-      })),
+      entries: Array.from(
+        { length: 9 },
+        (
+          _,
+          binding,
+        ) => /** Builds a record containing binding, visibility, buffer. */ ({
+          binding,
+          visibility:
+            binding === 2 ? GPUShaderStage.FRAGMENT : GPUShaderStage.VERTEX,
+          buffer: {
+            type:
+              binding === 0
+                ? ("uniform" as const)
+                : ("read-only-storage" as const),
+            minBindingSize:
+              binding === 0
+                ? 192
+                : binding === 2
+                  ? 80
+                  : binding === 3
+                    ? 48
+                    : binding === 5
+                      ? 4
+                      : binding >= 6
+                        ? 16
+                        : 64,
+            hasDynamicOffset: binding === 3,
+          },
+        }),
+      ),
     });
     this.groups = dynamic.buffers.map((buffer) =>
-      device.createBindGroup({
-        layout,
-        entries: Array.from({ length: 9 }, (_, binding) => ({
-          binding,
-          resource:
-            binding === 0
-              ? { buffer, offset: 0, size: 192 }
-              : binding === 1
-                ? {
-                    buffer,
-                    offset: dynamic.alignment,
-                    size: world.capacity * 64,
-                  }
-                : binding === 3
-                  ? { buffer, offset: 0, size: world.capacity * 48 }
-                  : { buffer: bindings[binding]! },
-        })),
-      }),
+      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+        {
+          layout,
+          entries: Array.from(
+            { length: 9 },
+            (
+              _,
+              binding,
+            ) => /** Builds a record containing binding, resource. */ ({
+              binding,
+              resource:
+                binding === 0
+                  ? { buffer, offset: 0, size: 192 }
+                  : binding === 1
+                    ? {
+                        buffer,
+                        offset: dynamic.alignment,
+                        size: world.capacity * 64,
+                      }
+                    : binding === 3
+                      ? { buffer, offset: 0, size: world.capacity * 48 }
+                      : { buffer: bindings[binding]! },
+            }),
+          ),
+        },
+      ),
     );
     const passLayout = device.createBindGroupLayout({
       entries: [
@@ -173,10 +194,12 @@ export class ShadowManager {
       ],
     });
     this.passGroups = dynamic.buffers.map((buffer) =>
-      device.createBindGroup({
-        layout: passLayout,
-        entries: [{ binding: 0, resource: { buffer, size: 64 } }],
-      }),
+      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+        {
+          layout: passLayout,
+          entries: [{ binding: 0, resource: { buffer, size: 64 } }],
+        },
+      ),
     );
     const module = resources.shaders.get(
       [frame, geometry, common, morph, skin, shader].join("\n"),
@@ -185,32 +208,41 @@ export class ShadowManager {
     const pipelineLayout = device.createPipelineLayout({
       bindGroupLayouts: [layout, textures.layout, passLayout],
     });
-    this.descriptors = Array.from({ length: 6 }, (_, index) => ({
-      label: "Shadow depth",
-      layout: pipelineLayout,
-      vertex: { module, entryPoint: "shadowVS", buffers: vertexBuffers },
-      fragment: { module, entryPoint: "shadowFS", targets: [] },
-      primitive: {
-        topology:
-          index % 3 === 0
-            ? "triangle-list"
-            : index % 3 === 1
-              ? "line-list"
-              : "point-list",
-        cullMode: index % 3 !== 0 || index >= 3 ? "none" : "back",
-      },
-      depthStencil: {
-        format: "depth32float",
-        depthCompare: "less",
-        depthWriteEnabled: true,
-        depthBias: index % 3 === 0 ? 2 : 0,
-        depthBiasSlopeScale: index % 3 === 0 ? 2 : 0,
-      },
-    }));
+    this.descriptors = Array.from(
+      { length: 6 },
+      (
+        _,
+        index,
+      ) => /** Builds a record containing label, layout, vertex, fragment, primitive, depth stencil. */ ({
+        label: "Shadow depth",
+        layout: pipelineLayout,
+        vertex: { module, entryPoint: "shadowVS", buffers: vertexBuffers },
+        fragment: { module, entryPoint: "shadowFS", targets: [] },
+        primitive: {
+          topology:
+            index % 3 === 0
+              ? "triangle-list"
+              : index % 3 === 1
+                ? "line-list"
+                : "point-list",
+          cullMode: index % 3 !== 0 || index >= 3 ? "none" : "back",
+        },
+        depthStencil: {
+          format: "depth32float",
+          depthCompare: "less",
+          depthWriteEnabled: true,
+          depthBias: index % 3 === 0 ? 2 : 0,
+          depthBiasSlopeScale: index % 3 === 0 ? 2 : 0,
+        },
+      }),
+    );
     this.pipelines = this.descriptors.map((descriptor) =>
-      resources.pipelines.get(descriptor),
+      /** Returns the keyed entry from resources pipelines. */ resources.pipelines.get(
+        descriptor,
+      ),
     );
   }
+  /** Selects directional cascades/casters, compares cached scene state and packs changed shadow parameters. */
   prepare(
     world: RenderWorld,
     camera: Camera,
@@ -302,6 +334,7 @@ export class ShadowManager {
       this.uniforms.subarray(0, this.layerCount * 64),
     );
   }
+  /** Renders required shadow layers with shared deformation and alpha-mask handling. */
   encode(
     encoder: GPUCommandEncoder,
     world: RenderWorld,

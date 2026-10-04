@@ -41,6 +41,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
   private readonly unloading = new Map<string, Promise<void>>();
   private clock = 0;
   private disposed = false;
+  /** Initializes deduplicated asset states, cancellation and decoded-cache budgets. */
   constructor(
     private readonly network: (
       url: string,
@@ -55,7 +56,10 @@ export class AssetLoader<Network, Decoded, Uploaded> {
       signal: AbortSignal,
     ) => Promise<Uploaded>,
     private readonly yieldTask = () =>
-      new Promise<void>((resolve) => setTimeout(resolve, 0)),
+      /** Creates Promise storage for this operation. */ new Promise<void>(
+        (resolve) =>
+          /** Delegates this operation to setTimeout. */ setTimeout(resolve, 0),
+      ),
     private readonly options: AssetLoaderOptions<Decoded, Uploaded> = {},
   ) {
     this.budget = {
@@ -65,6 +69,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     };
     this.validateBudget(this.budget);
   }
+  /** Rejects nonfinite or negative decoded-cache budget limits. */
   private validateBudget(budget: AssetCacheBudget): void {
     if (
       !Number.isSafeInteger(budget.maxRecords) ||
@@ -74,11 +79,13 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     )
       throw new Error("Invalid asset cache budget");
   }
+  /** Applies record.history.shift, record.history.push to set. */
   private set(record: AssetRecord<Decoded, Uploaded>, state: AssetState): void {
     record.state = state;
     if (record.history.length === 64) record.history.shift();
     record.history.push(state);
   }
+  /** Returns the URL cache record, creating its unloaded state on first access. */
   get(url: string): AssetRecord<Decoded, Uploaded> {
     let record = this.records.get(url);
     if (!record) {
@@ -105,12 +112,15 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     record.references++;
     let released = false;
     return () => {
+      // Updates record references, released for this callback.
+
       if (!released) {
         record.references = Math.max(0, record.references - 1);
         released = true;
       }
     };
   }
+  /** Deduplicates fetch/decode/upload work, handles cancellation and publishes one tracked asset record. */
   load(url: string): Promise<Uploaded> {
     if (this.disposed)
       return Promise.reject(new Error("Asset loader disposed"));
@@ -129,6 +139,8 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     record.error = undefined;
     Object.assign(record.timings, { networkMs: 0, decodeMs: 0, uploadMs: 0 });
     const pending = Promise.resolve().then(async () => {
+      // Fetches, decodes and uploads the URL transaction with cancellation checks and rollback.
+
       let uploaded: Uploaded | undefined;
       try {
         signal.throwIfAborted();
@@ -190,6 +202,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     record.pending = pending;
     return pending;
   }
+  /** Aborts a matching in-flight asset transaction and reports whether cancellation was requested. */
   cancel(url: string): boolean {
     const controller = this.controllers.get(url);
     if (!controller || controller.signal.aborted) return false;
@@ -215,7 +228,11 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     this.set(record, "Unloading");
     const operation = Promise.resolve()
       .then(async () => {
-        await record.pending?.catch(() => {});
+        // Waits for pending load settlement, releases uploaded ownership and removes the cache record.
+
+        await record.pending?.catch(() => {
+          // Intentionally performs no work at this optional callback boundary.
+        });
         if (record.uploaded !== undefined)
           await this.options.release?.(record.uploaded);
         record.decoded = undefined;
@@ -224,7 +241,11 @@ export class AssetLoader<Network, Decoded, Uploaded> {
         this.set(record, "Unloaded");
         this.records.delete(url);
       })
-      .finally(() => this.unloading.delete(url));
+      .finally(() =>
+        /** Delegates this operation to this.unloading.delete. */ this.unloading.delete(
+          url,
+        ),
+      );
     this.unloading.set(url, operation);
     return operation;
   }
@@ -232,7 +253,9 @@ export class AssetLoader<Network, Decoded, Uploaded> {
   private trimEmptyRecords(protectedURL: string): void {
     if (this.records.size <= this.budget.maxRecords) return;
     const candidates = Array.from(this.records.values()).sort(
-      (a, b) => a.lastUsed - b.lastUsed,
+      (a, b) =>
+        /** Computes the a.lastUsed - b.lastUsed result. */ a.lastUsed -
+        b.lastUsed,
     );
     for (const record of candidates) {
       if (this.records.size <= this.budget.maxRecords) break;
@@ -247,21 +270,26 @@ export class AssetLoader<Network, Decoded, Uploaded> {
         this.records.delete(record.url);
     }
   }
+  /** Returns total retained decoded bytes for cache-budget accounting. */
   get cachedDecodedBytes(): number {
     let bytes = 0;
     for (const record of this.records.values()) bytes += record.decodedBytes;
     return bytes;
   }
+  /** Updates the decoded-cache limit and trims unreferenced records to fit it. */
   async setCacheBudget(budget: Partial<AssetCacheBudget>): Promise<number> {
     const next = { ...this.budget, ...budget };
     this.validateBudget(next);
     Object.assign(this.budget, next);
     return this.trimCache();
   }
+  /** Evicts unreferenced decoded data in least-recently-used order while honoring active ownership. */
   async trimCache(protectedURL?: string): Promise<number> {
     let evicted = 0;
     const candidates = Array.from(this.records.values()).sort(
-      (a, b) => a.lastUsed - b.lastUsed,
+      (a, b) =>
+        /** Computes the a.lastUsed - b.lastUsed result. */ a.lastUsed -
+        b.lastUsed,
     );
     for (const record of candidates) {
       if (
@@ -287,22 +315,30 @@ export class AssetLoader<Network, Decoded, Uploaded> {
   async quiesce(): Promise<void> {
     for (const url of this.controllers.keys()) this.cancel(url);
     await Promise.allSettled([
-      ...Array.from(this.records.values(), (r) => r.pending),
+      ...Array.from(
+        this.records.values(),
+        (r) => /** Returns r pending. */ r.pending,
+      ),
       ...this.unloading.values(),
     ]);
   }
+  /** Cancels pending requests, drains cleanup and releases tracked resident asset state. */
   async dispose(): Promise<void> {
     this.disposed = true;
     for (const url of this.controllers.keys()) this.cancel(url);
     const results = await Promise.allSettled(
-      Array.from(this.records.keys(), (url) => this.unload(url)),
+      Array.from(this.records.keys(), (url) =>
+        /** Delegates this operation to this.unload. */ this.unload(url),
+      ),
     );
     const errors = results.filter(
-      (r): r is PromiseRejectedResult => r.status === "rejected",
+      (r): r is PromiseRejectedResult =>
+        /** Evaluates the r.status === "rejected" condition. */ r.status ===
+        "rejected",
     );
     if (errors.length)
       throw new AggregateError(
-        errors.map((r) => r.reason),
+        errors.map((r) => /** Returns r reason. */ r.reason),
         "Asset disposal failed",
       );
   }

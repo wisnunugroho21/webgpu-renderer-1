@@ -3,7 +3,11 @@ import { GPUFrustumCuller } from "../src/rendering/visibility/GPUFrustumCuller";
 import { RenderWorld } from "../src/rendering/RenderWorld";
 import { Resources } from "../src/gpu/Resources";
 describe("GPU object snapshots", () => {
+  // Groups checks for GPU object snapshots.
+
   it("packs float bounds/numeric IDs, uploads changes and reuses dispatch resources", () => {
+    // Verifies packs float bounds/numeric IDs, uploads changes and reuses dispatch resources.
+
     vi.stubGlobal("GPUBufferUsage", {
       STORAGE: 1,
       COPY_DST: 2,
@@ -11,17 +15,23 @@ describe("GPU object snapshots", () => {
       UNIFORM: 8,
     });
     vi.stubGlobal("GPUShaderStage", { COMPUTE: 1 });
-    const create = vi.fn((d: unknown) => d),
-      getCompute = vi.fn((d: unknown) => d),
+    const create = vi.fn((d: unknown) => /** Returns d. */ d),
+      getCompute = vi.fn((d: unknown) => /** Returns d. */ d),
       device = {
+        /** Returns d. */
         createBindGroupLayout: (d: unknown) => d,
+        /** Returns d. */
         createPipelineLayout: (d: unknown) => d,
+        /** Returns d. */
         createBindGroup: (d: unknown) => d,
       } as unknown as GPUDevice,
       resources = {
         buffers: { create },
         pipelines: { getCompute },
-        shaders: { get: () => ({}) },
+        shaders: {
+          /** Returns an empty fixture handle for a controlled test dependency. */
+          get: () => ({}),
+        },
       } as unknown as Resources;
     const culler = new GPUFrustumCuller(
         device,
@@ -66,6 +76,7 @@ describe("GPU object snapshots", () => {
         end: vi.fn(),
       },
       encoder = {
+        /** Returns pass. */
         beginComputePass: () => pass,
       } as unknown as GPUCommandEncoder;
     culler.encode(encoder, 0);

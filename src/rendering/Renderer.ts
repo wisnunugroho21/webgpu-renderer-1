@@ -57,9 +57,11 @@ export class Renderer {
   readonly environment: EnvironmentLighting;
   readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
+  /** Returns the presentation anti-aliasing mode owned by the HDR/presentation subsystem. */
   get antialiasing(): "none" | "fxaa" {
     return this.hdr.antialiasing;
   }
+  /** Selects presentation anti-aliasing and lets its owner prepare any required targets. */
   set antialiasing(value: "none" | "fxaa") {
     this.hdr.antialiasing = value;
   }
@@ -132,6 +134,7 @@ export class Renderer {
     a: 1,
   };
 
+  /** Initializes frame visibility, batching, shared uploads and graph execution. */
   constructor(
     readonly gpu: GPUContext,
     readonly world: RenderWorld,
@@ -177,7 +180,9 @@ export class Renderer {
       this.lodGroups,
       this.textures,
       materials,
-      () => this.frameNumber,
+      () =>
+        /** Returns the current frame stamp for safe retirement and temporal resource tracking. */ this
+          .frameNumber,
       world,
     );
     this.queue = new RenderQueue(world.capacity);
@@ -223,16 +228,20 @@ export class Renderer {
   /** Compile persistent callbacks after every pass owner exists. Encoding follows graph dependencies. */
   private configurePasses(): void {
     configureRenderGraph(this.graph, {
+      /** Delegates this operation to this.gpuFrustum.encode. */
       gpuFrustum: (encoder) =>
         this.gpuFrustum.encode(
           encoder,
           this.dynamic.frameSlot,
           this.gpuProfiler,
         ),
+      /** Delegates this operation to this.shadows.encode. */
       shadows: (encoder) =>
         this.shadows.encode(encoder, this.world, this.stats, this.gpuProfiler),
+      /** Delegates this operation to this.clusters.encode. */
       lightClusters: (encoder) =>
         this.clusters.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
+      /** Delegates this operation to this.depthPrepass.encode. */
       depth: (encoder) =>
         this.depthPrepass.encode(
           encoder,
@@ -243,6 +252,7 @@ export class Renderer {
           this.stats,
           this.gpuProfiler,
         ),
+      /** Delegates this operation to this.geometryOptimization.encode. */
       geometryClusters: (encoder) =>
         this.geometryOptimization.encode(
           encoder,
@@ -250,6 +260,7 @@ export class Renderer {
           this.colorInstanceOffset,
           this.gpuProfiler,
         ),
+      /** Delegates this operation to this.colorPass.encode. */
       color: (encoder, view) =>
         this.colorPass.encode(
           encoder,
@@ -258,14 +269,19 @@ export class Renderer {
           this.colorInstanceOffset,
           this.clearColor,
         ),
+      /** Delegates this operation to this.hdr.encodeEffects. */
       postProcessing: (encoder) => this.hdr.encodeEffects(encoder),
+      /** Delegates this operation to this.hdr.encode. */
       toneMapping: (encoder, view) =>
         this.hdr.encode(encoder, view, this.gpuProfiler),
+      /** Builds the depth pyramid consumed by occlusion tests after the depth pass. */
       hiz: (encoder) => {
         if (!this.temporal.reuse) this.hiz.encode(encoder, this.gpuProfiler);
         else this.hiz.passes = 0;
       },
+      /** Delegates this operation to this.hiz.debug. */
       hizDebug: (encoder, view) => this.hiz.debug(encoder, view),
+      /** Reuses prior visibility when temporally valid; otherwise tests current objects against the depth pyramid. */
       gpuOcclusion: (encoder) => {
         this.gpuOcclusion.dispatches = 0;
         if (this.gpuOcclusion.enabled) {
@@ -294,9 +310,12 @@ export class Renderer {
             );
         }
       },
+      /** Delegates this operation to this.gpuCompaction.encode. */
       gpuCompaction: (encoder) =>
         this.gpuCompaction.encode(encoder, this.gpuProfiler),
+      /** Delegates this operation to this.gpuDraws.encode. */
       gpuIndirect: (encoder) => this.gpuDraws.encode(encoder, this.gpuProfiler),
+      /** Delegates this operation to this.gpuLOD.encode. */
       gpuLod: (encoder) =>
         this.gpuLOD.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
     });
@@ -339,6 +358,7 @@ export class Renderer {
     this.antialiasing = previous.antialiasing;
     this.hdr.enabled = previous.hdr.enabled;
   }
+  /** Rebinds resident streaming ownership to recovered GPU owners while retaining its CPU records. */
   restoreStreaming(
     previous: Renderer,
     remap: Map<GPUBindGroup[], GPUBindGroup[]>,
@@ -349,11 +369,14 @@ export class Renderer {
       this.lodGroups,
       this.textures,
       remap,
-      () => this.frameNumber,
+      () =>
+        /** Returns the current frame stamp for safe retirement and temporal resource tracking. */ this
+          .frameNumber,
     );
     this.streaming = previous.streaming;
   }
 
+  /** Recreates only size-dependent render targets when physical canvas dimensions change. */
   resize(): void {
     const { width, height } = this.gpu.canvas;
     this.hdr.resize(width, height);
@@ -374,6 +397,7 @@ export class Renderer {
     this.gpuOcclusion.resize(this.hiz.texture!);
   }
 
+  /** Prepares visibility/batches/shared uploads and encodes the compiled graph without submitting or waiting. */
   encode(encoder: GPUCommandEncoder, view: GPUTextureView): void {
     this.resize();
     const indirect = this.submissionMode === "gpu-indirect";
@@ -647,6 +671,7 @@ export class Renderer {
       : 0;
   }
 
+  /** Stops streaming publication and releases shared GPU resources and profiler ownership. */
   dispose(): void {
     this.meshes.clearRecovery();
     this.environment.dispose();

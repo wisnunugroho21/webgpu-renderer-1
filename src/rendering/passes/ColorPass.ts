@@ -36,9 +36,12 @@ export class ColorPass {
   private hdrEnvironmentColor?: ReturnType<typeof createColorResources>;
   private environmentColor?: ReturnType<typeof createColorResources>;
   private environmentLayout?: GPUBindGroupLayout;
+  /** Initializes bounded PBR pipeline variants and state-cached batch drawing. */
   constructor(private readonly scene: ColorPassScene) {
     this.base = createColorResources(this.scene);
     this.hdr = new HDRRendering(this.scene.gpu, this.scene.resources, () => {
+      // Prepares the bounded half-float color variants when HDR presentation is first requested.
+
       this.hdrColor ??= createColorResources({
         ...this.scene,
         colorFormat: "rgba16float",
@@ -48,12 +51,14 @@ export class ColorPass {
     this.skybox = new EnvironmentSkybox(
       this.scene.gpu,
       this.scene.resources,
-      () => this.environmentLayout,
+      () => /** Returns environment layout. */ this.environmentLayout,
     );
     this.environment = new EnvironmentLighting(
       this.scene.gpu.device,
       this.scene.resources,
       (environmentLayout) => {
+        // Prepares shared environment color/skybox variants after an environment layout becomes available.
+
         this.environmentLayout = environmentLayout;
         if (this.skybox.enabled) this.skybox.prepare(environmentLayout);
         // Prepare retained HDR variants even when the feature is temporarily disabled.
@@ -66,6 +71,7 @@ export class ColorPass {
     );
   }
 
+  /** Builds the bounded combined HDR/environment pipeline variants on the cold feature setup path. */
   private prepareHDREnvironment(): void {
     if (this.environmentLayout)
       this.hdrEnvironmentColor ??= createColorResources({
@@ -75,6 +81,7 @@ export class ColorPass {
       });
   }
 
+  /** Draws skybox and ordered batches into the direct/HDR target while caching pipeline, material and mesh bindings. */
   encode(
     encoder: GPUCommandEncoder,
     view: GPUTextureView,

@@ -12,10 +12,12 @@ export interface EnvironmentData {
   /** RG = split-sum Fresnel A/B; X = NdotV, Y = perceptual roughness. */
   brdf: { size: number; pixels: Float32Array };
 }
+/** Checks positive bounded texture dimensions before allocation or archive decoding. */
 function dimension(size: number, limit: number): void {
   if (!Number.isSafeInteger(size) || size < 1 || size > limit)
     throw new Error("Invalid environment dimensions");
 }
+/** Validates the declared pixel array length and finite radiance values. */
 function pixels(data: Float32Array, length: number): void {
   if (!(data instanceof Float32Array) || data.length !== length)
     throw new Error("Invalid environment pixels");
@@ -25,7 +27,9 @@ function pixels(data: Float32Array, length: number): void {
         "Environment pixels must be finite linear HDR values in [0,65504]",
       );
 }
+/** Rejects invalid cube dimensions, mip layout, BRDF data or nonfinite radiance before GPU upload. */
 export function validateEnvironment(data: EnvironmentData, limit = 8192): void {
+  /** Applies dimension, pixels to cube. */
   const cube = (level: EnvironmentCubeLevel) => {
     dimension(level.size, limit);
     if (level.faces.length !== 6)

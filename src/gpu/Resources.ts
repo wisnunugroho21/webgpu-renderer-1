@@ -11,6 +11,7 @@ export class Resources {
   readonly shaders: ShaderManager;
   readonly samplers: SamplerCache;
   readonly pipelines: PipelineCache;
+  /** Initializes shared GPU resource managers and creation counters. */
   constructor(device: GPUDevice) {
     this.buffers = new BufferManager(device, this.stats);
     this.textures = new TextureManager(device, this.stats);
@@ -18,6 +19,7 @@ export class Resources {
     this.samplers = new SamplerCache(device, this.stats);
     this.pipelines = new PipelineCache(device, this.stats);
   }
+  /** Releases tracked buffers/textures and clears pipeline, shader and sampler caches. */
   dispose(): void {
     this.buffers.dispose();
     this.textures.dispose();

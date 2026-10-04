@@ -7,7 +7,11 @@ import { ShadowCamera } from "../src/rendering/shadows/ShadowCamera";
 import { RenderWorld } from "../src/rendering/RenderWorld";
 import { LightStore } from "../src/ecs/components/LightStore";
 describe("directional shadows", () => {
+  // Groups checks for directional shadows.
+
   it("invalidates cached depth on geometry, palette, weights, materials and membership changes", () => {
+    // Verifies invalidates cached depth on geometry, palette, weights, materials and membership changes.
+
     const world = new RenderWorld(2),
       records = new Uint32Array(24),
       cache = new ShadowSceneCache(world);
@@ -31,6 +35,8 @@ describe("directional shadows", () => {
     expect(cache.update(world, records, 0, 1)).toBe(false);
   });
   it("splits logarithmic/uniform cascades into contiguous increasing ranges", () => {
+    // Verifies splits logarithmic/uniform cascades into contiguous increasing ranges.
+
     let previous = 0.1;
     for (let count = 1; count <= 4; count++)
       for (let index = 1; index <= count; index++) {
@@ -43,9 +49,18 @@ describe("directional shadows", () => {
       }
     expect(cascadeSplit(0.1, 30, 2, 4, 0)).toBeCloseTo(15.05);
     expect(cascadeSplit(0.1, 30, 2, 4, 1)).toBeCloseTo(Math.sqrt(3));
-    expect(() => cascadeSplit(0.1, 30, 0, 4)).toThrow();
+    expect(() =>
+      /** Delegates this operation to cascadeSplit. */ cascadeSplit(
+        0.1,
+        30,
+        0,
+        4,
+      ),
+    ).toThrow();
   });
   it("uses right-handed WebGPU orthographic depth", () => {
+    // Verifies uses right-handed WebGPU orthographic depth.
+
     const m = Mat4.create(),
       p = new Float32Array(3);
     Mat4.orthographic(m, -2, 2, -1, 1, 1, 11);
@@ -53,9 +68,21 @@ describe("directional shadows", () => {
     expect(Array.from(p)).toEqual([1, 1, 0]);
     Mat4.transformPoint(p, m, [-2, -1, -11]);
     expect(Array.from(p)).toEqual([-1, -1, 1]);
-    expect(() => Mat4.orthographic(m, 1, -1, 0, 1, 0, 1)).toThrow();
+    expect(() =>
+      /** Delegates this operation to Mat4.orthographic. */ Mat4.orthographic(
+        m,
+        1,
+        -1,
+        0,
+        1,
+        0,
+        1,
+      ),
+    ).toThrow();
   });
   it("fits receiver corners and upstream caster depths conservatively", () => {
+    // Verifies fits receiver corners and upstream caster depths conservatively.
+
     const camera = new Camera();
     camera.setPosition(0, 0, 5);
     camera.update(4 / 3);
@@ -93,10 +120,17 @@ describe("directional shadows", () => {
         }
   });
   it("rejects unsupported shadow light types transactionally", () => {
+    // Verifies rejects unsupported shadow light types transactionally.
+
     const lights = new LightStore(2);
     lights.set(0, { type: "directional", castShadow: true });
     expect(lights.castShadow[0]).toBe(1);
-    expect(() => lights.set(0, { type: "point", castShadow: true })).toThrow();
+    expect(() =>
+      /** Delegates this operation to lights.set. */ lights.set(0, {
+        type: "point",
+        castShadow: true,
+      }),
+    ).toThrow();
     expect(lights.type[0]).toBe(0);
     expect(lights.castShadow[0]).toBe(1);
   });

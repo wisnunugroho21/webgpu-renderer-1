@@ -18,7 +18,9 @@ const positions = d
         d
           .createAccessor()
           .setType("SCALAR")
-          .setArray(Uint32Array.from({ length: 9999 }, (_, i) => i))
+          .setArray(
+            Uint32Array.from({ length: 9999 }, (_, i) => /** Returns i. */ i),
+          )
           .setBuffer(buffer),
       ),
   );
@@ -26,6 +28,8 @@ d.createScene().addChild(d.createNode().setMesh(mesh));
 const bytes = await new NodeIO().writeBinary(d),
   loader = new GLTFLoader();
 bench("Phase 13 decode GLB with 10,000 vertices", async () => {
+  // Measures Phase 13 decode GLB with 10,000 vertices.
+
   const asset = await loader.parseGLB(bytes);
   if (asset.meshes[0]!.primitives[0]!.attributes.POSITION!.length !== 30000)
     throw new Error("Decode mismatch");

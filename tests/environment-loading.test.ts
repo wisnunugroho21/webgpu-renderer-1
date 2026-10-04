@@ -5,6 +5,7 @@ import {
   decodeEnvironmentPanorama,
   EnvironmentLoader,
 } from "../src/rendering/environment/EnvironmentLoader";
+/** Creates Uint8Array storage for this operation. */
 function hdr(top = [128, 0, 0, 129], bottom = [0, 128, 0, 129]): Uint8Array {
   const header = new TextEncoder().encode(
     "#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 2\n",
@@ -12,7 +13,11 @@ function hdr(top = [128, 0, 0, 129], bottom = [0, 128, 0, 129]): Uint8Array {
   return new Uint8Array([...header, ...top, ...top, ...bottom, ...bottom]);
 }
 describe("cold HDR/EXR panorama loading", () => {
+  // Groups checks for cold HDR/EXR panorama loading.
+
   it("preserves radiance and top-down rows using an independent RGBE reference", async () => {
+    // Verifies preserves radiance and top-down rows using an independent RGBE reference.
+
     const data = await decodeEnvironmentPanorama(hdr());
     expect(data.width).toBe(2);
     expect(data.height).toBe(2);
@@ -22,6 +27,8 @@ describe("cold HDR/EXR panorama loading", () => {
     expect(data.pixels[7]).toBeCloseTo(1, 6);
   });
   it("decodes independently encoded EXR float scanlines with correct row orientation", async () => {
+    // Verifies decodes independently encoded EXR float scanlines with correct row orientation.
+
     const pixels = new Float32Array([
       0, 4, 0, 1, 0, 4, 0, 1, 2, 0, 0, 1, 2, 0, 0, 1,
     ]);
@@ -37,6 +44,8 @@ describe("cold HDR/EXR panorama loading", () => {
     );
   });
   it("deduplicates content/options, evicts LRU bakes, and never caches failures", async () => {
+    // Verifies deduplicates content/options, evicts LRU bakes, and never caches failures.
+
     const loader = new EnvironmentLoader(1, 1024 * 1024),
       options = { specularSize: 2, diffuseSize: 1, brdfSize: 2, samples: 8 };
     const [a, b] = await Promise.all([

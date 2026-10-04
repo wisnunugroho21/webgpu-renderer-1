@@ -5,6 +5,7 @@ import { AnimationChannel } from "../src/animation/AnimationChannel";
 import { AnimationSampler } from "../src/animation/AnimationSampler";
 import { Animator, MorphState } from "../src/animation/Animator";
 import { World } from "../src/ecs/World";
+/** Returns p. */
 const pose = (
   path: "translation" | "rotation" | "scale" | "weights",
   values: number[],
@@ -14,7 +15,11 @@ const pose = (
   return p;
 };
 describe("component-space pose blending", () => {
+  // Groups checks for component-space pose blending.
+
   it("blends TRS and negative morph weights without matrix interpolation", () => {
+    // Verifies blends TRS and negative morph weights without matrix interpolation.
+
     const p = pose("translation", [0, 0, 0]);
     p.blend(pose("translation", [2, 4, 6]), 0.5);
     expect(p.values).toEqual(new Float32Array([1, 2, 3]));
@@ -30,6 +35,8 @@ describe("component-space pose blending", () => {
     expect(scale.values).toEqual(new Float32Array([2, 2, 2]));
   });
   it("supports reference-relative additive translation, scale, quaternion and weights", () => {
+    // Verifies supports reference-relative additive translation, scale, quaternion and weights.
+
     const p = pose("translation", [10, 0, 0]);
     p.additive(
       pose("translation", [3, 0, 0]),
@@ -52,12 +59,24 @@ describe("component-space pose blending", () => {
     expect(w.values[0]).toBeCloseTo(0.4);
   });
   it("rejects incompatible pose types/sizes and invalid blend weights", () => {
+    // Verifies rejects incompatible pose types/sizes and invalid blend weights.
+
     const p = pose("translation", [0, 0, 0]);
-    expect(() => p.blend(pose("scale", [1, 1, 1]), 0.5)).toThrow();
-    expect(() => p.blend(p, NaN)).toThrow();
+    expect(() =>
+      /** Delegates this operation to p.blend. */ p.blend(
+        pose("scale", [1, 1, 1]),
+        0.5,
+      ),
+    ).toThrow();
+    expect(() =>
+      /** Delegates this operation to p.blend. */ p.blend(p, NaN),
+    ).toThrow();
   });
 });
 describe("persistent crossfade playback", () => {
+  // Groups checks for persistent crossfade playback.
+
+  /** Builds controlled test dependencies and reusable state for persistent crossfade playback. */
   const setup = () => {
     const world = new World(1),
       e = world.create();
@@ -68,6 +87,7 @@ describe("persistent crossfade playback", () => {
       weights: new Float32Array([0.2]),
       dirty: false,
     };
+    /** Creates AnimationChannel storage for this operation. */
     const channel = (
       path: "translation" | "rotation" | "scale" | "weights",
       a: number[],
@@ -108,6 +128,8 @@ describe("persistent crossfade playback", () => {
     return { world, e, morph, animator };
   };
   it("crossfades all components and completes the target clip", () => {
+    // Verifies crossfades all components and completes the target clip.
+
     const { world, e, morph, animator } = setup();
     animator.play();
     animator.crossFade(1, 1);
@@ -122,6 +144,8 @@ describe("persistent crossfade playback", () => {
     expect(world.transforms.positionX[e]).toBe(-10);
   });
   it("pauses, seeks, interrupts smoothly and restores missing channels to rest", () => {
+    // Verifies pauses, seeks, interrupts smoothly and restores missing channels to rest.
+
     const { world, e, morph, animator } = setup();
     animator.play();
     animator.crossFade(1, 1);

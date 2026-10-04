@@ -22,6 +22,7 @@ export class TransformStore extends ComponentStore {
   readonly queued: Uint8Array;
   private readonly stack: Uint32Array;
   private readonly quaternion = Quat.create();
+  /** Initializes local poses, hierarchy links and world-matrix dirty flags. */
   constructor(capacity: number) {
     super(capacity);
     this.positionX = new Float32Array(capacity);
@@ -44,6 +45,7 @@ export class TransformStore extends ComponentStore {
     this.stack = new Uint32Array(capacity);
     this.queued = new Uint8Array(capacity);
   }
+  /** Marks transform membership and initializes identity scale/quaternion/world state only for a new component. */
   override add(entity: number): void {
     if (this.has[entity]) return;
     super.add(entity);
@@ -59,9 +61,11 @@ export class TransformStore extends ComponentStore {
     this.scaleX[entity] = this.scaleY[entity] = this.scaleZ[entity] = 1;
     this.propagateDirty(entity);
   }
+  /** Rejects writes to an entity without a transform component. */
   private require(entity: number): void {
     if (!this.has[entity]) throw new Error("Entity has no transform");
   }
+  /** Writes local translation and marks this transform and its descendants dirty. */
   setPosition(entity: number, x: number, y: number, z: number): void {
     this.require(entity);
     this.positionX[entity] = x;
@@ -69,6 +73,7 @@ export class TransformStore extends ComponentStore {
     this.positionZ[entity] = z;
     this.propagateDirty(entity);
   }
+  /** Writes local axis scales and propagates world-matrix invalidation through the hierarchy. */
   setScale(entity: number, x: number, y: number, z: number): void {
     this.require(entity);
     this.scaleX[entity] = x;
@@ -76,6 +81,7 @@ export class TransformStore extends ComponentStore {
     this.scaleZ[entity] = z;
     this.propagateDirty(entity);
   }
+  /** Normalizes the supplied quaternion before storing local rotation and invalidating descendants. */
   setRotation(
     entity: number,
     x: number,
@@ -111,6 +117,7 @@ export class TransformStore extends ComponentStore {
     this.rotationW[entity] = w;
     this.propagateDirty(entity);
   }
+  /** Validates hierarchy changes, rejects cycles and updates parent/child links before invalidating world transforms. */
   setParent(entity: number, parent: number): void {
     this.require(entity);
     if (parent !== -1) this.require(parent);
@@ -131,6 +138,7 @@ export class TransformStore extends ComponentStore {
     }
     this.propagateDirty(entity);
   }
+  /** Removes one child from its current parent sibling chain without creating temporary traversal arrays. */
   private unlink(entity: number): void {
     const parent = this.parent[entity]!,
       previous = this.previousSibling[entity]!,
@@ -141,10 +149,12 @@ export class TransformStore extends ComponentStore {
     this.previousSibling[entity] = this.nextSibling[entity] = -1;
     this.parent[entity] = -1;
   }
+  /** Marks an existing transform subtree for world-matrix recomputation. */
   markDirty(entity: number): void {
     this.require(entity);
     this.propagateDirty(entity);
   }
+  /** Walks descendant links to invalidate inherited world transforms. */
   private propagateDirty(entity: number): void {
     // A dirty ancestor has already marked its descendants; subsequent channel
     // writes need neither a second hierarchy traversal nor a scratch-stack push.
@@ -167,6 +177,7 @@ export class TransformStore extends ComponentStore {
         this.stack[count++] = child;
     }
   }
+  /** Detaches hierarchy references and removes transform membership while invalidating affected children. */
   override remove(entity: number): void {
     if (!this.has[entity]) return;
     while (this.firstChild[entity] !== -1)

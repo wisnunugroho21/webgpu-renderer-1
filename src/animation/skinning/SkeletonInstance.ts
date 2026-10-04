@@ -14,6 +14,7 @@ export class SkeletonInstance {
   readonly dirtyJoints: Uint8Array;
   jointOffset = -1;
   readonly jointCount: number;
+  /** Initializes one mesh instance palette and pose-change tracking; invalid input is rejected. */
   constructor(
     readonly asset: SkeletonAsset,
     readonly meshEntity: number,
@@ -23,24 +24,35 @@ export class SkeletonInstance {
     this.jointCount = asset.jointCount;
     this.jointEntities = Int32Array.from(
       asset.joints,
-      (node) => entities[node] ?? -1,
+      (node) =>
+        /** Computes the entities[node] ?? -1 result. */ entities[node] ?? -1,
     );
-    if (this.jointEntities.some((e) => e < 0))
+    if (
+      this.jointEntities.some(
+        (e) => /** Evaluates the e < 0 condition. */ e < 0,
+      )
+    )
       throw new Error("Skeleton joint is outside the instantiated scene");
     if (world) {
       this.meshGeneration = world.generation[meshEntity]!;
       this.jointGenerations = Float64Array.from(
         this.jointEntities,
-        (e) => world.generation[e]!,
+        (e) => /** Returns world.generation[e]!. */ world.generation[e]!,
       );
     }
     this.currentPose = new Float32Array(this.jointCount * 16);
     this.matrices = new Float32Array(this.jointCount * 16);
     this.poseViews = Array.from({ length: this.jointCount }, (_, i) =>
-      this.currentPose.subarray(i * 16, i * 16 + 16),
+      /** Delegates this operation to this.currentPose.subarray. */ this.currentPose.subarray(
+        i * 16,
+        i * 16 + 16,
+      ),
     );
     this.matrixViews = Array.from({ length: this.jointCount }, (_, i) =>
-      this.matrices.subarray(i * 16, i * 16 + 16),
+      /** Delegates this operation to this.matrices.subarray. */ this.matrices.subarray(
+        i * 16,
+        i * 16 + 16,
+      ),
     );
     this.dirtyJoints = new Uint8Array(this.jointCount);
     for (let i = 0; i < this.jointCount; i++) {

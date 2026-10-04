@@ -2,6 +2,7 @@
 export function transferableBuffers(value: unknown): ArrayBuffer[] {
   const buffers = new Set<ArrayBuffer>(),
     seen = new Set<object>();
+  /** Applies seen.has, seen.add, buffers.add to visit. */
   const visit = (item: unknown): void => {
     if (!item || typeof item !== "object" || seen.has(item)) return;
     seen.add(item);

@@ -9,6 +9,8 @@ export const measureCameraCheck = () => {
   const createBuffer = app.gpu.device.createBuffer.bind(app.gpu.device);
   let creations = 0;
   app.gpu.device.createBuffer = (...args) => {
+    // Delegates this operation to createBuffer.
+
     creations++;
     return createBuffer(...args);
   };
@@ -36,11 +38,15 @@ export const measureCameraCheck = () => {
     statsAfter,
     sameBuffer: renderer.frameBuffer === originalBuffer,
     moved: movedMatrix.some(
-      (v, i) => Math.abs(v - renderer.camera.viewProjection[i]) > 0.001,
+      (v, i) =>
+        /** Evaluates the Math.abs(v - renderer.camera.viewProjection[i]) > 0.001 condition. */ Math.abs(
+          v - renderer.camera.viewProjection[i],
+        ) > 0.001,
     ),
   };
 };
 
+/** Builds a record containing count, uncached ms, cached ms, stats. */
 export const measureResourceBenchmark = () => {
   const r = window.rendererApp.renderer,
     d = r.pipelineDescriptor,
@@ -60,6 +66,7 @@ export const measureResourceBenchmark = () => {
   };
 };
 
+/** Builds a record containing count, individual ms, shared ms, shared buffer creations, arena buffers, upload bytes. */
 export const measureDynamicBenchmark = () => {
   const r = window.rendererApp.renderer,
     count = 10000,
@@ -90,6 +97,7 @@ export const measureDynamicBenchmark = () => {
   };
 };
 
+/** Builds a record containing loading state, history, elapsed ms, cached ms, timings, frames during load. */
 export const measureLoadingChecks = async () => {
   const app = window.rendererApp,
     url = "/regression/triangle.glb?async-check";
@@ -127,6 +135,7 @@ export const measureLoadingChecks = async () => {
   };
 };
 
+/** Builds a record containing upload, prepared, main decode ms, cold worker ms, warm worker median ms, frames during worker. */
 export const measureWorkerChecks = async () => {
   const app = window.rendererApp,
     url = new URL("/worker-large.glb", location.href).href;
@@ -138,7 +147,7 @@ export const measureWorkerChecks = async () => {
   const framesDuringMain = app.frames - beforeMain;
   const workerJSON = await app.gltf.fetch(url),
     inputBuffers = Object.values(workerJSON.resources).map(
-      (data) => data.buffer,
+      (data) => /** Returns data buffer. */ data.buffer,
     ),
     beforeWorker = app.frames;
   let t = performance.now();
@@ -158,12 +167,14 @@ export const measureWorkerChecks = async () => {
     await app.assetDecoder.decode(json);
     samples.push(performance.now() - t);
   }
-  samples.sort((a, b) => a - b);
+  samples.sort((a, b) => /** Computes the a - b result. */ a - b);
   const metrics = { ...app.assetDecoder.metrics },
     beforeBuffers = app.renderer.resources.stats.buffers;
   const sizes = [],
     original = app.gpu.queue.writeBuffer.bind(app.gpu.queue);
   app.gpu.queue.writeBuffer = (buffer, ...args) => {
+    // Delegates this operation to original.
+
     if (buffer.label === "Asset vertices" || buffer.label === "Asset indices")
       sizes.push(args[1].byteLength);
     return original(buffer, ...args);
@@ -195,12 +206,16 @@ export const measureWorkerChecks = async () => {
     framesDuringWorker,
     framesDuringMain,
     mismatches,
-    inputDetached: inputBuffers.every((b) => b.byteLength === 0),
+    inputDetached: inputBuffers.every(
+      (b) =>
+        /** Evaluates the b.byteLength === 0 condition. */ b.byteLength === 0,
+    ),
     vertices: asset.meshes[0].primitives[0].attributes.POSITION.length / 3,
     metrics,
   };
 };
 
+/** Builds a record containing objects, results, resource before, resource after. */
 export const measureDrawBenchmark = async () => {
   const app = window.rendererApp,
     r = app.renderer,
@@ -263,7 +278,7 @@ export const measureDrawBenchmark = async () => {
     for (const value of bytes) hash = Math.imul(hash ^ value, 16777619) >>> 0;
     buffer.unmap();
     buffer.destroy();
-    times.sort((a, b) => a - b);
+    times.sort((a, b) => /** Computes the a - b result. */ a - b);
     results[mode] = {
       medianCpuMs: times[2],
       samples: times,

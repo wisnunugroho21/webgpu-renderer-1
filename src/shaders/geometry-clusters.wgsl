@@ -26,6 +26,7 @@ struct Args {
 @group(0) @binding(2) var<storage, read_write> arguments: array<Args>;
 @group(0) @binding(3) var<storage, read> matrices: array<mat4x4f>;
 @group(0) @binding(4) var<storage, read> instances: array<u32>;
+// Tests transformed cluster-box corners against clip planes without rejecting intersecting clusters.
 fn visible(low: vec3f, high: vec3f, model: mat4x4f) -> bool {
   let center = (low + high) * 0.5;
   let extent = (high - low) * 0.5;
@@ -50,6 +51,7 @@ fn visible(low: vec3f, high: vec3f, model: mat4x4f) -> bool {
   return true;
 }
 
+// Writes zero/full instance counts for each conservatively tested static cluster indirect command.
 @compute @workgroup_size(64) fn cull(@builtin(global_invocation_id) id: vec3u) {
   if (id.x >= frame.count) {
     return;

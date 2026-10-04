@@ -7,6 +7,7 @@ for (const kind of process.argv.includes("--long")
   : ["skin", "morph", "combined"]) {
   const d = new Document(),
     buffer = d.createBuffer();
+  /** Creates a glTF accessor with the requested component data and buffer ownership. */
   const attr = (type, data) =>
     d.createAccessor().setType(type).setArray(data).setBuffer(buffer);
   const positions = new Float32Array(400 * 3),
@@ -63,7 +64,11 @@ for (const kind of process.argv.includes("--long")
       times = attr(
         "SCALAR",
         kind === "skin-long"
-          ? Float32Array.from({ length: 1024 }, (_, k) => (k * 30) / 1023)
+          ? Float32Array.from(
+              { length: 1024 },
+              (_, k) =>
+                /** Computes the (k * 30) / 1023 result. */ (k * 30) / 1023,
+            )
           : new Float32Array([0, 1]),
       ),
       rotations = attr(

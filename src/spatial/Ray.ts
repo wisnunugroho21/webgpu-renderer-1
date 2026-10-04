@@ -7,6 +7,7 @@ export class Ray {
   private readonly inverse = Mat4.create();
   private readonly near = new Float32Array(3);
   private readonly far = new Float32Array(3);
+  /** Validates the ray origin/direction and stores a normalized direction for world-distance results. */
   set(origin: ArrayLike<number>, direction: ArrayLike<number>): void {
     if (origin.length < 3 || direction.length < 3)
       throw new Error("Invalid ray vectors");
@@ -20,6 +21,7 @@ export class Ray {
       this.direction[i] = direction[i]! / length;
     }
   }
+  /** Unprojects viewport coordinates through perspective or orthographic camera matrices into a world-space ray. */
   fromCamera(camera: Camera, u: number, v: number, aspect: number): void {
     if (!Number.isFinite(u) || !Number.isFinite(v))
       throw new Error("Invalid screen coordinate");

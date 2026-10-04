@@ -6,6 +6,7 @@ import { FRAME_WORDS } from "./layouts";
 export class FrameUniforms {
   readonly data = new Float32Array(FRAME_WORDS);
 
+  /** Packs camera matrices, eye/light count, cluster parameters and viewport into the shared frame ABI. */
   update(
     camera: Camera,
     lightCount: number,

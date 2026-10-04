@@ -18,6 +18,7 @@ export class GPUFrustumCuller {
   count = 0;
   uploadBytes = 0;
   dispatches = 0;
+  /** Initializes shared object bounds and GPU visibility flags. */
   constructor(
     device: GPUDevice,
     private readonly resources: Resources,
@@ -72,15 +73,17 @@ export class GPUFrustumCuller {
       ],
     });
     this.groups = frames.map((buffer) =>
-      device.createBindGroup({
-        layout,
-        entries: [
-          { binding: 0, resource: { buffer, size: 192 } },
-          { binding: 1, resource: { buffer: this.objects } },
-          { binding: 2, resource: { buffer: this.visibility } },
-          { binding: 3, resource: { buffer: this.params } },
-        ],
-      }),
+      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+        {
+          layout,
+          entries: [
+            { binding: 0, resource: { buffer, size: 192 } },
+            { binding: 1, resource: { buffer: this.objects } },
+            { binding: 2, resource: { buffer: this.visibility } },
+            { binding: 3, resource: { buffer: this.params } },
+          ],
+        },
+      ),
     );
     this.pipeline = resources.pipelines.getCompute({
       label: "GPU sphere frustum",
@@ -93,6 +96,7 @@ export class GPUFrustumCuller {
       },
     });
   }
+  /** Uploads changed compact object bounds and current frame parameters for GPU sphere-frustum tests. */
   update(world: RenderWorld, queue: GPUQueue): void {
     this.uploadBytes = 0;
     if (!this.enabled) return;
@@ -147,6 +151,7 @@ export class GPUFrustumCuller {
       this.uploadBytes += 16;
     }
   }
+  /** Dispatches visibility flags for the current compact render snapshot. */
   encode(
     encoder: GPUCommandEncoder,
     slot: number,
@@ -164,6 +169,7 @@ export class GPUFrustumCuller {
     pass.end();
     this.dispatches = 1;
   }
+  /** Releases the owned GPU visibility/bounds buffers. */
   dispose(): void {
     this.resources.buffers.destroy(this.objects);
     this.resources.buffers.destroy(this.visibility);

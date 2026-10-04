@@ -9,7 +9,11 @@ import { VisibilityCompactor } from "../src/rendering/visibility/VisibilityCompa
 import { MeshManager } from "../src/rendering/MeshManager";
 import { MaterialManager } from "../src/rendering/materials/MaterialManager";
 describe("GPU indexed argument generation", () => {
+  // Groups checks for GPU indexed argument generation.
+
   it("prepares stable batch/object mappings and leaves arguments to the GPU", () => {
+    // Verifies prepares stable batch/object mappings and leaves arguments to the GPU.
+
     vi.stubGlobal("GPUShaderStage", { COMPUTE: 1 });
     vi.stubGlobal("GPUBufferUsage", {
       STORAGE: 1,
@@ -18,18 +22,24 @@ describe("GPU indexed argument generation", () => {
       UNIFORM: 8,
       INDIRECT: 16,
     });
-    const create = vi.fn((d) => d),
-      getCompute = vi.fn((d) => d),
+    const create = vi.fn((d) => /** Returns d. */ d),
+      getCompute = vi.fn((d) => /** Returns d. */ d),
       device = {
         features: new Set(["indirect-first-instance"]),
+        /** Returns d. */
         createBindGroupLayout: (d: unknown) => d,
+        /** Returns d. */
         createPipelineLayout: (d: unknown) => d,
+        /** Returns d. */
         createBindGroup: (d: unknown) => d,
       } as unknown as GPUDevice,
       resources = {
         buffers: { create },
         pipelines: { getCompute },
-        shaders: { get: () => ({}) },
+        shaders: {
+          /** Returns an empty fixture handle for a controlled test dependency. */
+          get: () => ({}),
+        },
       } as unknown as Resources;
     const draws = new IndirectDraws(
         device,
@@ -48,10 +58,12 @@ describe("GPU indexed argument generation", () => {
       queue = new RenderQueue(4),
       batches = new BatchBuilder(4),
       meshes = {
+        /** Builds a record containing index count, topology. */
         get: () => ({ indexCount: 6, topology: 0 }),
       } as unknown as MeshManager,
       materials = {
         alphaMode: new Uint8Array([0, 2]),
+        /** Computes the id * 2 result. */
         pipelineIndex: (id: number) => id * 2,
       } as unknown as MaterialManager,
       writeBuffer = vi.fn(),
@@ -71,7 +83,11 @@ describe("GPU indexed argument generation", () => {
     expect(Array.from(draws.objectData.slice(0, 5))).toEqual([1, 1, 0, 0, 0]);
     expect(draws.uploadBytes).toBe(224);
     expect(
-      writeBuffer.mock.calls.some((args) => args[0] === draws.arguments),
+      writeBuffer.mock.calls.some(
+        (args) =>
+          /** Evaluates the args[0] === draws.arguments condition. */ args[0] ===
+          draws.arguments,
+      ),
     ).toBe(false);
     draws.prepare(world, queue, batches, meshes, materials, gpu);
     expect(draws.uploadBytes).toBe(0);
@@ -82,7 +98,7 @@ describe("GPU indexed argument generation", () => {
         end: vi.fn(),
       },
       encoder = {
-        beginComputePass: vi.fn(() => pass),
+        beginComputePass: vi.fn(() => /** Returns pass. */ pass),
       } as unknown as GPUCommandEncoder;
     draws.encode(encoder);
     expect(encoder.beginComputePass).toHaveBeenCalledTimes(2);

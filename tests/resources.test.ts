@@ -6,6 +6,7 @@ import { BufferManager } from "../src/gpu/BufferManager";
 import { TextureManager } from "../src/gpu/TextureManager";
 import { ResourceStats } from "../src/gpu/ResourceStats";
 class Opaque {}
+/** Builds a record containing layout, vertex, fragment, depth stencil. */
 const descriptor = (): GPURenderPipelineDescriptor => ({
   layout: "auto",
   vertex: {
@@ -28,11 +29,19 @@ const descriptor = (): GPURenderPipelineDescriptor => ({
   },
 });
 describe("resource ownership and cache correctness", () => {
+  // Groups checks for resource ownership and cache correctness.
+
   it("reuses shaders by source and samplers by normalized state", () => {
+    // Verifies reuses shaders by source and samplers by normalized state.
+
     const stats = new ResourceStats(),
       device = {
-        createShaderModule: vi.fn(() => new Opaque()),
-        createSampler: vi.fn(() => new Opaque()),
+        createShaderModule: vi.fn(
+          () => /** Creates Opaque storage for this operation. */ new Opaque(),
+        ),
+        createSampler: vi.fn(
+          () => /** Creates Opaque storage for this operation. */ new Opaque(),
+        ),
       } as unknown as GPUDevice;
     const shaders = new ShaderManager(device, stats),
       samplers = new SamplerCache(device, stats);
@@ -43,9 +52,13 @@ describe("resource ownership and cache correctness", () => {
     expect(stats.samplerCreations).toBe(2);
   });
   it("ignores labels/property order and includes every pipeline state dimension", () => {
+    // Verifies ignores labels/property order and includes every pipeline state dimension.
+
     const stats = new ResourceStats(),
       device = {
-        createRenderPipeline: vi.fn(() => new Opaque()),
+        createRenderPipeline: vi.fn(
+          () => /** Creates Opaque storage for this operation. */ new Opaque(),
+        ),
       } as unknown as GPUDevice;
     const cache = new PipelineCache(device, stats),
       d = descriptor(),
@@ -112,13 +125,21 @@ describe("resource ownership and cache correctness", () => {
     expect(stats.cacheHits).toBe(1);
   });
   it("destroys each owned resource once and accurately tracks live bytes", () => {
+    // Verifies destroys each owned resource once and accurately tracks live bytes.
+
     const stats = new ResourceStats(),
       device = {
-        createBuffer: vi.fn((d: GPUBufferDescriptor) => ({
-          size: d.size,
+        createBuffer: vi.fn(
+          (
+            d: GPUBufferDescriptor,
+          ) => /** Builds a record containing size, destroy. */ ({
+            size: d.size,
+            destroy: vi.fn(),
+          }),
+        ),
+        createTexture: vi.fn(() => /** Builds a record containing destroy. */ ({
           destroy: vi.fn(),
         })),
-        createTexture: vi.fn(() => ({ destroy: vi.fn() })),
       } as unknown as GPUDevice;
     const buffers = new BufferManager(device, stats),
       textures = new TextureManager(device, stats);

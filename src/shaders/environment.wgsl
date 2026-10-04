@@ -12,10 +12,12 @@ struct EnvironmentParameters {
 @group(2) @binding(2) var specularEnvironment: texture_cube<f32>;
 @group(2) @binding(3) var environmentBRDF: texture_2d<f32>;
 @group(2) @binding(4) var environmentSampler: sampler;
+// Rotates the environment lookup direction around world Y using retained sine/cosine parameters.
 fn environmentDirection(direction: vec3<f32>) -> vec3<f32> {
   return vec3<f32>(environment.cosine * direction.x + environment.sine * direction.z, direction.y, - environment.sine * direction.x + environment.cosine * direction.z);
 }
 
+// Combines cosine-convolved diffuse and split-sum GGX specular environment light, attenuating only indirect light by AO.
 fn ambientLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, ao: f32) -> vec3<f32> {
   let nv = clamp(dot(n, v), 0.0, 1.0);
   let f0 = mix(vec3<f32>(0.04), base, metallic);

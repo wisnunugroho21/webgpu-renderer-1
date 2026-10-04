@@ -11,9 +11,18 @@ Object.assign(globalThis, {
   GPUBufferUsage: { STORAGE: 128, COPY_DST: 8, COPY_SRC: 4 },
 });
 describe("shared morph buffers", () => {
+  // Groups checks for shared morph buffers.
+
   it("creates exactly three shared delta buffers, packs vec4 deltas and zero-fills missing streams", () => {
+    // Verifies creates exactly three shared delta buffers, packs vec4 deltas and zero-fills missing streams.
+
     const device = {
-        createBuffer: vi.fn((d) => ({ size: d.size, destroy: vi.fn() })),
+        createBuffer: vi.fn(
+          (d) => /** Builds a record containing size, destroy. */ ({
+            size: d.size,
+            destroy: vi.fn(),
+          }),
+        ),
       } as unknown as GPUDevice,
       queue = { writeBuffer: vi.fn() } as unknown as GPUQueue,
       resources = new Resources(device),
@@ -37,10 +46,14 @@ describe("shared morph buffers", () => {
       0,
       new Float32Array(4),
     );
-    expect(() => deltas.append(data)).toThrow("capacity");
+    expect(() =>
+      /** Delegates this operation to deltas.append. */ deltas.append(data),
+    ).toThrow("capacity");
     expect(deltas.count).toBe(2);
   });
   it("snapshots independent weights and uploads only dirty scalar ranges", () => {
+    // Verifies snapshots independent weights and uploads only dirty scalar ranges.
+
     const pool = new MorphStatePool(4),
       id = pool.create(2, [0.2, 0.3]),
       world = new World(2),
@@ -60,6 +73,7 @@ describe("shared morph buffers", () => {
     extractor.extract(world, out, undefined, pool);
     expect(out.morphDirty[0]).toBe(1);
     const resources = new Resources({
+        /** Returns an empty fixture handle for a controlled test dependency. */
         createBuffer: () => ({}),
       } as unknown as GPUDevice),
       weights = new MorphWeightBuffer(resources.buffers, 4),
@@ -78,6 +92,8 @@ describe("shared morph buffers", () => {
 });
 
 it("reports nonzero signed weights separately from attached target capacity", () => {
+  // Verifies reports nonzero signed weights separately from attached target capacity.
+
   const pool = new MorphStatePool(3),
     id = pool.create(3, [-0.3, 0, 0.7]),
     world = new World(1),

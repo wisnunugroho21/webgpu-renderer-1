@@ -8,9 +8,15 @@ Object.assign(globalThis, {
   GPUBufferUsage: { STORAGE: 128, COPY_DST: 8, COPY_SRC: 4 },
 });
 describe("shared joint buffer", () => {
+  // Groups checks for shared joint buffer.
+
   it("creates one buffer and uploads/coalesces only dirty ranges", () => {
+    // Verifies creates one buffer and uploads/coalesces only dirty ranges.
+
     const gpuBuffer = {} as GPUBuffer,
-      manager = { create: vi.fn(() => gpuBuffer) } as unknown as BufferManager;
+      manager = {
+        create: vi.fn(() => /** Returns gpu buffer. */ gpuBuffer),
+      } as unknown as BufferManager;
     const joints = new JointMatrixBuffer(manager, 8),
       world = new RenderWorld(2, 8),
       queue = { writeBuffer: vi.fn() } as unknown as GPUQueue;
@@ -42,6 +48,8 @@ describe("shared joint buffer", () => {
     expect(queue.writeBuffer).toHaveBeenCalledTimes(2);
   });
   it("propagates distinct palette ranges into batched instance records", () => {
+    // Verifies propagates distinct palette ranges into batched instance records.
+
     const w = new RenderWorld(2),
       q = new RenderQueue(2),
       instances = new InstanceManager(2);

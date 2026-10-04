@@ -1,6 +1,8 @@
 import { expect, it, vi } from "vitest";
 import { InputScope } from "../src/input/InputScope";
 it("retains unrelated listeners and removes target/document/window subscriptions on idempotent teardown", () => {
+  // Verifies retains unrelated listeners and removes target/document/window subscriptions on idempotent teardown.
+
   const target = new EventTarget(),
     document = new EventTarget(),
     view = new EventTarget();

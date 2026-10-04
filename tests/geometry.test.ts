@@ -17,18 +17,33 @@ Object.assign(globalThis, {
   },
   GPUShaderStage: { COMPUTE: 4 },
 });
+/** Builds controlled test dependencies and reusable state for geometry. */
 const make = (supported = true, capacity = 8) => {
   const device = {
     features: new Set(supported ? ["indirect-first-instance"] : []),
-    createBuffer: vi.fn((d: GPUBufferDescriptor) => ({
-      size: d.size,
-      destroy: vi.fn(),
-    })),
-    createBindGroupLayout: vi.fn(() => ({})),
-    createPipelineLayout: vi.fn(() => ({})),
-    createShaderModule: vi.fn(() => ({})),
-    createComputePipeline: vi.fn(() => ({})),
-    createBindGroup: vi.fn(() => ({})),
+    createBuffer: vi.fn(
+      (
+        d: GPUBufferDescriptor,
+      ) => /** Builds a record containing size, destroy. */ ({
+        size: d.size,
+        destroy: vi.fn(),
+      }),
+    ),
+    createBindGroupLayout: vi.fn(
+      () => /** Returns an empty fixture handle for a controlled test dependency. */ ({}),
+    ),
+    createPipelineLayout: vi.fn(
+      () => /** Returns an empty fixture handle for a controlled test dependency. */ ({}),
+    ),
+    createShaderModule: vi.fn(
+      () => /** Returns an empty fixture handle for a controlled test dependency. */ ({}),
+    ),
+    createComputePipeline: vi.fn(
+      () => /** Returns an empty fixture handle for a controlled test dependency. */ ({}),
+    ),
+    createBindGroup: vi.fn(
+      () => /** Returns an empty fixture handle for a controlled test dependency. */ ({}),
+    ),
   } as unknown as GPUDevice;
   const resources = new Resources(device),
     dynamic = {
@@ -50,15 +65,21 @@ const make = (supported = true, capacity = 8) => {
     1,
   );
   const meshes = {
+    /** Builds a record containing topology, clusters. */
     get: () => ({ topology: 0, clusters }),
   } as unknown as MeshManager;
   const queue = { writeBuffer: vi.fn() } as unknown as GPUQueue;
+  /** Delegates this operation to g.prepare. */
   const prepare = (indirect = false) =>
     g.prepare(b, q, world, meshes, new Float32Array(16), true, indirect, queue);
   return { g, device, world, q, b, queue, prepare };
 };
 describe("optional geometry clusters", () => {
+  // Groups checks for optional geometry clusters.
+
   it("covers every original index exactly once and encloses referenced vertices including a partial tail", () => {
+    // Verifies covers every original index exactly once and encloses referenced vertices including a partial tail.
+
     const positions = new Float32Array([
         -3, 2, 1, 9, -4, 2, 0, 0, -8, 30, 0, 0,
       ]),
@@ -83,21 +104,33 @@ describe("optional geometry clusters", () => {
     expect([...indices]).toEqual([0, 1, 2, 2, 1, 0, 1, 2, 3]);
   });
   it("rejects malformed topology, out-of-range indices and nonfinite positions", () => {
+    // Verifies rejects malformed topology, out-of-range indices and nonfinite positions.
+
     expect(
-      () => new MeshClusters(new Float32Array(9), new Uint32Array([0, 1])),
+      () =>
+        /** Creates MeshClusters storage for this operation. */ new MeshClusters(
+          new Float32Array(9),
+          new Uint32Array([0, 1]),
+        ),
     ).toThrow();
     expect(
-      () => new MeshClusters(new Float32Array(9), new Uint32Array([0, 1, 3])),
+      () =>
+        /** Creates MeshClusters storage for this operation. */ new MeshClusters(
+          new Float32Array(9),
+          new Uint32Array([0, 1, 3]),
+        ),
     ).toThrow(/range/);
     expect(
       () =>
-        new MeshClusters(
+        /** Creates MeshClusters storage for this operation. */ new MeshClusters(
           new Float32Array([NaN, 0, 0]),
           new Uint32Array([0, 0, 0]),
         ),
     ).toThrow(/position/);
   });
   it("allocates no GPU resources and uploads nothing while disabled; enables only on the cold setter", () => {
+    // Verifies allocates no GPU resources and uploads nothing while disabled; enables only on the cold setter.
+
     const { g, device, queue, prepare } = make();
     prepare();
     expect(g.enabled).toBe(false);
@@ -122,6 +155,8 @@ describe("optional geometry clusters", () => {
     expect([...g.clusterCount.slice(0, 2)]).toEqual([0, 0]);
   });
   it("falls back atomically for overflowing batches, deformation, transparency and GPU object indirect mode", () => {
+    // Verifies falls back atomically for overflowing batches, deformation, transparency and GPU object indirect mode.
+
     const { g, world, b, prepare } = make(true, 4);
     g.enabled = true;
     prepare();
@@ -143,6 +178,8 @@ describe("optional geometry clusters", () => {
     expect(g.count).toBe(0);
   });
   it("unsupported adapters retain the conventional path without allocating GPU resources", () => {
+    // Verifies unsupported adapters retain the conventional path without allocating GPU resources.
+
     const { g, device, prepare } = make(false);
     g.enabled = true;
     prepare();

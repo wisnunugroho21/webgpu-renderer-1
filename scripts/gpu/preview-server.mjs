@@ -20,12 +20,18 @@ export async function startPreviewServer(port, preview = true) {
   let output = "";
   let startupError;
   server.on("error", (error) => {
+    // Updates startup error for this callback.
+
     startupError = error;
   });
   server.stdout.on("data", (chunk) => {
+    // Collects server output so a startup failure includes its diagnostic text.
+
     output += chunk;
   });
   server.stderr.on("data", (chunk) => {
+    // Collects server output so a startup failure includes its diagnostic text.
+
     output += chunk;
   });
   try {
@@ -40,7 +46,9 @@ export async function startPreviewServer(port, preview = true) {
           // Vite can print its address before the socket accepts the first request.
         }
       }
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) =>
+        /** Delegates this operation to setTimeout. */ setTimeout(resolve, 100),
+      );
     }
     throw new Error(`Vite did not become ready at ${url}\n${output}`);
   } catch (error) {

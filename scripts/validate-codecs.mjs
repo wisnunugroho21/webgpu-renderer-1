@@ -20,10 +20,18 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } }),
     errors = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("pageerror", (e) =>
+    /** Delegates this operation to errors.push. */ errors.push(e.message),
+  );
   await page.goto("http://127.0.0.1:5197");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 3);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 3 condition. */ window
+        .rendererApp?.frames >= 3,
+  );
   const report = await page.evaluate(async () => {
+    // Returns result.
+
     const app = window.rendererApp;
     app.stop();
     app.autoRecoverDevice = false;
@@ -31,6 +39,7 @@ try {
     app.world.lights.castShadow[app.defaultLightEntity] = 1;
     app.renderer.shadows.cacheEnabled = false;
     app.gpu.device.pushErrorScope("validation");
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async (read = true) => {
       const w = app.world,
         r = app.renderer,
@@ -76,6 +85,7 @@ try {
       buffer.destroy();
       return data;
     };
+    /** Compares diagnostic pixel buffers and reports their differing values. */
     const difference = (a, b) => {
       let max = 0,
         pixels = 0;
@@ -86,6 +96,7 @@ try {
       }
       return { max, bytes: pixels };
     };
+    /** Builds a record containing url, load ms. */
     const load = async (name, worker = false) => {
       app.assetDecoder.thresholdBytes = worker ? 0 : Infinity;
       const url = `/regression/${name}.glb`,
@@ -136,7 +147,7 @@ try {
         await draw(false);
         if (i >= 30) referenceTimes.push(performance.now() - start);
       }
-      referenceTimes.sort((a, b) => a - b);
+      referenceTimes.sort((a, b) => /** Computes the a - b result. */ a - b);
       const referenceCompletionMs = referenceTimes[15];
       await app.unloadAsset(reference.url);
       const item = await load(eightName),
@@ -208,7 +219,7 @@ try {
         await draw(false);
         if (i >= 30) times.push(performance.now() - start);
       }
-      times.sort((a, b) => a - b);
+      times.sort((a, b) => /** Computes the a - b result. */ a - b);
       skin.push({
         ...item,
         referenceCompletionMs,
@@ -259,7 +270,9 @@ try {
         format: data.format,
         levels: data.levels.length,
         bytes: data.levels.reduce(
-          (sum, level) => sum + level.data.byteLength,
+          (sum, level) =>
+            /** Computes the sum + level.data.byteLength result. */ sum +
+            level.data.byteLength,
           0,
         ),
         decodeMs: performance.now() - start,

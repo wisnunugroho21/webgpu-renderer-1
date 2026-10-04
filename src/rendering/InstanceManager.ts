@@ -23,9 +23,11 @@ const instanceWords = INSTANCE_WORDS;
 /** Pack queue order into the shared shader ABI; all instances reuse asset buffers. */
 export class InstanceManager {
   readonly data: Uint32Array;
+  /** Initializes queue-ordered 48-byte instance records. */
   constructor(capacity: number) {
     this.data = new Uint32Array(capacity * INSTANCE_WORDS);
   }
+  /** Packs queue-ordered instance references, including per-object skin/morph offsets and selected mesh layout. */
   update(queue: RenderQueue, world: RenderWorld, meshes?: MeshManager): void {
     for (let i = 0; i < queue.count; i++) {
       const object = queue.order[i]!,

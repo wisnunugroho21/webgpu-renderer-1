@@ -30,23 +30,36 @@ try {
   const pageErrors = [];
   const consoleErrors = [];
   page.on("console", (msg) => {
+    // Applies msg.type, consoleErrors.push, msg.text to the current callback state.
+
     if (msg.type() === "error") consoleErrors.push(msg.text());
   });
-  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("pageerror", (error) =>
+    /** Delegates this operation to pageErrors.push. */ pageErrors.push(
+      error.message,
+    ),
+  );
   await page.goto("http://127.0.0.1:5187");
   try {
-    await page.waitForFunction(() => window.rendererApp?.frames >= 150, {
-      timeout: 30000,
-    });
+    await page.waitForFunction(
+      () =>
+        /** Evaluates the window.rendererApp?.frames >= 150 condition. */ window
+          .rendererApp?.frames >= 150,
+      {
+        timeout: 30000,
+      },
+    );
   } catch (error) {
     throw new Error(
       JSON.stringify({
         pageErrors,
         consoleErrors,
-        state: await page.evaluate(() => ({
-          text: document.body.textContent,
-          errors: window.rendererApp?.gpu?.errors,
-        })),
+        state: await page.evaluate(
+          () => /** Builds a record containing text, errors. */ ({
+            text: document.body.textContent,
+            errors: window.rendererApp?.gpu?.errors,
+          }),
+        ),
       }),
       { cause: error },
     );
@@ -54,7 +67,8 @@ try {
   await page.setViewportSize({ width: 640, height: 480 });
   await page.waitForFunction(
     () =>
-      window.rendererApp.canvas.width === 1280 &&
+      /** Evaluates the window.rendererApp.canvas.width === 1280 && window.rendererApp.canvas.height === 960 condition. */ window
+        .rendererApp.canvas.width === 1280 &&
       window.rendererApp.canvas.height === 960,
   );
   const cameraCheck = await page.evaluate(measureCameraCheck);
@@ -71,12 +85,19 @@ try {
   assert.equal(dynamicBenchmark.arenaBuffers, 3);
   assert.equal(dynamicBenchmark.uploadBytes, 640000);
   await page.route("**/regression/triangle.glb?async-check", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    // Applies route.continue to the current callback state.
+
+    await new Promise((resolve) =>
+      /** Delegates this operation to setTimeout. */ setTimeout(resolve, 200),
+    );
     await route.continue();
   });
   const loadingChecks = await page.evaluate(measureLoadingChecks);
   await page.route("**/worker-large.glb", (route) =>
-    route.fulfill({ body: workerFixture, contentType: "model/gltf-binary" }),
+    /** Delegates this operation to route.fulfill. */ route.fulfill({
+      body: workerFixture,
+      contentType: "model/gltf-binary",
+    }),
   );
   const workerChecks = await page.evaluate(measureWorkerChecks);
   const drawBenchmark = await page.evaluate(measureDrawBenchmark);
@@ -105,6 +126,8 @@ try {
   assert.deepEqual(drawBenchmark.resourceBefore, drawBenchmark.resourceAfter);
   await page.screenshot({ path: "artifacts/10000-cubes.png" });
   await page.evaluate(() => {
+    // Applies app.world.destroy, app.world.transforms.setPosition, app.world.transforms.setScale to the current callback state.
+
     const app = window.rendererApp;
     for (let e = 1; e < app.world.nextEntity; e++)
       if (e !== app.defaultLightEntity) app.world.destroy(e);

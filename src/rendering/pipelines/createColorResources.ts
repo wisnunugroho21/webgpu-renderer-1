@@ -35,7 +35,9 @@ import commonShader from "../../shaders/common.wgsl?raw";
 import morphShader from "../../shaders/morphing.wgsl?raw";
 import skinShader from "../../shaders/skinning.wgsl?raw";
 
-const defaultAmbient = `fn ambientLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, ao: f32) -> vec3<f32> {
+const defaultAmbient = `
+// Returns a 3% diffuse ambient term attenuated by AO when no environment is installed.
+fn ambientLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, ao: f32) -> vec3<f32> {
   return base * (1.0 - metallic) * 0.03 * ao;
 }`;
 const sharedShader = [
@@ -121,27 +123,35 @@ export function createColorResources(input: ColorResourcesInput) {
         visibility: GPUShaderStage.VERTEX,
         buffer: { type: "read-only-storage", minBindingSize: MATRIX_BYTES },
       },
-      ...[5, 6, 7, 8].map((binding) => ({
-        binding,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {
-          type: "read-only-storage" as const,
-          minBindingSize: binding === 5 ? 4 : 16,
-        },
-      })),
+      ...[5, 6, 7, 8].map(
+        (
+          binding,
+        ) => /** Builds a record containing binding, visibility, buffer. */ ({
+          binding,
+          visibility: GPUShaderStage.VERTEX,
+          buffer: {
+            type: "read-only-storage" as const,
+            minBindingSize: binding === 5 ? 4 : 16,
+          },
+        }),
+      ),
       {
         binding: 9,
         visibility: GPUShaderStage.FRAGMENT,
         buffer: { type: "read-only-storage", minBindingSize: LIGHT_BYTES },
       },
-      ...[10, 11].map((binding) => ({
-        binding,
-        visibility: GPUShaderStage.FRAGMENT,
-        buffer: {
-          type: "read-only-storage" as const,
-          minBindingSize: binding === 10 ? 8 : 4,
-        },
-      })),
+      ...[10, 11].map(
+        (
+          binding,
+        ) => /** Builds a record containing binding, visibility, buffer. */ ({
+          binding,
+          visibility: GPUShaderStage.FRAGMENT,
+          buffer: {
+            type: "read-only-storage" as const,
+            minBindingSize: binding === 10 ? 8 : 4,
+          },
+        }),
+      ),
       {
         binding: 12,
         visibility: GPUShaderStage.FRAGMENT,
@@ -196,6 +206,8 @@ export function createColorResources(input: ColorResourcesInput) {
   const pipelines = Array.from(
     { length: COLOR_PIPELINE_COUNT },
     (_, variant) => {
+      // Returns the keyed entry from resources pipelines.
+
       const index = variant % MATERIAL_PIPELINE_VARIANTS;
       return resources.pipelines.get({
         ...pipelineDescriptor,
@@ -254,41 +266,43 @@ export function createColorResources(input: ColorResourcesInput) {
   );
   const alignment = dynamic.alignment;
   const frameGroups = dynamic.buffers.map((buffer) =>
-    device.createBindGroup({
-      layout: groupLayout,
-      entries: [
-        { binding: 0, resource: { buffer, offset: 0, size: FRAME_BYTES } },
-        {
-          binding: 1,
-          resource: {
-            buffer,
-            offset: alignment,
-            size: world.capacity * MATRIX_BYTES,
+    /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+      {
+        layout: groupLayout,
+        entries: [
+          { binding: 0, resource: { buffer, offset: 0, size: FRAME_BYTES } },
+          {
+            binding: 1,
+            resource: {
+              buffer,
+              offset: alignment,
+              size: world.capacity * MATRIX_BYTES,
+            },
           },
-        },
-        { binding: 2, resource: { buffer: materialBuffer } },
-        { binding: 4, resource: { buffer: joints.buffer } },
-        { binding: 5, resource: { buffer: morphWeights.buffer } },
-        { binding: 6, resource: { buffer: morphDeltas.position } },
-        { binding: 7, resource: { buffer: morphDeltas.normal } },
-        { binding: 8, resource: { buffer: morphDeltas.tangent } },
-        { binding: 9, resource: { buffer: lights.buffer } },
-        { binding: 10, resource: { buffer: clusters.counts } },
-        { binding: 11, resource: { buffer: clusters.indices } },
-        { binding: 12, resource: { buffer: shadows.buffer } },
-        { binding: 13, resource: shadows.view },
-        { binding: 14, resource: shadows.sampler },
-        { binding: 15, resource: { buffer: gpuDraws.visibleRecords } },
-        {
-          binding: 3,
-          resource: {
-            buffer,
-            offset: 0,
-            size: world.capacity * INSTANCE_BYTES,
+          { binding: 2, resource: { buffer: materialBuffer } },
+          { binding: 4, resource: { buffer: joints.buffer } },
+          { binding: 5, resource: { buffer: morphWeights.buffer } },
+          { binding: 6, resource: { buffer: morphDeltas.position } },
+          { binding: 7, resource: { buffer: morphDeltas.normal } },
+          { binding: 8, resource: { buffer: morphDeltas.tangent } },
+          { binding: 9, resource: { buffer: lights.buffer } },
+          { binding: 10, resource: { buffer: clusters.counts } },
+          { binding: 11, resource: { buffer: clusters.indices } },
+          { binding: 12, resource: { buffer: shadows.buffer } },
+          { binding: 13, resource: shadows.view },
+          { binding: 14, resource: shadows.sampler },
+          { binding: 15, resource: { buffer: gpuDraws.visibleRecords } },
+          {
+            binding: 3,
+            resource: {
+              buffer,
+              offset: 0,
+              size: world.capacity * INSTANCE_BYTES,
+            },
           },
-        },
-      ],
-    }),
+        ],
+      },
+    ),
   );
 
   return { pipelineDescriptor, pipeline, pipelines, frameGroups };

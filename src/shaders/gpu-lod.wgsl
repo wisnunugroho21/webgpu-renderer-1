@@ -31,6 +31,7 @@ struct History {
 @group(0) @binding(7) var<storage, read_write> selections: array<i32>;
 @group(0) @binding(8) var<storage, read_write> selectedMeshes: array<u32>;
 @group(0) @binding(9) var<storage, read_write> distribution: array<atomic<u32>, 8>;
+// Chooses a compatible authored mesh from projected pixel size while retaining LOD hysteresis state.
 @compute @workgroup_size(64) fn selectLOD(@builtin(global_invocation_id) invocation: vec3<u32>) {
   let id = invocation.x;
   if (id >= params.count) {

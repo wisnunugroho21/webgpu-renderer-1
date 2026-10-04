@@ -16,6 +16,8 @@ const clip = new AnimationClip("shared", [
   ),
 ]);
 describe("Optional animation layers", () => {
+  // Groups checks for Optional animation layers.
+
   for (const layers of [0, 1, 4]) {
     const world = new World(1000),
       animators: Animator[] = [];
@@ -40,6 +42,8 @@ describe("Optional animation layers", () => {
       animators.push(animator);
     }
     bench(`1000 animators with ${layers} layers`, () => {
+      // Measures Optional animation layers.
+
       for (const animator of animators) animator.update(1 / 60);
     });
   }

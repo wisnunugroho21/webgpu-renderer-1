@@ -5,13 +5,18 @@ import { ResourceStats } from "../src/gpu/ResourceStats";
 Object.assign(globalThis, {
   GPUBufferUsage: { COPY_DST: 8, UNIFORM: 64, STORAGE: 128 },
 });
+/** Builds a record containing arena, stats. */
 function allocator(capacity = 1024 * 1024) {
   const stats = new ResourceStats(),
     device = {
-      createBuffer: vi.fn((d: GPUBufferDescriptor) => ({
-        size: d.size,
-        destroy: vi.fn(),
-      })),
+      createBuffer: vi.fn(
+        (
+          d: GPUBufferDescriptor,
+        ) => /** Builds a record containing size, destroy. */ ({
+          size: d.size,
+          destroy: vi.fn(),
+        }),
+      ),
     } as unknown as GPUDevice;
   return {
     arena: new DynamicBufferAllocator(
@@ -24,7 +29,11 @@ function allocator(capacity = 1024 * 1024) {
   };
 }
 describe("shared dynamic arena", () => {
+  // Groups checks for shared dynamic arena.
+
   it("uses exactly three buffers for 10,000 object records across frames", () => {
+    // Verifies uses exactly three buffers for 10,000 object records across frames.
+
     const { arena, stats } = allocator();
     for (let frame = 0; frame < 6; frame++) {
       arena.beginFrame(frame);
@@ -36,6 +45,8 @@ describe("shared dynamic arena", () => {
     expect(stats.buffers).toBe(3);
   });
   it("aligns records, preserves data and uploads one contiguous range", () => {
+    // Verifies aligns records, preserves data and uploads one contiguous range.
+
     const { arena } = allocator();
     arena.beginFrame(1);
     const first = arena.allocate(64),
@@ -56,12 +67,25 @@ describe("shared dynamic arena", () => {
     expect(arena.uploadBytes).toBe(272);
   });
   it("fails capacity/range checks without growing buffers", () => {
+    // Verifies fails capacity/range checks without growing buffers.
+
     const { arena, stats } = allocator(256);
     arena.allocate(256);
-    expect(() => arena.allocate(4)).toThrow("capacity exceeded");
-    expect(() => arena.write(256, new Float32Array([1]))).toThrow();
-    expect(() => arena.allocate(3)).toThrow();
-    expect(() => arena.beginFrame(-1)).toThrow();
+    expect(() =>
+      /** Delegates this operation to arena.allocate. */ arena.allocate(4),
+    ).toThrow("capacity exceeded");
+    expect(() =>
+      /** Delegates this operation to arena.write. */ arena.write(
+        256,
+        new Float32Array([1]),
+      ),
+    ).toThrow();
+    expect(() =>
+      /** Delegates this operation to arena.allocate. */ arena.allocate(3),
+    ).toThrow();
+    expect(() =>
+      /** Delegates this operation to arena.beginFrame. */ arena.beginFrame(-1),
+    ).toThrow();
     expect(stats.bufferCreations).toBe(3);
   });
 });

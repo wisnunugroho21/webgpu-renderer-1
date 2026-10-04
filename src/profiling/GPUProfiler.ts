@@ -33,6 +33,7 @@ export class GPUProfiler {
   private readonly frameIds = new Uint32Array(3);
   private readonly labels = new Uint8Array(3 * 32);
   private slot = -1;
+  /** Allocates timestamp resources only when the device supports timestamp-query; ordinary frames remain unprofiled. */
   constructor(device: GPUDevice, resources: Resources) {
     this.supported = device.features.has("timestamp-query");
     if (!this.supported) return;
@@ -55,14 +56,21 @@ export class GPUProfiler {
         }),
       );
       this.descriptors.push(
-        Array.from({ length: 32 }, (_, pass) => ({
-          querySet: this.query!,
-          beginningOfPassWriteIndex: slot * 64 + pass * 2,
-          endOfPassWriteIndex: slot * 64 + pass * 2 + 1,
-        })),
+        Array.from(
+          { length: 32 },
+          (
+            _,
+            pass,
+          ) => /** Builds a record containing query set, beginning of pass write index, end of pass write index. */ ({
+            querySet: this.query!,
+            beginningOfPassWriteIndex: slot * 64 + pass * 2,
+            endOfPassWriteIndex: slot * 64 + pass * 2 + 1,
+          }),
+        ),
       );
     }
   }
+  /** Resets query allocation for an explicitly enabled profiling frame. */
   beginFrame(frame: number): void {
     this.slot = -1;
     if (!this.enabled || !this.supported) return;
@@ -76,6 +84,7 @@ export class GPUProfiler {
     this.counts[slot] = 0;
     this.frameIds[slot] = frame;
   }
+  /** Returns timestamp-write descriptors for a pass when supported profiling is active. */
   writes(pass: number): GPURenderPassTimestampWrites | undefined {
     if (this.slot < 0) return;
     const count = this.counts[this.slot]!;
@@ -84,6 +93,7 @@ export class GPUProfiler {
     this.counts[this.slot] = count + 1;
     return this.descriptors[this.slot]![count];
   }
+  /** Encodes timestamp resolve/copy work for later explicit diagnostics. */
   resolveFrame(encoder: GPUCommandEncoder): void {
     const slot = this.slot;
     if (slot < 0) return;
@@ -107,6 +117,7 @@ export class GPUProfiler {
     } else this.occupied[slot] = 0;
     this.slot = -1;
   }
+  /** Maps completed timestamp readback only for requested diagnostics and converts ticks into milliseconds. */
   async readSamples(): Promise<GPUTiming[]> {
     if (this.enabled)
       throw new Error("Pause timestamp capture before explicit readback");
@@ -127,6 +138,7 @@ export class GPUProfiler {
       }
     return samples;
   }
+  /** Destroys profiling query/readback resources. */
   dispose(): void {
     this.query?.destroy();
   }

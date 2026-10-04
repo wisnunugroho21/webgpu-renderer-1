@@ -4,10 +4,12 @@ export class PipelineCache {
   private readonly keys = new CacheKey();
   private readonly computeCache = new Map<string, GPUComputePipeline>();
   private readonly cache = new Map<string, GPURenderPipeline>();
+  /** Initializes descriptor-keyed render and compute pipeline reuse. */
   constructor(
     private readonly device: GPUDevice,
     private readonly stats: ResourceStats,
   ) {}
+  /** Returns a cached render pipeline or creates it once from the descriptor key. */
   get(descriptor: GPURenderPipelineDescriptor): GPURenderPipeline {
     // Key includes shader identity/entry points, vertex layouts, topology, culling,
     // depth/stencil, blend targets/formats, explicit layouts and sample count.
@@ -37,6 +39,7 @@ export class PipelineCache {
     this.cache.set(key, pipeline);
     return pipeline;
   }
+  /** Returns a cached compute pipeline or creates it once from the descriptor key. */
   getCompute(descriptor: GPUComputePipelineDescriptor): GPUComputePipeline {
     const key = this.keys.encode(descriptor),
       existing = this.computeCache.get(key);
@@ -50,6 +53,7 @@ export class PipelineCache {
     this.computeCache.set(key, pipeline);
     return pipeline;
   }
+  /** Clears retained descriptor-keyed render and compute pipeline reuse without publishing new frame work. */
   clear(): void {
     this.cache.clear();
     this.computeCache.clear();

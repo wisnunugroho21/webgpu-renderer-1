@@ -4,6 +4,7 @@ import { Animator } from "../src/animation/Animator";
 import { AnimationClip } from "../src/animation/AnimationClip";
 import { AnimationChannel } from "../src/animation/AnimationChannel";
 import { AnimationSampler } from "../src/animation/AnimationSampler";
+/** Builds controlled test dependencies and reusable state for animation-rate. */
 function fixture() {
   const world = new World(2),
     entity = world.create();
@@ -29,6 +30,8 @@ function fixture() {
   return { world, entity, animator };
 }
 it("advances full-rate clocks while holding explicit reduced-rate visual poses", () => {
+  // Verifies advances full-rate clocks while holding explicit reduced-rate visual poses.
+
   const { world, entity, animator } = fixture();
   animator.evaluationInterval = 1 / 15;
   const start = animator.evaluations;
@@ -46,6 +49,8 @@ it("advances full-rate clocks while holding explicit reduced-rate visual poses",
   expect(world.transforms.positionX[entity]).toBe(0.5);
 });
 it("forces terminal and crossfade endpoint poses and validates quality controls", () => {
+  // Verifies forces terminal and crossfade endpoint poses and validates quality controls.
+
   const { world, entity, animator } = fixture();
   animator.evaluationInterval = 1;
   animator.loop = false;
@@ -58,11 +63,21 @@ it("forces terminal and crossfade endpoint poses and validates quality controls"
   expect(animator.crossfading).toBe(false);
   expect(world.transforms.positionX[entity]).toBeCloseTo(0.02);
   for (const value of [-1, NaN, Infinity, 1.1])
-    expect(() => (animator.evaluationInterval = value)).toThrow();
+    expect(
+      () =>
+        /** Computes the animator.evaluationInterval = value result. */ (animator.evaluationInterval =
+          value),
+    ).toThrow();
   for (const value of [-1, NaN, 1])
-    expect(() => (animator.evaluationPhase = value)).toThrow();
+    expect(
+      () =>
+        /** Computes the animator.evaluationPhase = value result. */ (animator.evaluationPhase =
+          value),
+    ).toThrow();
 });
 it("staggering distributes evaluations without changing playback time", () => {
+  // Verifies staggering distributes evaluations without changing playback time.
+
   const a = fixture().animator,
     b = fixture().animator;
   a.evaluationInterval = b.evaluationInterval = 1 / 30;

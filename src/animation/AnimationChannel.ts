@@ -1,6 +1,7 @@
 import { AnimationSampler } from "./AnimationSampler";
 export type AnimationPath = "translation" | "rotation" | "scale" | "weights";
 export class AnimationChannel {
+  /** Initializes a clip channel linking one node property to a shared sampler; invalid input is rejected. */
   constructor(
     readonly node: number,
     readonly path: AnimationPath,

@@ -4,7 +4,11 @@ import { FrustumCuller } from "../src/visibility/FrustumCuller";
 import { Frustum } from "../src/math/Frustum";
 import { Mat4 } from "../src/math/Mat4";
 describe("allocation-free frustum culling", () => {
+  // Groups checks for allocation-free frustum culling.
+
   it("keeps touching bounds and rejects each outside clip plane for spheres and boxes", () => {
+    // Verifies keeps touching bounds and rejects each outside clip plane for spheres and boxes.
+
     const w = new RenderWorld(9),
       f = new Frustum(),
       c = new FrustumCuller(9);
@@ -22,6 +26,8 @@ describe("allocation-free frustum culling", () => {
       [1.1, 0, 0.5],
     ];
     positions.forEach((p, i) => {
+      // Applies w.sphere.set to the current callback state.
+
       w.sphere.set([...p, 0.1], i * 4);
       for (let a = 0; a < 3; a++) {
         w.boundsMin[i * 3 + a] = p[a]! - 0.1;
@@ -36,6 +42,8 @@ describe("allocation-free frustum culling", () => {
     }
   });
   it("matches direct clip-space point inequalities for a perspective camera", () => {
+    // Verifies matches direct clip-space point inequalities for a perspective camera.
+
     const w = new RenderWorld(1000),
       f = new Frustum(),
       c = new FrustumCuller(1000),

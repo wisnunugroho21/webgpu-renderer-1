@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { MaterialManager } from "../src/rendering/materials/MaterialManager";
 import { MaterialFlags } from "../src/rendering/materials/MaterialFlags";
 describe("shared material data", () => {
+  // Groups checks for shared material data.
+
   it("encodes properties and bounded pipeline indices", () => {
+    // Verifies encodes properties and bounded pipeline indices.
+
     const m = new MaterialManager(2),
       id = m.create({
         baseColor: [0.2, 0.3, 0.4, 0.5],
@@ -21,6 +25,8 @@ describe("shared material data", () => {
     expect(m.data[id * 20]).toBe(1);
   });
   it("uploads changed ranges and skips unchanged data", () => {
+    // Verifies uploads changed ranges and skips unchanged data.
+
     const m = new MaterialManager(3);
     for (let i = 0; i < 3; i++) m.create();
     const buffer = {} as GPUBuffer,
@@ -41,16 +47,26 @@ describe("shared material data", () => {
     expect(m.uploadBytes).toBe(80);
   });
   it("rejects capacity and invalid values", () => {
+    // Verifies rejects capacity and invalid values.
+
     const m = new MaterialManager(1);
-    expect(() => m.create({ roughness: 2 })).toThrow();
+    expect(() =>
+      /** Delegates this operation to m.create. */ m.create({ roughness: 2 }),
+    ).toThrow();
     expect(m.count).toBe(0);
     m.create();
-    expect(() => m.create()).toThrow("capacity");
-    expect(() => m.set(5, {})).toThrow();
+    expect(() =>
+      /** Delegates this operation to m.create. */ m.create(),
+    ).toThrow("capacity");
+    expect(() =>
+      /** Delegates this operation to m.set. */ m.set(5, {}),
+    ).toThrow();
   });
 });
 
 it("updates streamed UV/normal metadata and revisions, then restores the original layout", () => {
+  // Verifies updates streamed UV/normal metadata and revisions, then restores the original layout.
+
   const manager = new MaterialManager(),
     id = manager.create({
       baseColor: [0.2, 0.3, 0.4, 1],
@@ -75,7 +91,10 @@ it("updates streamed UV/normal metadata and revisions, then restores the origina
   manager.setTextureLayout(id, old);
   expect(manager.textureLayout(id)).toEqual(old);
   expect(() =>
-    manager.setTextureSlots(id, { normal: { texCoord: 2 } }),
+    /** Delegates this operation to manager.setTextureSlots. */ manager.setTextureSlots(
+      id,
+      { normal: { texCoord: 2 } },
+    ),
   ).toThrow("TEXCOORD");
   expect(manager.textureLayout(id)).toEqual(old);
 });

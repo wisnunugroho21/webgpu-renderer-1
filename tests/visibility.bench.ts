@@ -22,16 +22,26 @@ const bvh = new BVH(w.capacity);
 w.flags.fill(RenderFlags.STATIC);
 bvh.build(w);
 describe("Phase 11: 100,000 objects", () => {
+  // Groups checks for Phase 11: 100,000 objects.
+
   bench("no culling enumeration baseline", () => {
+    // Measures no culling enumeration baseline.
+
     for (let i = 0; i < w.count; i++) all[i] = i;
   });
   bench("linear CPU sphere frustum", () => {
+    // Measures linear CPU sphere frustum.
+
     culler.cull(w, frustum, "sphere");
   });
   bench("linear CPU AABB frustum", () => {
+    // Measures linear CPU AABB frustum.
+
     culler.cull(w, frustum, "aabb");
   });
   bench("Phase 12 static BVH frustum", () => {
+    // Measures Phase 12 static BVH frustum.
+
     bvh.cull(w, frustum, culler);
   });
 });

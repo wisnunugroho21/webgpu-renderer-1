@@ -17,6 +17,7 @@ export class GeometryOptimization {
   fallbackBatches = 0;
   private staging = new Float32Array(0);
   private bits = new Uint32Array(0);
+  /** Returns the retained CPU cluster-culling staging array without copying it. */
   get data(): Float32Array {
     return this.staging;
   }
@@ -28,6 +29,7 @@ export class GeometryOptimization {
   private records?: GPUBuffer;
   private header?: GPUBuffer;
   arguments?: GPUBuffer;
+  /** Initializes bounded static mesh-cluster compute culling and indirect arguments; invalid input is rejected. */
   constructor(
     private readonly device: GPUDevice,
     private readonly resources: Resources,
@@ -48,14 +50,17 @@ export class GeometryOptimization {
     this.firstCluster = new Uint32Array(objectCapacity);
     this.clusterCount = new Uint32Array(objectCapacity);
   }
+  /** Reports whether static cluster culling is requested. */
   get enabled(): boolean {
     return this.active;
   }
+  /** Toggles cluster culling; first supported enable prepares retained resources, while disabling clears batch cluster counts. */
   set enabled(value: boolean) {
     if (value && this.supported && !this.pipeline) this.initialize();
     if (!value) this.clusterCount.fill(0);
     this.active = value;
   }
+  /** Allocates fixed cluster records, indirect arguments and the compute pipeline once on supported enable. */
   private initialize(): void {
     this.staging = new Float32Array(this.capacity * 12);
     this.bits = new Uint32Array(this.staging.buffer);
@@ -116,32 +121,35 @@ export class GeometryOptimization {
       },
     });
     this.groups = this.dynamic.buffers.map((buffer) =>
-      this.device.createBindGroup({
-        layout,
-        entries: [
-          { binding: 0, resource: { buffer: this.header! } },
-          { binding: 1, resource: { buffer: this.records! } },
-          { binding: 2, resource: { buffer: this.arguments! } },
-          {
-            binding: 3,
-            resource: {
-              buffer,
-              offset: this.dynamic.alignment,
-              size: this.firstCluster.length * 64,
+      /** Delegates this operation to this.device.createBindGroup. */ this.device.createBindGroup(
+        {
+          layout,
+          entries: [
+            { binding: 0, resource: { buffer: this.header! } },
+            { binding: 1, resource: { buffer: this.records! } },
+            { binding: 2, resource: { buffer: this.arguments! } },
+            {
+              binding: 3,
+              resource: {
+                buffer,
+                offset: this.dynamic.alignment,
+                size: this.firstCluster.length * 64,
+              },
             },
-          },
-          {
-            binding: 4,
-            resource: {
-              buffer,
-              offset: 0,
-              size: this.firstCluster.length * 48,
+            {
+              binding: 4,
+              resource: {
+                buffer,
+                offset: 0,
+                size: this.firstCluster.length * 48,
+              },
             },
-          },
-        ],
-      }),
+          ],
+        },
+      ),
     );
   }
+  /** Builds cluster-instance records for eligible static batches and falls back intact on unsupported/overflowing cases. */
   prepare(
     batches: BatchBuilder,
     queue: RenderQueue,
@@ -228,6 +236,7 @@ export class GeometryOptimization {
       );
     this.uploadBytes = 80 + changedBytes;
   }
+  /** Dispatches cluster frustum culling into indexed indirect arguments when candidate records exist. */
   encode(
     encoder: GPUCommandEncoder,
     slot: number,

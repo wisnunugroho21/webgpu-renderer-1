@@ -1,6 +1,7 @@
 // Refine current frustum flags with conservative eight-corner projected bounds.
 // Keep near-plane intersections visible; maximum Hi-Z depth and bias prevent false rejection.
 @group(0) @binding(4) var hiz: texture_2d<f32>;
+// Rejects an object only when its nearest conservative projected bound is behind every touched Hi-Z cell.
 @compute @workgroup_size(64) fn occlude(@builtin(global_invocation_id) invocation: vec3<u32>) {
   let id = invocation.x;
   if (id >= params.count || visible[id] == 0u) {

@@ -7,7 +7,11 @@ import { LightBuffer } from "../src/rendering/LightBuffer";
 import { BufferManager } from "../src/gpu/BufferManager";
 Object.assign(globalThis, { GPUBufferUsage: { STORAGE: 128, COPY_DST: 8 } });
 describe("shared lighting data", () => {
+  // Groups checks for shared lighting data.
+
   it("transforms point position/spot direction, packs factors and skips unchanged uploads", () => {
+    // Verifies transforms point position/spot direction, packs factors and skips unchanged uploads.
+
     const world = new World(2),
       e = world.create();
     world.transforms.add(e);
@@ -32,7 +36,10 @@ describe("shared lighting data", () => {
     expect(snapshot.lightData[11]).toBe(2);
     expect(snapshot.lightData[12]).toBeCloseTo(Math.cos(0.1));
     const buffer = new LightBuffer(
-        { create: () => ({}) } as unknown as BufferManager,
+        {
+          /** Returns an empty fixture handle for a controlled test dependency. */
+          create: () => ({}),
+        } as unknown as BufferManager,
         1024,
       ),
       queue = { writeBuffer: vi.fn() } as unknown as GPUQueue;
@@ -46,17 +53,31 @@ describe("shared lighting data", () => {
     expect(snapshot.lightCount).toBe(0);
   });
   it("validates light properties and gives added components valid defaults", () => {
+    // Verifies validates light properties and gives added components valid defaults.
+
     const w = new World(1),
       e = w.create();
     w.lights.add(e);
     expect(w.lights.direction[2]).toBe(-1);
     expect(w.lights.intensity[0]).toBe(1);
-    expect(() => w.lights.set(e, { type: "point", intensity: -1 })).toThrow();
     expect(() =>
-      w.lights.set(e, { type: "spot", innerCone: 1, outerCone: 0.5 }),
+      /** Delegates this operation to w.lights.set. */ w.lights.set(e, {
+        type: "point",
+        intensity: -1,
+      }),
     ).toThrow();
     expect(() =>
-      w.lights.set(e, { type: "directional", direction: [0, 0, 0] }),
+      /** Delegates this operation to w.lights.set. */ w.lights.set(e, {
+        type: "spot",
+        innerCone: 1,
+        outerCone: 0.5,
+      }),
+    ).toThrow();
+    expect(() =>
+      /** Delegates this operation to w.lights.set. */ w.lights.set(e, {
+        type: "directional",
+        direction: [0, 0, 0],
+      }),
     ).toThrow();
     expect(w.lights.intensity[0]).toBe(1);
   });

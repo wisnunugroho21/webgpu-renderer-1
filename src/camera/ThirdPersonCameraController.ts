@@ -11,6 +11,7 @@ export interface FollowOptions extends OrbitOptions {
 export class ThirdPersonCameraController extends OrbitCameraController {
   private readonly height: number;
   private readonly speed: number;
+  /** Initializes a heading-relative orbit camera with smoothed follow state; invalid input is rejected. */
   constructor(camera: Camera, options: FollowOptions = {}) {
     super(camera, options);
     this.height = options.height ?? 1;

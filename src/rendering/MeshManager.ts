@@ -24,12 +24,14 @@ export class MeshManager {
     number,
     { vertices: Float32Array; indices: Uint32Array }
   >();
+  /** Returns retained CPU geometry bytes needed to rebuild meshes after device loss. */
   get recoveryBytes(): number {
     let bytes = 0;
     for (const data of this.recovery.values())
       bytes += data.vertices.byteLength + data.indices.byteLength;
     return bytes;
   }
+  /** Rejects recovery when a resident mesh no longer has the CPU definition needed to rebuild its buffers. */
   assertRecoverable(): void {
     for (let id = 1; id < this.entries.length; id++)
       if (this.entries[id] && !this.recovery.has(id))
@@ -37,6 +39,7 @@ export class MeshManager {
           `Mesh ${id} has no CPU recovery data; register it with packed recovery arrays`,
         );
   }
+  /** Recreates resident meshes in a replacement manager while preserving published mesh IDs. */
   rebuildInto(next: MeshManager): void {
     this.assertRecoverable();
     for (let id = 1; id < this.entries.length; id++) {
@@ -73,17 +76,21 @@ export class MeshManager {
     }
     next.entries.length = this.entries.length;
   }
+  /** Drops retained CPU mesh definitions when their recovery ownership ends. */
   clearRecovery(): void {
     this.recovery.clear();
   }
+  /** Initializes shared mesh buffers, recovery definitions and upload transactions. */
   constructor(
     private readonly resources: Resources,
     private readonly queue: GPUQueue,
     private readonly morphDeltas?: MorphDeltaBuffers,
   ) {}
+  /** Waits for previously submitted work only on the cold mesh-retirement path. */
   fence(): Promise<void> {
     return this.queue.onSubmittedWorkDone();
   }
+  /** Registers vertex/index buffers and mesh metadata under a stable shared mesh ID. */
   register(
     mesh: Mesh,
     recovery?: { vertices: Float32Array; indices: Uint32Array },
@@ -96,11 +103,13 @@ export class MeshManager {
     this.entries.push(mesh);
     return this.entries.length - 1;
   }
+  /** Returns resident mesh data for an ID and rejects unknown or retired meshes. */
   get(id: number): Mesh {
     const mesh = this.entries[id];
     if (!mesh) throw new Error(`Unknown mesh ${id}`);
     return mesh;
   }
+  /** Retires an owned mesh and releases its static deformation ranges and GPU buffers. */
   destroy(id: number): void {
     const mesh = this.get(id);
     this.resources.buffers.destroy(mesh.vertex);
@@ -110,9 +119,11 @@ export class MeshManager {
     delete this.entries[id];
     this.recovery.delete(id);
   }
+  /** Prepares a decoded primitive on the cold path and uploads it as one shared resident mesh. */
   upload(primitive: RuntimePrimitive): number {
     return this.uploadPrepared(primitive.prepared ?? prepareMesh(primitive));
   }
+  /** Uploads already packed geometry and validated deformation metadata without repeating canonical preparation. */
   private uploadPrepared(prepared: PreparedMesh): number {
     const transaction = this.beginUpload(prepared);
     try {
@@ -139,6 +150,7 @@ export class MeshManager {
       return this.uploadPrepared(prepared);
     const transaction = this.beginUpload(prepared);
     try {
+      /** Writes packed mesh bytes in bounded chunks, yielding and checking cancellation/device state between chunks. */
       const write = async (
         buffer: GPUBuffer,
         data: Float32Array | Uint32Array,
@@ -150,7 +162,12 @@ export class MeshManager {
             start * 4,
             data.subarray(start, Math.min(data.length, start + chunkBytes / 4)),
           );
-          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          await new Promise<void>((resolve) =>
+            /** Delegates this operation to setTimeout. */ setTimeout(
+              resolve,
+              0,
+            ),
+          );
         }
       };
       await write(transaction.vertex, prepared.vertices);
@@ -181,6 +198,7 @@ export class MeshManager {
         ? this.morphDeltas?.append(morph, skin?.secondary, count)
         : undefined;
     let vertex: GPUBuffer | undefined, index: GPUBuffer | undefined;
+    /** Releases buffers and arena ranges reserved by an unpublished mesh upload. */
     const rollback = () => {
       if (vertex) this.resources.buffers.destroy(vertex);
       if (index) this.resources.buffers.destroy(index);
@@ -205,6 +223,7 @@ export class MeshManager {
       vertex,
       index,
       rollback,
+      /** Registers a fully uploaded mesh and its CPU recovery definition after all required resources are ready. */
       publish: () => {
         const id = this.register({
           clusters,

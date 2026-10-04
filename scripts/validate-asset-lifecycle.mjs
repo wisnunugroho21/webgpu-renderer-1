@@ -23,26 +23,38 @@ try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) =>
+    /** Delegates this operation to errors.push. */ errors.push(error.message),
+  );
   await page.route("**/lifecycle-invalid.glb", (route) =>
-    route.fulfill({
+    /** Delegates this operation to route.fulfill. */ route.fulfill({
       body: Buffer.from(invalid),
       contentType: "model/gltf-binary",
     }),
   );
   await page.goto("http://127.0.0.1:5191");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 10);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 10 condition. */ window
+        .rendererApp?.frames >= 10,
+  );
   const report = await page.evaluate(async () => {
+    // Builds a record containing individual, baseline, baseline hash, failure, after failure, shared textures.
+
     const app = window.rendererApp,
       r = app.renderer;
     app.stop();
     await app.gpu.queue.onSubmittedWorkDone();
+    /** Copies live resource/cache counters for leak and steady-state allocation comparisons. */
     const snapshot = () => ({
       buffers: r.resources.stats.buffers,
       bufferBytes: r.resources.stats.bufferBytes,
       textures: r.resources.stats.textures,
       textureCache: r.textures.cache.size,
-      materials: app.materials.alive.reduce((sum, alive) => sum + alive, 0),
+      materials: app.materials.alive.reduce(
+        (sum, alive) => /** Computes the sum + alive result. */ sum + alive,
+        0,
+      ),
       meshCount: r.meshes.entries.filter(Boolean).length,
       deltas: r.morphDeltas.count,
       joints: app.skeletons.jointCount,
@@ -54,6 +66,7 @@ try {
       entities: app.world.count,
       renderables: app.renderWorld.count,
     });
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       app.transformSystem.update(app.world.transforms);
       app.skeletonSystem.update(app.world, app.skeletons);
@@ -220,7 +233,11 @@ try {
   assert.equal(report.unloadedHash, report.baselineHash);
   for (const cycle of report.cycles)
     assert.deepEqual(cycle.resident, report.baseline);
-  assert.equal(new Set(report.cycles.map((cycle) => cycle.hash)).size, 1);
+  assert.equal(
+    new Set(report.cycles.map((cycle) => /** Returns cycle hash. */ cycle.hash))
+      .size,
+    1,
+  );
   assert.equal(report.cache.records, 1);
   assert.match(report.cache.urls[0], /cache-b/);
   assert.deepEqual(report.final, report.baseline);
@@ -229,22 +246,32 @@ try {
   assert.deepEqual(errors, []);
   let intercepted;
   const requested = new Promise((resolve) => {
+    // Updates intercepted for this callback.
+
     intercepted = resolve;
   });
   let heldRoute;
   await page.route("**/lifecycle-cancel.glb", (route) => {
+    // Applies intercepted to the current callback state.
+
     heldRoute = route;
     intercepted();
   });
   await page.evaluate(() => {
+    // Applies app.loadAsset("/lifecycle-cancel.glb").then, app.loadAsset to the current callback state.
+
     const app = window.rendererApp;
     window.lifecycleCancelled = app.loadAsset("/lifecycle-cancel.glb").then(
-      () => "unexpected success",
-      (error) => error.name,
+      () =>
+        /** Continues validate-asset-lifecycle.mjs after the preceding asynchronous operation succeeds. */ "unexpected success",
+      (error) =>
+        /** Continues validate-asset-lifecycle.mjs after the preceding asynchronous operation succeeds. */ error.name,
     );
   });
   await requested;
   report.cancellation = await page.evaluate(async () => {
+    // Builds a record containing cancelled, error, records, entities.
+
     const app = window.rendererApp;
     const cancelled = app.cancelAssetLoad("/lifecycle-cancel.glb");
     const error = await window.lifecycleCancelled;
@@ -256,13 +283,17 @@ try {
       entities: app.world.count,
     };
   });
-  await heldRoute.abort().catch(() => {});
+  await heldRoute.abort().catch(() => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
   assert.equal(report.cancellation.cancelled, true);
   assert.equal(report.cancellation.error, "AbortError");
   assert.equal(report.cancellation.records, 0);
   assert.equal(report.cancellation.entities, report.baseline.entities);
   assert.deepEqual(errors, []);
   report.handles = await page.evaluate(async () => {
+    // Builds a record containing cycles, first high water, final high water, entities, errors.
+
     const app = window.rendererApp,
       world = app.world,
       cycles = [];
@@ -294,10 +325,25 @@ try {
       if (i && world.resolve(stale) !== null)
         throw new Error("Stale asset handle revived");
       world.destroy(stale);
-      if (i && handles.some((h) => world.resolve(h) === null))
+      if (
+        i &&
+        handles.some(
+          (h) =>
+            /** Evaluates the world.resolve(h) === null condition. */ world.resolve(
+              h,
+            ) === null,
+        )
+      )
         throw new Error("Stale destruction hit replacement");
       await app.unloadAsset("/regression/crowd-combined.glb");
-      if (handles.some((h) => world.resolve(h) !== null))
+      if (
+        handles.some(
+          (h) =>
+            /** Evaluates the world.resolve(h) !== null condition. */ world.resolve(
+              h,
+            ) !== null,
+        )
+      )
         throw new Error("Unloaded asset handle still alive");
       cycles.push(performance.now() - start);
     }
@@ -317,6 +363,8 @@ try {
     timestamp: new Date().toISOString(),
   };
   await page.evaluate(async () => {
+    // Applies window.rendererApp.dispose to the current callback state.
+
     await window.rendererApp.dispose();
   });
   await writeFile(

@@ -22,6 +22,7 @@ export class TemporalVisibility {
   private readonly weights: Float32Array;
   private jointCount = 0;
   private weightCount = 0;
+  /** Initializes exact-state visibility reuse and conservative new-object handling. */
   constructor(world: RenderWorld) {
     this.entities = new Uint32Array(world.capacity).fill(0xffffffff);
     this.generations = new Float64Array(world.capacity);
@@ -30,6 +31,7 @@ export class TemporalVisibility {
     this.joints = new Float32Array(world.jointMatrices.length);
     this.weights = new Float32Array(world.morphWeights.length);
   }
+  /** Compares camera/object/material/deformation snapshots and permits reuse only for unchanged compatible state. */
   prepare(
     world: RenderWorld,
     camera: Camera,

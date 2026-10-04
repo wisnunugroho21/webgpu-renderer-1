@@ -1,16 +1,28 @@
 import { it, expect, vi } from "vitest";
 import { AssetLoader } from "../src/assets/AssetLoader";
 it("exposes all states, yields between stages, and deduplicates concurrent/cached requests", async () => {
+  // Verifies exposes all states, yields between stages, and deduplicates concurrent/cached requests.
+
   let release!: (value: number) => void;
   const network = vi.fn(
     () =>
-      new Promise<number>((resolve) => {
-        release = resolve;
-      }),
+      /** Creates Promise storage for this operation. */ new Promise<number>(
+        (resolve) => {
+          // Updates release for this callback.
+
+          release = resolve;
+        },
+      ),
   );
-  const decode = vi.fn(async (value: number) => value + 1),
-    upload = vi.fn(async (value: number) => value * 2);
-  const yieldTask = vi.fn(async () => {}),
+  const decode = vi.fn(
+      async (value: number) => /** Computes the value + 1 result. */ value + 1,
+    ),
+    upload = vi.fn(
+      async (value: number) => /** Computes the value * 2 result. */ value * 2,
+    );
+  const yieldTask = vi.fn(async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    }),
     loader = new AssetLoader(network, decode, upload, yieldTask);
   expect(loader.get("a").state).toBe("Unloaded");
   const first = loader.load("a"),
@@ -33,9 +45,14 @@ it("exposes all states, yields between stages, and deduplicates concurrent/cache
   expect(yieldTask).toHaveBeenCalledTimes(2);
 });
 it("records network, decode and upload failures and permits retries", async () => {
+  // Verifies records network, decode and upload failures and permits retries.
+
   for (let stage = 0; stage < 3; stage++) {
     let fail = true;
+    /** Returns async (value: unknown) => { if (fail && stage === i) throw new Error("failed"); return value; }. */
     const action = (i: number) => async (value: unknown) => {
+      // Verifies records network, decode and upload failures and permits retries.
+
       if (fail && stage === i) throw new Error("failed");
       return value;
     };
@@ -43,7 +60,9 @@ it("records network, decode and upload failures and permits retries", async () =
       action(0),
       action(1),
       action(2),
-      async () => {},
+      async () => {
+        // Intentionally performs no work at this optional callback boundary.
+      },
     );
     await expect(loader.load("a")).rejects.toThrow("failed");
     expect(loader.get("a").state).toBe("Failed");
@@ -54,17 +73,32 @@ it("records network, decode and upload failures and permits retries", async () =
   }
 });
 it("cancels a shared fetch with a signal, releases decoded data, and retries", async () => {
+  // Verifies cancels a shared fetch with a signal, releases decoded data, and retries.
+
   let signal!: AbortSignal;
   const network = vi.fn(
     (_url: string, s: AbortSignal) =>
-      new Promise<number>((_resolve, reject) => {
-        signal = s;
-        s.addEventListener("abort", () => reject(s.reason), { once: true });
-      }),
+      /** Creates Promise storage for this operation. */ new Promise<number>(
+        (_resolve, reject) => {
+          // Applies s.addEventListener to the current callback state.
+
+          signal = s;
+          s.addEventListener(
+            "abort",
+            () =>
+              /** Handles the abort event for assets.test.ts. */ reject(
+                s.reason,
+              ),
+            { once: true },
+          );
+        },
+      ),
   );
-  const decode = vi.fn(async (n: number) => n),
-    upload = vi.fn(async (n: number) => n);
-  const loader = new AssetLoader(network, decode, upload, async () => {});
+  const decode = vi.fn(async (n: number) => /** Returns n. */ n),
+    upload = vi.fn(async (n: number) => /** Returns n. */ n);
+  const loader = new AssetLoader(network, decode, upload, async () => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
   const pending = loader.load("a");
   await Promise.resolve();
   expect(loader.cancel("a")).toBe(true);
@@ -72,24 +106,40 @@ it("cancels a shared fetch with a signal, releases decoded data, and retries", a
   await expect(pending).rejects.toMatchObject({ name: "AbortError" });
   expect(decode).not.toHaveBeenCalled();
   expect(loader.get("a").state).toBe("Cancelled");
-  network.mockImplementation(async () => 3);
+  network.mockImplementation(async () => /** Returns 3. */ 3);
   expect(await loader.load("a")).toBe(3);
 });
 it("cleans a late successful upload after cancellation and blocks reload until unload finishes", async () => {
+  // Verifies cleans a late successful upload after cancellation and blocks reload until unload finishes.
+
   let resolve!: (n: number) => void;
-  const release = vi.fn(async () => {});
+  const release = vi.fn(async () => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
   const loader = new AssetLoader(
-    async () => 1,
-    async (n) => n,
+    async () =>
+      /** Verifies cleans a late successful upload after cancellation and blocks reload until unload finishes. */ 1,
+    async (n) =>
+      /** Verifies cleans a late successful upload after cancellation and blocks reload until unload finishes. */ n,
     () =>
-      new Promise<number>((r) => {
-        resolve = r;
-      }),
-    async () => {},
+      /** Verifies cleans a late successful upload after cancellation and blocks reload until unload finishes. */ new Promise<number>(
+        (r) => {
+          // Verifies cleans a late successful upload after cancellation and blocks reload until unload finishes.
+
+          resolve = r;
+        },
+      ),
+    async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
     { release },
   );
   const pending = loader.load("a");
-  await vi.waitFor(() => expect(loader.get("a").state).toBe("Uploading"));
+  await vi.waitFor(() =>
+    /** Delegates this operation to expect(loader.get("a").state).toBe. */ expect(
+      loader.get("a").state,
+    ).toBe("Uploading"),
+  );
   const rejected = expect(pending).rejects.toMatchObject({
     name: "AbortError",
   });
@@ -102,13 +152,23 @@ it("cleans a late successful upload after cancellation and blocks reload until u
   expect(loader.records.size).toBe(0);
 });
 it("evicts LRU unretained records by decoded bytes and record count while protecting live leases", async () => {
-  const release = vi.fn(async () => {});
+  // Verifies evicts LRU unretained records by decoded bytes and record count while protecting live leases.
+
+  const release = vi.fn(async () => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
   const loader = new AssetLoader(
-    async (url) => url,
-    async (s) => s,
-    async (s) => s,
-    async () => {},
+    async (url) =>
+      /** Verifies evicts LRU unretained records by decoded bytes and record count while protecting live leases. */ url,
+    async (s) =>
+      /** Verifies evicts LRU unretained records by decoded bytes and record count while protecting live leases. */ s,
+    async (s) =>
+      /** Verifies evicts LRU unretained records by decoded bytes and record count while protecting live leases. */ s,
+    async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
     {
+      /** Returns 8. */
       decodedBytes: () => 8,
       release,
       budget: { maxRecords: 3, maxDecodedBytes: 16 },
@@ -129,15 +189,25 @@ it("evicts LRU unretained records by decoded bytes and record count while protec
   expect(loader.cachedDecodedBytes).toBe(0);
 });
 it("honors unload vetoes without changing a ready asset and disposes all successful loads", async () => {
+  // Verifies honors unload vetoes without changing a ready asset and disposes all successful loads.
+
   let veto = true;
-  const release = vi.fn(async () => {});
+  const release = vi.fn(async () => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
   const loader = new AssetLoader(
-    async () => 1,
-    async (n) => n,
-    async (n) => n,
-    async () => {},
+    async () =>
+      /** Verifies honors unload vetoes without changing a ready asset and disposes all successful loads. */ 1,
+    async (n) =>
+      /** Verifies honors unload vetoes without changing a ready asset and disposes all successful loads. */ n,
+    async (n) =>
+      /** Verifies honors unload vetoes without changing a ready asset and disposes all successful loads. */ n,
+    async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
     {
       release,
+      /** Rejects invalid input for before unload. */
       beforeUnload: () => {
         if (veto) throw new Error("in use");
       },
@@ -154,20 +224,31 @@ it("honors unload vetoes without changing a ready asset and disposes all success
   await expect(loader.load("b")).rejects.toThrow("disposed");
 });
 it("prevents decode/upload after cancellation at a yield boundary", async () => {
+  // Verifies prevents decode/upload after cancellation at a yield boundary.
+
   let resume!: () => void;
-  const decode = vi.fn(async (n: number) => n),
-    upload = vi.fn(async (n: number) => n);
+  const decode = vi.fn(async (n: number) => /** Returns n. */ n),
+    upload = vi.fn(async (n: number) => /** Returns n. */ n);
   const loader = new AssetLoader(
-    async () => 1,
+    async () =>
+      /** Verifies prevents decode/upload after cancellation at a yield boundary. */ 1,
     decode,
     upload,
     () =>
-      new Promise<void>((r) => {
-        resume = r;
-      }),
+      /** Verifies prevents decode/upload after cancellation at a yield boundary. */ new Promise<void>(
+        (r) => {
+          // Verifies prevents decode/upload after cancellation at a yield boundary.
+
+          resume = r;
+        },
+      ),
   );
   const pending = loader.load("a");
-  await vi.waitFor(() => expect(resume).toBeTypeOf("function"));
+  await vi.waitFor(() =>
+    /** Delegates this operation to expect(resume).toBeTypeOf. */ expect(
+      resume,
+    ).toBeTypeOf("function"),
+  );
   loader.cancel("a");
   resume();
   await expect(pending).rejects.toMatchObject({ name: "AbortError" });
@@ -175,23 +256,39 @@ it("prevents decode/upload after cancellation at a yield boundary", async () => 
   expect(upload).not.toHaveBeenCalled();
 });
 it("retains cleanup ownership after a release failure and requires unload before retry", async () => {
+  // Verifies retains cleanup ownership after a release failure and requires unload before retry.
+
   let finish!: (value: number) => void,
     failCleanup = true;
   const release = vi.fn(async () => {
+    // Rejects invalid input for the current operation.
+
     if (failCleanup) throw new Error("cleanup failure");
   });
   const loader = new AssetLoader(
-    async () => 1,
-    async (n) => n,
+    async () =>
+      /** Verifies retains cleanup ownership after a release failure and requires unload before retry. */ 1,
+    async (n) =>
+      /** Verifies retains cleanup ownership after a release failure and requires unload before retry. */ n,
     () =>
-      new Promise<number>((resolve) => {
-        finish = resolve;
-      }),
-    async () => {},
+      /** Verifies retains cleanup ownership after a release failure and requires unload before retry. */ new Promise<number>(
+        (resolve) => {
+          // Verifies retains cleanup ownership after a release failure and requires unload before retry.
+
+          finish = resolve;
+        },
+      ),
+    async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
     { release },
   );
   const pending = loader.load("a");
-  await vi.waitFor(() => expect(loader.get("a").state).toBe("Uploading"));
+  await vi.waitFor(() =>
+    /** Delegates this operation to expect(loader.get("a").state).toBe. */ expect(
+      loader.get("a").state,
+    ).toBe("Uploading"),
+  );
   loader.cancel("a");
   finish(7);
   await expect(pending).rejects.toThrow("load and cleanup failed");
@@ -203,16 +300,33 @@ it("retains cleanup ownership after a release failure and requires unload before
   expect(loader.records.size).toBe(0);
 });
 it("disposal aborts a pending network operation and clears its record", async () => {
+  // Verifies disposal aborts a pending network operation and clears its record.
+
   const loader = new AssetLoader(
     (_url, signal) =>
-      new Promise<number>((_resolve, reject) => {
-        signal.addEventListener("abort", () => reject(signal.reason), {
-          once: true,
-        });
-      }),
-    async (n) => n,
-    async (n) => n,
-    async () => {},
+      /** Verifies disposal aborts a pending network operation and clears its record. */ new Promise<number>(
+        (_resolve, reject) => {
+          // Verifies disposal aborts a pending network operation and clears its record.
+
+          signal.addEventListener(
+            "abort",
+            () =>
+              /** Handles the abort event for assets.test.ts. */ reject(
+                signal.reason,
+              ),
+            {
+              once: true,
+            },
+          );
+        },
+      ),
+    async (n) =>
+      /** Verifies disposal aborts a pending network operation and clears its record. */ n,
+    async (n) =>
+      /** Verifies disposal aborts a pending network operation and clears its record. */ n,
+    async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
   );
   const pending = loader.load("a"),
     rejected = expect(pending).rejects.toMatchObject({ name: "AbortError" });
@@ -222,15 +336,24 @@ it("disposal aborts a pending network operation and clears its record", async ()
   expect(loader.records.size).toBe(0);
 });
 it("shares concurrent unloads and retains ownership when release must be retried", async () => {
+  // Verifies shares concurrent unloads and retains ownership when release must be retried.
+
   let fail = true;
   const release = vi.fn(async () => {
+    // Rejects invalid input for the current operation.
+
     if (fail) throw new Error("release failed");
   });
   const loader = new AssetLoader(
-    async () => 1,
-    async (n) => n,
-    async (n) => n,
-    async () => {},
+    async () =>
+      /** Verifies shares concurrent unloads and retains ownership when release must be retried. */ 1,
+    async (n) =>
+      /** Verifies shares concurrent unloads and retains ownership when release must be retried. */ n,
+    async (n) =>
+      /** Verifies shares concurrent unloads and retains ownership when release must be retried. */ n,
+    async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
     { release },
   );
   await loader.load("a");
@@ -245,13 +368,21 @@ it("shares concurrent unloads and retains ownership when release must be retried
   expect(loader.records.size).toBe(0);
 });
 it("bounds failed-request metadata without discarding pending or retained records", async () => {
+  // Verifies bounds failed-request metadata without discarding pending or retained records.
+
   const loader = new AssetLoader(
     async () => {
+      // Verifies bounds failed-request metadata without discarding pending or retained records.
+
       throw new Error("network failed");
     },
-    async (n: number) => n,
-    async (n) => n,
-    async () => {},
+    async (n: number) =>
+      /** Verifies bounds failed-request metadata without discarding pending or retained records. */ n,
+    async (n) =>
+      /** Verifies bounds failed-request metadata without discarding pending or retained records. */ n,
+    async () => {
+      // Intentionally performs no work at this optional callback boundary.
+    },
     { budget: { maxRecords: 4 } },
   );
   const release = loader.retain("live");

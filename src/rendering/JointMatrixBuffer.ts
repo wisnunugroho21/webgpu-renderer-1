@@ -10,6 +10,7 @@ export class JointMatrixBuffer {
   uploadBytes = 0;
   updatedJoints = 0;
   writes = 0;
+  /** Initializes shared GPU joint palettes and dirty-range uploads. */
   constructor(manager: BufferManager, capacity: number) {
     this.buffer = manager.create({
       label: "Shared joint matrices",
@@ -20,6 +21,7 @@ export class JointMatrixBuffer {
         GPUBufferUsage.COPY_SRC,
     });
   }
+  /** Uploads only dirty joint palette ranges and records actual transferred bytes. */
   upload(queue: GPUQueue, world: RenderWorld): void {
     this.uploadBytes = this.updatedJoints = this.writes = 0;
     // The extra sentinel iteration flushes a dirty run ending at the last record.

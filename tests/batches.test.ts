@@ -4,7 +4,11 @@ import { RenderQueue } from "../src/rendering/RenderQueue";
 import { BatchBuilder } from "../src/rendering/BatchBuilder";
 import { InstanceManager } from "../src/rendering/InstanceManager";
 describe("instance batches", () => {
+  // Groups checks for instance batches.
+
   it("reduces 10,000 matching objects to one draw without changing instance identity", () => {
+    // Verifies reduces 10,000 matching objects to one draw without changing instance identity.
+
     const w = new RenderWorld(10000),
       q = new RenderQueue(10000),
       b = new BatchBuilder(10000),
@@ -27,6 +31,8 @@ describe("instance batches", () => {
     expect(b.count).toBe(10000);
   });
   it("breaks batches for any incompatible state and retains sorted transparency order", () => {
+    // Verifies breaks batches for any incompatible state and retains sorted transparency order.
+
     const w = new RenderWorld(5),
       q = new RenderQueue(5),
       b = new BatchBuilder(5);

@@ -12,6 +12,7 @@ export class ShadowSceneCache {
   private jointCount = -1;
   private morphCount = -1;
   private materialRevision = -1;
+  /** Initializes shadow-relevant scene snapshots and reuse comparisons. */
   constructor(world: RenderWorld) {
     this.transforms = new Float32Array(world.matrices.length);
     this.boundsMin = new Float32Array(world.boundsMin.length);
@@ -20,6 +21,7 @@ export class ShadowSceneCache {
     this.joints = new Float32Array(world.jointMatrices.length);
     this.weights = new Float32Array(world.morphWeights.length);
   }
+  /** Stores the current shadow-relevant state after a valid comparison/update. */
   update(
     world: RenderWorld,
     records: Uint32Array,
@@ -53,6 +55,7 @@ export class ShadowSceneCache {
     this.materialRevision = materialRevision;
     return changed;
   }
+  /** Detects membership, transform, material or deformation changes that prevent shadow-map reuse. */
   private compare(
     out: Float32Array | Uint32Array,
     input: Float32Array | Uint32Array,

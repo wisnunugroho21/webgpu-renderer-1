@@ -11,6 +11,8 @@ pnpm run dev
 
 Open the displayed localhost URL in a WebGPU-capable browser. The initial scene is an indexed cube. Resize handling uses physical pixel dimensions and device limits; unexpected device loss pauses rendering and automatically rebuilds GPU resources before resuming.
 
+For a complete playable example and a step-by-step game workflow, see [GAME_DEVELOPMENT_GUIDE.md](GAME_DEVELOPMENT_GUIDE.md).
+
 ## Code organization
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, animation binding setup, worker protocols, input cleanup, post-processing pipelines, asset upload, and GPU validation have separate responsibilities with comments around their invariants. Public application, renderer and animation APIs retain their existing import paths.

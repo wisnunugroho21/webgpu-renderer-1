@@ -12,14 +12,23 @@ try {
     hasTouch: true,
   });
   const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("pageerror", (error) =>
+    /** Delegates this operation to errors.push. */ errors.push(error.message),
+  );
   await page.goto("http://127.0.0.1:5192");
-  await page.waitForFunction(() => window.rendererApp?.frames >= 10);
+  await page.waitForFunction(
+    () =>
+      /** Evaluates the window.rendererApp?.frames >= 10 condition. */ window
+        .rendererApp?.frames >= 10,
+  );
   const report = await page.evaluate(async () => {
+    // Builds a record containing projection checks, orthographic shadow passes, clipped shadow passes, cpu level, indirect difference, fixed.
+
     const app = window.rendererApp,
       r = app.renderer,
       w = app.world;
     app.pause();
+    /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
     const draw = async () => {
       app.transformSystem.update(w.transforms);
       app.extractor.extract(
@@ -47,6 +56,7 @@ try {
       buffer.destroy();
       return bytes;
     };
+    /** Compares diagnostic pixel buffers and reports their differing values. */
     const difference = (a, b) => {
       let count = 0;
       for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) count++;
@@ -112,23 +122,33 @@ try {
     let fixed = 0,
       variable = 0;
     const offFixed = app.onFixedUpdate(() => {
+        // Increments the update-hook counter to verify simulation dispatch.
+
         fixed++;
       }),
       offUpdate = app.onUpdate(() => {
+        // Increments the update-hook counter to verify simulation dispatch.
+
         variable++;
       });
     app.resume();
-    await new Promise((resolve) => setTimeout(resolve, 120));
+    await new Promise((resolve) =>
+      /** Delegates this operation to setTimeout. */ setTimeout(resolve, 120),
+    );
     app.pause();
     const pausedFrames = app.frames;
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await new Promise((resolve) =>
+      /** Delegates this operation to setTimeout. */ setTimeout(resolve, 80),
+    );
     const stillPaused = app.frames === pausedFrames;
     offFixed();
     offUpdate();
     const before = { ...r.resources.stats };
     app.resume();
     app.resume();
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await new Promise((resolve) =>
+      /** Delegates this operation to setTimeout. */ setTimeout(resolve, 80),
+    );
     app.pause();
     const after = { ...r.resources.stats };
     return {
@@ -162,82 +182,124 @@ try {
   assert.deepEqual(report.errors, []);
   assert.deepEqual(errors, []);
   await page.evaluate(async () => {
+    // Applies window.rendererApp.dispose to the current callback state.
+
     await window.rendererApp.dispose();
   });
   await page.goto("http://127.0.0.1:5192/?example=collect");
   await page.waitForFunction(
-    () => window.collectGame && window.rendererApp.frames >= 10,
+    () =>
+      /** Evaluates the window.collectGame && window.rendererApp.frames >= 10 condition. */ window.collectGame &&
+      window.rendererApp.frames >= 10,
   );
-  await page.evaluate(() => window.rendererApp.pause());
-  const exampleBefore = await page.evaluate(() => ({
-    ...window.rendererApp.renderer.resources.stats,
-  }));
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.pause. */ window.rendererApp.pause(),
+  );
+  const exampleBefore = await page.evaluate(
+    () => /** Returns an empty fixture handle for a controlled test dependency. */ ({
+      ...window.rendererApp.renderer.resources.stats,
+    }),
+  );
   await page.keyboard.down("a");
   await page.evaluate(() => {
+    // Applies window.rendererApp.simulation.advance to the current callback state.
+
     for (let i = 0; i < 60; i++) window.rendererApp.simulation.advance(1 / 60);
   });
   await page.keyboard.up("a");
-  const moved = await page.evaluate(() => ({
-    x: window.collectGame.x,
-    score: window.collectGame.score,
-    status: window.rendererApp.status.textContent,
-  }));
+  const moved = await page.evaluate(
+    () => /** Builds a record containing x, score, status. */ ({
+      x: window.collectGame.x,
+      score: window.collectGame.score,
+      status: window.rendererApp.status.textContent,
+    }),
+  );
   assert.ok(moved.x < -4.9);
   assert.equal(moved.score, 1);
   assert.match(moved.status, /Collected 1\/6/);
   await page.keyboard.press("c");
   const switched = await page.evaluate(() => {
+    // Returns window renderer app renderer camera projection type.
+
     window.rendererApp.simulation.advance(1 / 60);
     return window.rendererApp.renderer.camera.projectionType;
   });
   assert.equal(switched, "perspective");
   await page.keyboard.down("d");
-  await page.evaluate(() => window.rendererApp.canvas.blur());
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.canvas.blur. */ window.rendererApp.canvas.blur(),
+  );
   const blurPosition = await page.evaluate(() => {
+    // Returns window collect game x.
+
     for (let i = 0; i < 30; i++) window.rendererApp.simulation.advance(1 / 60);
     return window.collectGame.x;
   });
   assert.equal(blurPosition, moved.x);
   await page.keyboard.up("d");
-  await page.evaluate(() => window.rendererApp.canvas.focus());
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.canvas.focus. */ window.rendererApp.canvas.focus(),
+  );
   await page.keyboard.press("r");
   const restarted = await page.evaluate(() => {
+    // Builds a record containing x, score.
+
     window.rendererApp.simulation.advance(1 / 60);
     return { x: window.collectGame.x, score: window.collectGame.score };
   });
   assert.deepEqual(restarted, { x: 0, score: 0 });
-  const exampleFrames = await page.evaluate(() => window.rendererApp.frames);
-  await page.evaluate(() => window.rendererApp.resume());
+  const exampleFrames = await page.evaluate(
+    () => /** Returns window renderer app frames. */ window.rendererApp.frames,
+  );
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.resume. */ window.rendererApp.resume(),
+  );
   await page.waitForFunction(
-    (target) => window.rendererApp.frames >= target,
+    (target) =>
+      /** Evaluates the window.rendererApp.frames >= target condition. */ window
+        .rendererApp.frames >= target,
     exampleFrames + 4,
   );
-  await page.evaluate(() => window.rendererApp.pause());
-  const exampleAfter = await page.evaluate(() => ({
-    ...window.rendererApp.renderer.resources.stats,
-  }));
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.pause. */ window.rendererApp.pause(),
+  );
+  const exampleAfter = await page.evaluate(
+    () => /** Returns an empty fixture handle for a controlled test dependency. */ ({
+      ...window.rendererApp.renderer.resources.stats,
+    }),
+  );
   assert.deepEqual(exampleAfter, exampleBefore);
   // Actual captured mouse and touch streams exercise the reusable helpers through the game.
   const cameraBefore = await page.evaluate(() =>
-    Array.from(window.rendererApp.renderer.camera.position),
+    /** Delegates this operation to Array.from. */ Array.from(
+      window.rendererApp.renderer.camera.position,
+    ),
   );
   await page.mouse.move(500, 300);
   await page.mouse.down();
   await page.mouse.move(550, 320, { steps: 3 });
   await page.mouse.up();
   const cameraDragged = await page.evaluate(() => {
+    // Delegates this operation to Array.from.
+
     window.rendererApp.simulation.advance(1 / 60);
     return Array.from(window.rendererApp.renderer.camera.position);
   });
   assert.notDeepEqual(cameraDragged, cameraBefore);
   await page.mouse.wheel(0, 120);
   const cameraZoomed = await page.evaluate(() => {
+    // Delegates this operation to Array.from.
+
     window.rendererApp.simulation.advance(1 / 60);
     return Array.from(window.rendererApp.renderer.camera.position);
   });
   assert.notDeepEqual(cameraZoomed, cameraDragged);
   await page.keyboard.press("r");
-  await page.evaluate(() => window.rendererApp.simulation.advance(1 / 60));
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.simulation.advance. */ window.rendererApp.simulation.advance(
+      1 / 60,
+    ),
+  );
   const touchRect = await page.locator(".touch-stick").boundingBox();
   assert.ok(touchRect);
   const touchSession = await page.context().newCDPSession(page);
@@ -252,6 +314,8 @@ try {
     touchPoints: [{ x: x + 48, y, id: 1 }],
   });
   const touchMoved = await page.evaluate(() => {
+    // Returns window collect game x.
+
     for (let i = 0; i < 30; i++) window.rendererApp.simulation.advance(1 / 60);
     return window.collectGame.x;
   });
@@ -261,6 +325,8 @@ try {
     touchPoints: [],
   });
   const touchStopped = await page.evaluate(() => {
+    // Returns window collect game x.
+
     for (let i = 0; i < 30; i++) window.rendererApp.simulation.advance(1 / 60);
     return window.collectGame.x;
   });
@@ -268,6 +334,8 @@ try {
   await touchSession.detach();
   // Browsers expose hardware pads through polling; inject only that boundary for deterministic coverage.
   const pads = await page.evaluate(() => {
+    // Builds a record containing moved, stopped, restarted, unfocused.
+
     const app = window.rendererApp;
     app.canvas.focus();
     const pad = {
@@ -280,6 +348,7 @@ try {
     };
     Object.defineProperty(navigator, "getGamepads", {
       configurable: true,
+      /** Selects the result according to pad.connected. */
       value: () => (pad.connected ? [pad] : []),
     });
     for (let i = 0; i < 30; i++) app.simulation.advance(1 / 60);
@@ -307,21 +376,33 @@ try {
   assert.equal(pads.unfocused, 0);
   await page.keyboard.press("f");
   const followed = await page.evaluate(() => {
+    // Delegates this operation to Array.from.
+
     for (let i = 0; i < 90; i++) window.rendererApp.simulation.advance(1 / 60);
     return Array.from(window.rendererApp.renderer.camera.target);
   });
   assert.ok(Math.abs(followed[1] - 0.5) < 0.001);
-  const controllerFrames = await page.evaluate(() => window.rendererApp.frames);
-  await page.evaluate(() => window.rendererApp.resume());
+  const controllerFrames = await page.evaluate(
+    () => /** Returns window renderer app frames. */ window.rendererApp.frames,
+  );
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.resume. */ window.rendererApp.resume(),
+  );
   await page.waitForFunction(
-    (target) => window.rendererApp.frames >= target,
+    (target) =>
+      /** Evaluates the window.rendererApp.frames >= target condition. */ window
+        .rendererApp.frames >= target,
     controllerFrames + 6,
   );
-  await page.evaluate(() => window.rendererApp.pause());
+  await page.evaluate(() =>
+    /** Delegates this operation to window.rendererApp.pause. */ window.rendererApp.pause(),
+  );
   assert.deepEqual(
-    await page.evaluate(() => ({
-      ...window.rendererApp.renderer.resources.stats,
-    })),
+    await page.evaluate(
+      () => /** Returns an empty fixture handle for a controlled test dependency. */ ({
+        ...window.rendererApp.renderer.resources.stats,
+      }),
+    ),
     exampleBefore,
   );
   report.controllers = {
@@ -335,7 +416,9 @@ try {
   };
   await page.screenshot({ path: "artifacts/collect-game.png" });
   const exampleErrors = await page.evaluate(
-    () => window.rendererApp.gpu.errors,
+    () =>
+      /** Returns window renderer app gpu errors. */ window.rendererApp.gpu
+        .errors,
   );
   assert.deepEqual(exampleErrors, []);
   assert.deepEqual(errors, []);
@@ -349,6 +432,8 @@ try {
     errors: exampleErrors,
   };
   await page.evaluate(async () => {
+    // Applies window.rendererApp.dispose to the current callback state.
+
     await window.rendererApp.dispose();
   });
   report.environment = {

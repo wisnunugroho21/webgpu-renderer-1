@@ -14,7 +14,9 @@ export function createBootstrapMesh(meshes: MeshManager): number {
   const indices = new Uint16Array(36);
   for (let face = 0; face < 6; face++)
     indices.set(
-      [0, 1, 2, 0, 2, 3].map((i) => face * 4 + i),
+      [0, 1, 2, 0, 2, 3].map(
+        (i) => /** Computes the face * 4 + i result. */ face * 4 + i,
+      ),
       face * 6,
     );
   const positions = new Float32Array(24 * 3),

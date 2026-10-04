@@ -4,6 +4,7 @@ fn applyMorphTarget(base: LocalVertex, delta: u32, weight: f32) -> LocalVertex {
   return LocalVertex(base.position + morphPositions[delta].xyz * weight, base.normal + morphNormals[delta].xyz * weight, vec4<f32>(base.tangent.xyz + morphTangents[delta].xyz * weight, base.tangent.w));
 }
 
+// Accumulates target-major deltas before skinning, skipping zero weights unless the dense path is selected.
 fn morphVertex(base: LocalVertex, info: Instance, vertex: u32) -> LocalVertex {
   var result = base;
   // An instance-uniform flag avoids per-target branches for fully active weights.

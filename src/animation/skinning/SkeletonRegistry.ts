@@ -7,6 +7,7 @@ import { SkeletonInstance } from "./SkeletonInstance";
 export class SkeletonRegistry {
   jointCount = 0;
   private readonly arena: RangeAllocator;
+  /** Initializes shared skeleton assets and per-mesh palettes. */
   constructor(readonly jointCapacity = 65536) {
     this.arena = new RangeAllocator(jointCapacity);
   }
@@ -39,7 +40,11 @@ export class SkeletonRegistry {
       const cached = this.cache.get(asset);
       if (
         cached &&
-        !this.instances.some((instance) => cached.includes(instance.asset))
+        !this.instances.some((instance) =>
+          /** Delegates this operation to cached.includes. */ cached.includes(
+            instance.asset,
+          ),
+        )
       ) {
         this.cache.delete(asset);
         for (let i = this.assets.length - 1; i >= 0; i--)
@@ -47,6 +52,7 @@ export class SkeletonRegistry {
       }
     }
   }
+  /** Attaches one skeleton instance to a mesh entity with generation-aware joint references and shared palette storage. */
   attach(
     asset: RuntimeAsset,
     entities: Int32Array,
@@ -55,7 +61,13 @@ export class SkeletonRegistry {
   ): void {
     let skeletons = this.cache.get(asset);
     if (!skeletons) {
-      skeletons = asset.skins.map((s) => new SkeletonAsset(s, asset.nodes));
+      skeletons = asset.skins.map(
+        (s) =>
+          /** Creates SkeletonAsset storage for this operation. */ new SkeletonAsset(
+            s,
+            asset.nodes,
+          ),
+      );
       this.cache.set(asset, skeletons);
       this.assets.push(...skeletons);
     }

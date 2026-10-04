@@ -1,7 +1,9 @@
 const MIN_NORMAL_DOUBLE = 2 ** -1022;
 export type Quat = Float32Array;
 export const Quat = {
+  /** Allocates the supplied quaternion, defaulting to identity rotation. */
   create: (): Quat => new Float32Array([0, 0, 0, 1]),
+  /** Writes a unit quaternion into caller storage, handling degenerate input safely. */
   normalize(out: Quat, q: ArrayLike<number>): Quat {
     const x = q[0]!,
       y = q[1]!,
@@ -26,6 +28,7 @@ export const Quat = {
     }
     return out;
   },
+  /** Builds a quaternion from the supplied rotation axis and angle in radians. */
   fromAxisAngle(out: Quat, axis: ArrayLike<number>, radians: number): Quat {
     const length = Math.hypot(axis[0]!, axis[1]!, axis[2]!);
     if (!length) {
@@ -37,6 +40,7 @@ export const Quat = {
     out[3] = Math.cos(radians / 2);
     return out;
   },
+  /** Writes the composed quaternion product into caller storage. */
   multiply(out: Quat, a: ArrayLike<number>, b: ArrayLike<number>): Quat {
     const ax = a[0]!,
       ay = a[1]!,
@@ -52,6 +56,7 @@ export const Quat = {
     out[3] = aw * bw - ax * bx - ay * by - az * bz;
     return out;
   },
+  /** Interpolates quaternion rotations along the shortest spherical arc, using a linear fallback near coincidence. */
   slerp(
     out: Quat,
     a: ArrayLike<number>,

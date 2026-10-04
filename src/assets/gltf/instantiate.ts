@@ -21,7 +21,10 @@ export function instantiate(
   animations?: AnimationSystem,
   skeletons?: SkeletonRegistry,
   uploaded?: UploadedAsset,
-  allocation?: { readonly available: number; create(): number },
+  allocation?: {
+    readonly available: number; /** Allocates the next entity identity for imported scene construction. */
+    create(): number;
+  },
 ): Uint32Array {
   const roots = asset.scenes[scene];
   if (!roots) throw new Error("Unknown glTF scene");
@@ -44,7 +47,8 @@ export function instantiate(
   }
   const primitiveCount = active.reduce(
     (sum, node) =>
-      sum + (asset.meshes[asset.nodes[node]!.mesh]?.primitives.length ?? 0),
+      /** Computes the sum + (asset.meshes[asset.nodes[node]!.mesh]?.primitives.length ?? 0) result. */ sum +
+      (asset.meshes[asset.nodes[node]!.mesh]?.primitives.length ?? 0),
     0,
   );
   if (
@@ -56,14 +60,23 @@ export function instantiate(
     throw new Error("Material capacity exceeded by asset");
   const materialIds =
       uploaded?.materialIds ??
-      asset.materials.map((material) => materials.create(material)),
+      asset.materials.map((material) =>
+        /** Delegates this operation to materials.create. */ materials.create(
+          material,
+        ),
+      ),
     defaultMaterial =
       uploaded?.defaultMaterial ??
       materials.create({ metallic: 1, roughness: 1 }),
     meshIds =
       uploaded?.meshIds ??
       asset.meshes.map((mesh) =>
-        mesh.primitives.map((primitive) => meshes.upload(primitive)),
+        /** Builds an output entry for each input item. */ mesh.primitives.map(
+          (primitive) =>
+            /** Delegates this operation to meshes.upload. */ meshes.upload(
+              primitive,
+            ),
+        ),
       );
   for (const node of active) {
     const entity = allocation ? allocation.create() : world.create(),
@@ -116,6 +129,8 @@ export function instantiate(
       mesh = asset.meshes[data.mesh];
     if (!mesh) continue;
     mesh.primitives.forEach((primitive, index) => {
+      // Applies allocation.create, world.create, world.transforms.add to the current callback state.
+
       const entity = allocation ? allocation.create() : world.create();
       world.transforms.add(entity);
       world.transforms.setParent(entity, entities[node]!);
@@ -132,5 +147,7 @@ export function instantiate(
   }
   skeletons?.attach(asset, entities, world, meshes);
   animations?.attach(asset, entities, world);
-  return new Uint32Array(active.map((node) => entities[node]!));
+  return new Uint32Array(
+    active.map((node) => /** Returns entities[node]!. */ entities[node]!),
+  );
 }

@@ -10,18 +10,23 @@ export class GamepadInput {
   private zone = 0.15;
   enabled = true;
   connected = false;
+  /** Initializes focus-scoped standard gamepad polling and button edges. */
   constructor(
     private readonly target?: HTMLElement,
-    private readonly provider: GamepadProvider = () => navigator.getGamepads(),
+    private readonly provider: GamepadProvider = () =>
+      /** Delegates this operation to navigator.getGamepads. */ navigator.getGamepads(),
   ) {}
+  /** Returns the normalized radial gamepad stick deadzone. */
   get deadzone(): number {
     return this.zone;
   }
+  /** Validates the radial stick deadzone before the next controller poll. */
   set deadzone(value: number) {
     if (!Number.isFinite(value) || value < 0 || value >= 1)
       throw new Error("Invalid gamepad deadzone");
     this.zone = value;
   }
+  /** Polls the standard-mapping gamepad, applies radial deadzones and records new button edges. */
   update(): void {
     if (
       !this.enabled ||
@@ -71,14 +76,17 @@ export class GamepadInput {
       this.down[i] = held;
     }
   }
+  /** Reports the current held state of a standard gamepad button. */
   isDown(button: number): boolean {
     return this.down[button] === 1;
   }
+  /** Consumes one button edge so repeated fixed ticks do not repeat the action. */
   consumePressed(button: number): boolean {
     const value = this.pressed[button] === 1;
     if (value) this.pressed[button] = 0;
     return value;
   }
+  /** Clears axes, held buttons and pending edges when focus or controller connectivity is lost. */
   clear(): void {
     this.axes.fill(0);
     this.values.fill(0);
@@ -88,6 +96,7 @@ export class GamepadInput {
     this.index = -1;
     this.connected = false;
   }
+  /** Removes scoped focus listeners and clears controller state. */
   dispose(): void {
     this.enabled = false;
     this.clear();

@@ -3,9 +3,17 @@ import { CPUProfiler, CPUStage } from "../src/profiling/CPUProfiler";
 import { GPUProfiler } from "../src/profiling/GPUProfiler";
 import { Resources } from "../src/gpu/Resources";
 describe("profiling", () => {
+  // Groups checks for profiling.
+
   it("records stages in a bounded ring without replacing arrays", () => {
+    // Verifies records stages in a bounded ring without replacing arrays.
+
     let now = 0;
-    const profiler = new CPUProfiler(2, () => now),
+    const profiler = new CPUProfiler(
+        2,
+        () =>
+          /** Verifies records stages in a bounded ring without replacing arrays. */ now,
+      ),
       history = profiler.history;
     for (let i = 0; i < 3; i++) {
       profiler.beginFrame();
@@ -25,6 +33,8 @@ describe("profiling", () => {
     expect(profiler.values[CPUStage.encoding]).toBe(3);
   });
   it("does not allocate query resources when timestamps are unsupported", async () => {
+    // Verifies does not allocate query resources when timestamps are unsupported.
+
     const createQuerySet = vi.fn(),
       device = { features: new Set(), createQuerySet } as unknown as GPUDevice,
       profiler = new GPUProfiler(device, {} as Resources);
@@ -36,6 +46,8 @@ describe("profiling", () => {
     expect(await profiler.readSamples()).toEqual([]);
   });
   it("bounds capture slots and reads timestamps only through explicit calls", async () => {
+    // Verifies bounds capture slots and reads timestamps only through explicit calls.
+
     vi.stubGlobal("GPUBufferUsage", {
       QUERY_RESOLVE: 1,
       COPY_SRC: 2,
@@ -46,18 +58,27 @@ describe("profiling", () => {
     const maps: ReturnType<typeof vi.fn>[] = [];
     const resources = {
       buffers: {
+        /** Builds a record containing map async, get mapped range, unmap. */
         create: ({ size }: { size: number }) => {
           const bytes = new ArrayBuffer(size),
-            mapAsync = vi.fn(async () => {});
+            mapAsync = vi.fn(async () => {
+              // Intentionally performs no work at this optional callback boundary.
+            });
           new BigUint64Array(bytes).set([1000000n, 3500000n]);
           maps.push(mapAsync);
-          return { mapAsync, getMappedRange: () => bytes, unmap: vi.fn() };
+          return {
+            mapAsync,
+            /** Returns bytes. */
+            getMappedRange: () => bytes,
+            unmap: vi.fn(),
+          };
         },
       },
     } as unknown as Resources;
     const profiler = new GPUProfiler(
         {
           features: new Set(["timestamp-query"]),
+          /** Builds a record containing destroy. */
           createQuerySet: () => ({ destroy: vi.fn() }),
         } as unknown as GPUDevice,
         resources,
@@ -74,12 +95,18 @@ describe("profiling", () => {
     }
     expect(profiler.droppedCaptures).toBe(1);
     expect(encoder.resolveQuerySet).toHaveBeenCalledTimes(3);
-    maps.forEach((map) => expect(map).not.toHaveBeenCalled());
+    maps.forEach((map) =>
+      /** Delegates this operation to expect(map).not.toHaveBeenCalled. */ expect(
+        map,
+      ).not.toHaveBeenCalled(),
+    );
     await expect(profiler.readSamples()).rejects.toThrow(/Pause/);
     profiler.enabled = false;
-    expect((await profiler.readSamples()).map((t) => t.milliseconds)).toEqual([
-      2.5, 2.5, 2.5,
-    ]);
+    expect(
+      (await profiler.readSamples()).map(
+        (t) => /** Returns t milliseconds. */ t.milliseconds,
+      ),
+    ).toEqual([2.5, 2.5, 2.5]);
     profiler.enabled = true;
     profiler.beginFrame(6);
     expect(profiler.writes(1)).toBeDefined();

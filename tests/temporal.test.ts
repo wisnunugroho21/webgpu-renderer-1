@@ -3,12 +3,15 @@ import { TemporalVisibility } from "../src/rendering/visibility/TemporalVisibili
 import { RenderWorld } from "../src/rendering/RenderWorld";
 import { Camera } from "../src/rendering/Camera";
 it("only reuses exact stable snapshots and warms new objects conservatively", () => {
+  // Verifies only reuses exact stable snapshots and warms new objects conservatively.
+
   const w = new RenderWorld(4),
     c = new Camera(),
     t = new TemporalVisibility(w);
   w.count = 1;
   w.entityId[0] = 3;
   c.update(1);
+  /** Delegates this operation to t.prepare. */
   const step = (revision = 0, width = 100) =>
     t.prepare(w, c, revision, width, 100, false);
   t.enabled = true;

@@ -18,6 +18,7 @@ const clip = new AnimationClip("walk", [
     ),
   ),
 ]);
+/** Builds controlled test dependencies and reusable state for animation-gameplay. */
 function fixture() {
   const world = new World(1),
     entity = world.create();
@@ -32,6 +33,8 @@ function fixture() {
   return { world, entity, animator };
 }
 it("emits chronologically across repeated forward and reverse loops, including reduced-rate poses", () => {
+  // Verifies emits chronologically across repeated forward and reverse loops, including reduced-rate poses.
+
   const { animator } = fixture();
   const names: string[] = [];
   animator.setEvents(0, [
@@ -39,7 +42,9 @@ it("emits chronologically across repeated forward and reverse loops, including r
     { time: 0.2, name: "left" },
   ]);
   animator.onEvent((marker, _clip, direction) =>
-    names.push(`${marker.name}:${direction}`),
+    /** Delegates this operation to names.push. */ names.push(
+      `${marker.name}:${direction}`,
+    ),
   );
   animator.evaluationInterval = 1;
   animator.update(1.3);
@@ -55,6 +60,8 @@ it("emits chronologically across repeated forward and reverse loops, including r
   expect(names).toHaveLength(2);
 });
 it("handles nonlooping endpoints and event subscription mutation", () => {
+  // Verifies handles nonlooping endpoints and event subscription mutation.
+
   const { animator } = fixture();
   const names: string[] = [];
   animator.loop = false;
@@ -62,20 +69,34 @@ it("handles nonlooping endpoints and event subscription mutation", () => {
     { time: 0.2, name: "step" },
     { time: 1, name: "end" },
   ]);
+  /** Intentionally performs no work at this optional callback boundary. */
   let off = () => {};
   off = animator.onEvent((marker) => {
+    // Applies names.push, off to the current callback state.
+
     names.push(marker.name);
     off();
   });
   animator.update(2);
   expect(names).toEqual(["step"]);
-  expect(() => animator.setEvents(0, [{ time: 2, name: "bad" }])).toThrow();
+  expect(() =>
+    /** Delegates this operation to animator.setEvents. */ animator.setEvents(
+      0,
+      [{ time: 2, name: "bad" }],
+    ),
+  ).toThrow();
   animator.loop = true;
   animator.play();
-  animator.onEvent(() => {});
-  expect(() => animator.update(1e6)).toThrow("budget");
+  animator.onEvent(() => {
+    // Intentionally performs no work at this optional callback boundary.
+  });
+  expect(() =>
+    /** Delegates this operation to animator.update. */ animator.update(1e6),
+  ).toThrow("budget");
 });
 it("extracts unwrapped root displacement without seam jumps or seek accumulation", () => {
+  // Verifies extracts unwrapped root displacement without seam jumps or seek accumulation.
+
   const root = new RootMotionSampler(clip, 0),
     out = new Float32Array(7);
   root.delta(0.75, 1.25, out);
@@ -87,10 +108,20 @@ it("extracts unwrapped root displacement without seam jumps or seek accumulation
   expect(out[0]).toBeCloseTo(2.5);
   root.delta(0.75, 2, out, false);
   expect(out[0]).toBeCloseTo(0.25);
-  expect(() => root.delta(0, NaN, out)).toThrow();
-  expect(() => new RootMotionSampler(clip, 99)).toThrow();
+  expect(() =>
+    /** Delegates this operation to root.delta. */ root.delta(0, NaN, out),
+  ).toThrow();
+  expect(
+    () =>
+      /** Creates RootMotionSampler storage for this operation. */ new RootMotionSampler(
+        clip,
+        99,
+      ),
+  ).toThrow();
 });
 it("composes rotating root-motion loops as rigid transforms", () => {
+  // Verifies composes rotating root-motion loops as rigid transforms.
+
   const turning = new AnimationClip("turn", [
     ...clip.channels,
     new AnimationChannel(
@@ -116,6 +147,8 @@ it("composes rotating root-motion loops as rigid transforms", () => {
   expect(out[1]).toBeCloseTo(1);
 });
 it("removes root motion from visual playback and avoids restarting repeated named states", () => {
+  // Verifies removes root motion from visual playback and avoids restarting repeated named states.
+
   const { world, entity, animator } = fixture();
   const machine = new AnimationStateMachine(animator, {
     idle: { clip: 0 },
@@ -134,10 +167,16 @@ it("removes root motion from visual playback and avoids restarting repeated name
   machine.restart();
   expect(animator.currentTime).toBe(0);
   expect(machine.state).toBe("run");
-  expect(() => machine.transition("missing")).toThrow();
+  expect(() =>
+    /** Delegates this operation to machine.transition. */ machine.transition(
+      "missing",
+    ),
+  ).toThrow();
 });
 
 it("manual controllers advance only through their gameplay owner", () => {
+  // Verifies manual controllers advance only through their gameplay owner.
+
   const { animator } = fixture();
   const system = new AnimationSystem();
   system.animators.push(animator);

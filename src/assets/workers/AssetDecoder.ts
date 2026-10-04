@@ -23,13 +23,18 @@ export class AssetDecoder {
     number,
     { resolve: (asset: RuntimeAsset) => void; reject: (error: Error) => void }
   >();
+  /** Initializes worker request tracking and main-thread decode fallback. */
   constructor(
     private readonly loader: GLTFLoader,
     private readonly factory = () =>
-      new Worker(new URL("./assets.worker.ts", import.meta.url), {
-        type: "module",
-      }),
+      /** Creates Worker storage for this operation. */ new Worker(
+        new URL("./assets.worker.ts", import.meta.url),
+        {
+          type: "module",
+        },
+      ),
   ) {}
+  /** Selects worker preparation for large assets or direct conversion for small/fallback requests. */
   async decode(
     json: JSONDocument,
     signal?: AbortSignal,
@@ -37,7 +42,12 @@ export class AssetDecoder {
     signal?.throwIfAborted();
     if (this.disposed) throw new Error("Asset decoder disposed");
     const transfer = transferableBuffers(json),
-      bytes = transfer.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+      bytes = transfer.reduce(
+        (sum, buffer) =>
+          /** Computes the sum + buffer.byteLength result. */ sum +
+          buffer.byteLength,
+        0,
+      );
     if (bytes < this.thresholdBytes || typeof Worker === "undefined") {
       this.metrics.mainJobs++;
       const asset = await this.loader.parseJSON(json);
@@ -47,16 +57,21 @@ export class AssetDecoder {
     this.ensureWorker();
     const id = this.nextId++;
     return new Promise<RuntimeAsset>((resolve, reject) => {
+      // Tracks the decode promise, connects abort cleanup and transfers the request to the shared worker.
+
+      /** Applies this.pending.delete, reject to abort. */
       const abort = () => {
         this.pending.delete(id);
         reject(signal!.reason);
       };
       signal?.addEventListener("abort", abort, { once: true });
       this.pending.set(id, {
+        /** Applies signal?.removeEventListener, resolve to resolve. */
         resolve: (asset) => {
           signal?.removeEventListener("abort", abort);
           resolve(asset);
         },
+        /** Applies signal?.removeEventListener, reject to reject. */
         reject: (error) => {
           signal?.removeEventListener("abort", abort);
           reject(error);
@@ -80,6 +95,7 @@ export class AssetDecoder {
     this.worker.onmessage = this.receive;
     this.worker.onerror = this.fail;
   }
+  /** Matches a worker reply to its pending job and restores prepared runtime prototypes before resolving. */
   private readonly receive = (event: MessageEvent<AssetDecodeReply>): void => {
     const job = this.pending.get(event.data.id);
     if (!job) return;
@@ -88,7 +104,12 @@ export class AssetDecoder {
     else if (event.data.asset) {
       this.metrics.transferredOutputBytes += transferableBuffers(
         event.data.asset,
-      ).reduce((sum, buffer) => sum + buffer.byteLength, 0);
+      ).reduce(
+        (sum, buffer) =>
+          /** Computes the sum + buffer.byteLength result. */ sum +
+          buffer.byteLength,
+        0,
+      );
       this.metrics.lastWorkerDecodeMs = event.data.decodeMs ?? 0;
       this.metrics.lastWorkerPrepareMs = event.data.prepareMs ?? 0;
       for (const mesh of event.data.asset.meshes)
@@ -100,6 +121,7 @@ export class AssetDecoder {
       job.resolve(event.data.asset);
     } else job.reject(new Error("Worker returned no asset"));
   };
+  /** Rejects pending jobs and retires a failed worker so a later request can recreate it. */
   private readonly fail = (event: ErrorEvent): void => {
     const error = new Error(event.message || "Asset worker failed");
     for (const job of this.pending.values()) job.reject(error);
@@ -107,6 +129,7 @@ export class AssetDecoder {
     this.worker?.terminate();
     this.worker = undefined;
   };
+  /** Terminates the worker and rejects unresolved decode requests. */
   dispose(): void {
     this.disposed = true;
     this.worker?.terminate();

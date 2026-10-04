@@ -49,12 +49,15 @@ export class Application {
   readonly materials = new MaterialManager();
   readonly profiler = new CPUProfiler();
   private readonly assets: ApplicationAssets;
+  /** Returns the scene-instance registry used to track imported entity and animator ownership. */
   get assetInstances() {
     return this.assets.instances;
   }
+  /** Returns the shared asset cache/loader for explicit retention, cancellation and diagnostics. */
   get assetLoader() {
     return this.assets.loader;
   }
+  /** Returns the worker-backed decoder used by cold asset-loading operations. */
   get assetDecoder() {
     return this.assets.decoder;
   }
@@ -67,6 +70,7 @@ export class Application {
   private observer?: ResizeObserver;
   private pixelRatio = window.devicePixelRatio;
 
+  /** Initializes the browser application, gameplay world and render snapshot. */
   constructor(
     readonly canvas: HTMLCanvasElement,
     readonly status: HTMLOutputElement,
@@ -84,10 +88,15 @@ export class Application {
       skeletons: this.skeletons,
       materials: this.materials,
       gltf: this.gltf,
+      /** Returns the current renderer owner so callers follow device-recovery replacements. */
       renderer: () => this.renderer,
+      /** Returns the current GPU context used for validated resource publication. */
       gpu: () => this.gpu,
+      /** Reports whether application teardown prevents further asset publication. */
       isDisposing: () => this.disposing,
+      /** Checks that the current device can accept asset publication. */
       checkDevice: () => this.checkLoadingDevice(),
+      /** Refreshes render membership after asset instantiation or removal. */
       refreshSnapshot: () => this.refreshAssetSnapshot(),
     });
     this.sceneEntity = this.world.create();
@@ -104,12 +113,15 @@ export class Application {
     });
   }
 
+  /** Registers a fixed-step gameplay callback and returns its unsubscribe function. */
   onFixedUpdate(callback: FixedUpdate): () => void {
     return this.simulation.onFixedUpdate(callback);
   }
+  /** Registers a variable-frame callback with interpolation alpha before animation and extraction. */
   onUpdate(callback: FrameUpdate): () => void {
     return this.simulation.onUpdate(callback);
   }
+  /** Selects an ECS camera, validating handle identity; null returns control to the renderer camera. */
   setActiveCamera(entity: number | EntityHandle | null): void {
     this.cameraSystem.select(
       typeof entity === "object" && entity !== null
@@ -124,6 +136,7 @@ export class Application {
     return this.picking.pick(this.renderer?.camera, clientX, clientY);
   }
 
+  /** Initializes GPU resources once or resumes the existing application; concurrent starts share one promise. */
   start(): Promise<void> {
     if (this.disposing)
       return Promise.reject(new Error("Application disposed"));
@@ -137,22 +150,31 @@ export class Application {
     }
     if (!this.starting)
       this.starting = this.initialize().finally(() => {
+        // Clears the settled startup promise so later start calls can resume or retry.
+
         this.starting = undefined;
       });
     return this.starting;
   }
+  /** Creates the device and renderer, extracts the initial scene, installs resize handling and schedules rendering. */
   private async initialize(): Promise<void> {
     this.gpu = await GPUContext.create(
       this.canvas,
       (info) => {
+        // Stops on device loss and optionally rebuilds resources before resuming the previous loop state.
+
         const resume = !this.stopped;
         this.stop();
         this.deviceState = "lost";
         this.status.textContent = `GPU device lost (${info.reason}): ${info.message}`;
         if (this.autoRecoverDevice && !this.disposing)
-          void this.recoverDevice(resume).catch(() => {});
+          void this.recoverDevice(resume).catch(() => {
+            // Intentionally performs no work at this optional callback boundary.
+          });
       },
       (message) => {
+        // Stops rendering and reports the uncaptured GPU error in the status output.
+
         this.stop();
         this.status.textContent = `WebGPU error: ${message}`;
       },
@@ -185,7 +207,9 @@ export class Application {
       this.materials,
       this.profiler,
     );
-    this.observer = new ResizeObserver(() => this.gpu.resize());
+    this.observer = new ResizeObserver(() =>
+      /** Delegates this operation to this.gpu.resize. */ this.gpu.resize(),
+    );
     this.observer.observe(this.canvas);
     this.status.textContent = "WebGPU ready • indexed cube";
     this.frameId = requestAnimationFrame(this.frame);
@@ -201,15 +225,20 @@ export class Application {
     this.status.textContent = "Recovering GPU device…";
     this.recovering = this.rebuildDevice(resumeAfter)
       .catch((error) => {
+        // Handles asynchronous failure so application can report or retire the failed operation.
+
         this.deviceState = this.disposing ? "disposed" : "failed";
         this.status.textContent = `GPU recovery failed: ${String(error)}. Call recoverDevice() to retry.`;
         throw error;
       })
       .finally(() => {
+        // Clears the settled recovery promise so another device loss can start a new recovery.
+
         this.recovering = undefined;
       });
     return this.recovering;
   }
+  /** Recreates GPU owners from retained CPU definitions and publishes them only after successful recovery. */
   private async rebuildDevice(resumeAfter: boolean): Promise<void> {
     const previous = this.renderer;
     const replacement = await rebuildDeviceResources({
@@ -220,16 +249,21 @@ export class Application {
       materials: this.materials,
       profiler: this.profiler,
       assets: this.assetLoader,
+      /** Reports whether application teardown prevents further asset publication. */
       isDisposing: () => this.disposing,
+      /** Stops submission on device loss and starts automatic recovery when configured. */
       onLost: (gpu) => {
         if (this.gpu === gpu && !this.disposing) {
           const resume = !this.stopped;
           this.stop();
           this.deviceState = "lost";
           if (this.autoRecoverDevice)
-            void this.recoverDevice(resume).catch(() => {});
+            void this.recoverDevice(resume).catch(() => {
+              // Intentionally performs no work at this optional callback boundary.
+            });
         }
       },
+      /** Stops rendering and reports an uncaptured GPU error through application status. */
       onError: (message) => {
         this.stop();
         this.status.textContent = `WebGPU error: ${message}`;
@@ -314,6 +348,7 @@ export class Application {
     this.gpu.queue.submit([encoder.finish()]);
   }
 
+  /** Advances bounded gameplay, prepares the current pose, submits one frame and schedules the next RAF callback. */
   private readonly frame = (timestamp: number): void => {
     if (this.stopped || this.gpu.lost) return;
     if (this.pixelRatio !== window.devicePixelRatio) {
@@ -347,9 +382,11 @@ export class Application {
     }
   };
 
+  /** Stops frame scheduling through the shared stop path. */
   pause(): void {
     this.stop();
   }
+  /** Resets elapsed-time accumulation and schedules rendering after a pause when the device is usable. */
   resume(): void {
     this.checkLoadingDevice();
     if (!this.stopped) return;
@@ -360,12 +397,14 @@ export class Application {
     this.observer?.observe(this.canvas);
     this.frameId = requestAnimationFrame(this.frame);
   }
+  /** Cancels the pending animation frame and disconnects resize observation. */
   stop(): void {
     this.stopped = true;
     cancelAnimationFrame(this.frameId);
     this.observer?.disconnect();
   }
 
+  /** Rejects asset/environment work while disposal, device loss or recovery makes GPU publication unsafe. */
   private checkLoadingDevice(): void {
     if (
       this.disposing ||
@@ -390,6 +429,7 @@ export class Application {
     return this.assets.instantiateAsset(url);
   }
 
+  /** Loads and prepares linear HDR environment data, then installs it only on the still-current device. */
   async loadEnvironment(
     url: string,
     options: EnvironmentBakeOptions = {},
@@ -405,16 +445,22 @@ export class Application {
     await renderer.setEnvironment(data);
   }
 
+  /** Cancels a pending load for the canonical URL without removing already published scenes. */
   cancelAssetLoad(url: string): boolean {
     return this.assetLoader.cancel(url);
   }
   /** Removes every instance loaded through this application, then releases its cached asset. */
   unloadAsset(url: string): Promise<void> {
     if (this.recovering)
-      return this.recovering.then(() => this.assetLoader.unload(url));
+      return this.recovering.then(() =>
+        /** Continues application after the preceding asynchronous operation succeeds. */ this.assetLoader.unload(
+          url,
+        ),
+      );
     return this.assetLoader.unload(url);
   }
 
+  /** Refreshes transforms, camera selection and extracted records after asset membership changes. */
   private refreshAssetSnapshot(): void {
     this.transformSystem.update(this.world.transforms);
     if (this.renderer)
@@ -427,11 +473,14 @@ export class Application {
     );
   }
 
+  /** Stops callbacks and loading, awaits pending recovery, then releases environment, asset, renderer and device owners. */
   async dispose(): Promise<void> {
     this.stop();
     this.disposing = true;
     this.deviceState = "disposed";
-    await this.recovering?.catch(() => {});
+    await this.recovering?.catch(() => {
+      // Intentionally performs no work at this optional callback boundary.
+    });
     this.environments.clear();
     this.simulation.clear();
     this.assetDecoder.dispose();

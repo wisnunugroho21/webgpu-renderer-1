@@ -14,7 +14,11 @@ for (let i = 0; i < 1000; i++) {
 }
 new TransformSystem(1000).update(w.transforms);
 describe("Phase 28 shared lights", () => {
+  // Groups checks for Phase 28 shared lights.
+
   bench("extract/compare 1,000 light records", () => {
+    // Measures extract/compare 1,000 light records.
+
     extractor.extract(w, out);
   });
 });

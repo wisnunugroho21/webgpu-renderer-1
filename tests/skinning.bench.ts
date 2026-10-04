@@ -21,7 +21,11 @@ const primitive = {
   },
 };
 describe("Phase 17 static skin data", () => {
+  // Groups checks for Phase 17 static skin data.
+
   bench("validate/copy/normalize 10,000 eight-weight vertices", () => {
+    // Measures validate/copy/normalize 10,000 eight-weight vertices.
+
     SkinVertexData.fromPrimitive({
       ...primitive,
       attributes: {
@@ -32,6 +36,8 @@ describe("Phase 17 static skin data", () => {
     })!.validateJointCount(64);
   });
   bench("validate/copy/normalize 10,000 four-weight vertices", () => {
+    // Measures validate/copy/normalize 10,000 four-weight vertices.
+
     SkinVertexData.fromPrimitive(primitive)!.validateJointCount(64);
   });
 });
@@ -46,14 +52,17 @@ import { RuntimeAsset } from "../src/assets/gltf/RuntimeAsset";
 const w = new World(6500),
   registry = new SkeletonRegistry(),
   system = new SkeletonSystem();
-const ns = Array.from({ length: 64 }, () => ({
-  children: new Uint32Array(),
-})) as RuntimeAsset["nodes"];
+const ns = Array.from(
+  { length: 64 },
+  () => /** Builds a record containing children. */ ({
+    children: new Uint32Array(),
+  }),
+) as RuntimeAsset["nodes"];
 const bind = new Float32Array(64 * 16);
 for (let j = 0; j < 64; j++) bind.set(Mat4.create(), j * 16);
 const asset = new SkeletonAsset(
   {
-    joints: Uint32Array.from({ length: 64 }, (_, i) => i),
+    joints: Uint32Array.from({ length: 64 }, (_, i) => /** Returns i. */ i),
     inverseBindMatrices: bind,
     skeleton: 0,
   },
@@ -75,8 +84,14 @@ for (let i = 0; i < 100; i++) {
 system.update(w, registry);
 let pose = 0;
 describe("Phase 18 skeleton palettes: 100 x 64 joints", () => {
-  bench("unchanged poses", () => system.update(w, registry));
+  // Groups checks for Phase 18 skeleton palettes: 100 x 64 joints.
+
+  bench("unchanged poses", () =>
+    /** Measures unchanged poses. */ system.update(w, registry),
+  );
   bench("all poses changed", () => {
+    // Measures all poses changed.
+
     pose = pose ? 0 : 1;
     for (const instance of registry.instances)
       for (const e of instance.jointEntities)

@@ -8,6 +8,7 @@ import { AnimationClip } from "../src/animation/AnimationClip";
 import { Animator, MorphState } from "../src/animation/Animator";
 import { World } from "../src/ecs/World";
 
+/** Creates AnimationSampler storage for this operation. */
 function curve(
   size: number,
   keys: number,
@@ -16,7 +17,8 @@ function curve(
 ) {
   const times = Float32Array.from(
     { length: keys },
-    (_, k) => (k * 30) / (keys - 1),
+    (_, k) =>
+      /** Computes the (k * 30) / (keys - 1) result. */ (k * 30) / (keys - 1),
   );
   const cubic = mode === "CUBICSPLINE";
   const values = new Float32Array(keys * size * (cubic ? 3 : 1));
@@ -33,6 +35,7 @@ function curve(
   return new AnimationSampler(times, values, mode, rotation);
 }
 
+/** Builds a record containing update, animators. */
 function crowd(
   joints: number,
   keys: number,
@@ -73,6 +76,7 @@ function crowd(
     animator.currentTime = (i * 30) / 1000;
     animators.push(animator);
   }
+  /** Applies world.transforms.dirty.fill, world.transforms.queued.fill, animators[i]!.update to update. */
   const update = (count: number) => {
     // Dirty-list consumption is included, but matrix propagation/GPU stages are excluded.
     world.transforms.dirty.fill(0);
@@ -84,21 +88,25 @@ function crowd(
 }
 
 describe("Long clips with 1000 unique phases", () => {
+  // Groups checks for Long clips with 1000 unique phases.
+
   const rotations = crowd(64, 1024, "LINEAR", false);
   for (const count of [100, 500, 1000])
     bench(`${count} characters x 64 joints, 1024 LINEAR keys`, () =>
-      rotations.update(count),
+      /** Measures Long clips with 1000 unique phases. */ rotations.update(
+        count,
+      ),
     );
   for (const mode of ["STEP", "LINEAR", "CUBICSPLINE"] as const) {
     const mixed = crowd(1, 256, mode, true);
     bench(`1000 TRS + 16 morph weights, 256 ${mode} keys`, () =>
-      mixed.update(1000),
+      /** Measures Long clips with 1000 unique phases. */ mixed.update(1000),
     );
     const fading = crowd(1, 256, mode, true);
     // Keep fades alive across benchmark iterations; both clips have independent bindings.
     for (const animator of fading.animators) animator.crossFade(1, 1e9);
     bench(`1000 TRS + morph crossfades, 256 ${mode} keys`, () =>
-      fading.update(1000),
+      /** Measures Long clips with 1000 unique phases. */ fading.update(1000),
     );
   }
 });
@@ -110,5 +118,7 @@ for (let i = 0; i < sampledCrowd.animators.length; i++) {
   animator.evaluationPhase = i / sampledCrowd.animators.length;
 }
 bench("1000 x 64 joints, explicit staggered 15 Hz poses / 60 Hz clocks", () =>
-  sampledCrowd.update(1000),
+  /** Measures 1000 x 64 joints, explicit staggered 15 Hz poses / 60 Hz clocks. */ sampledCrowd.update(
+    1000,
+  ),
 );

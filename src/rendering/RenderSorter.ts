@@ -4,6 +4,7 @@ export class RenderSorter {
   lodAware = false;
   private world!: RenderWorld;
   private queue!: RenderQueue;
+  /** Orders opaque/masked objects by pipeline, material, mesh, optional LOD group and coarse front-to-back depth. */
   private readonly opaqueCompare = (a: number, b: number): number =>
     this.queue.pipeline[a]! - this.queue.pipeline[b]! ||
     this.world.materialId[a]! - this.world.materialId[b]! ||
@@ -12,8 +13,10 @@ export class RenderSorter {
     Math.floor(this.queue.depth[a]! / 4) -
       Math.floor(this.queue.depth[b]! / 4) ||
     a - b;
+  /** Orders blended objects from farthest to nearest with deterministic index ties. */
   private readonly transparentCompare = (a: number, b: number): number =>
     this.queue.depth[b]! - this.queue.depth[a]! || a - b;
+  /** Checks existing order first and only sorts the used index range when it is out of order. */
   private sortIfNeeded(
     indices: Uint32Array,
     count: number,
@@ -25,6 +28,7 @@ export class RenderSorter {
         return;
       }
   }
+  /** Sorts opaque/masked state runs and transparency, then concatenates the three queues into draw order. */
   sort(queue: RenderQueue, world: RenderWorld, sortOpaque = true): void {
     this.world = world;
     this.queue = queue;

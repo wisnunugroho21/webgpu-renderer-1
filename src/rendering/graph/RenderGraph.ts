@@ -11,19 +11,38 @@ export class RenderGraph<Context = void> {
   private readonly imported: Set<string>;
   private compiled = false;
   readonly order: RenderGraphPass<Context>[] = [];
+  /** Initializes validated pass dependencies and a persistent execution schedule. */
   constructor(importedResources: readonly string[] = []) {
     this.imported = new Set(importedResources);
   }
+  /** Registers a pass and its explicit resource dependencies before compilation. */
   add(pass: RenderGraphPass<Context>): void {
     if (this.compiled) throw new Error("Cannot mutate compiled render graph");
-    if (this.passes.some((p) => p.name === pass.name))
+    if (
+      this.passes.some(
+        (p) =>
+          /** Evaluates the p.name === pass.name condition. */ p.name ===
+          pass.name,
+      )
+    )
       throw new Error("Duplicate render pass");
     this.passes.push(pass);
   }
+  /** Validates unique producers/dependencies and builds a stable topological execution order. */
   compile(): void {
     if (this.compiled) return;
     const producers = new Map<string, number>(),
-      names = new Map(this.passes.map((p, i) => [p.name, i]));
+      names = new Map(
+        this.passes.map(
+          (
+            p,
+            i,
+          ) => /** Returns the ordered values needed by this operation. */ [
+            p.name,
+            i,
+          ],
+        ),
+      );
     for (let i = 0; i < this.passes.length; i++)
       for (const resource of this.passes[i]!.writes) {
         if (producers.has(resource))
@@ -33,6 +52,8 @@ export class RenderGraph<Context = void> {
         producers.set(resource, i);
       }
     const dependencies = this.passes.map((pass, index) => {
+      // Collects explicit and resource-producer prerequisites for this pass, rejecting invalid dependencies.
+
       const ids = new Set<number>();
       for (const name of pass.dependsOn ?? []) {
         const id = names.get(name);
@@ -59,7 +80,9 @@ export class RenderGraph<Context = void> {
       for (let i = 0; i < this.passes.length; i++)
         if (
           !scheduled.has(i) &&
-          Array.from(dependencies[i]!).every((id) => scheduled.has(id))
+          Array.from(dependencies[i]!).every((id) =>
+            /** Delegates this operation to scheduled.has. */ scheduled.has(id),
+          )
         ) {
           scheduled.add(i);
           this.order.push(this.passes[i]!);
@@ -72,6 +95,7 @@ export class RenderGraph<Context = void> {
     }
     this.compiled = true;
   }
+  /** Invokes the retained compiled pass callbacks with the current encoder and presentation target. */
   execute(encoder: GPUCommandEncoder, context: Context): void {
     if (!this.compiled)
       throw new Error("Compile render graph before execution");

@@ -16,6 +16,7 @@ export class BVH {
   private readonly stack: Int32Array;
   private world!: RenderWorld;
   private sortAxis = 0;
+  /** Orders static object indices along the current split axis with deterministic ties. */
   private readonly compare = (a: number, b: number): number =>
     this.world.boundsMin[a * 3 + this.sortAxis]! +
       this.world.boundsMax[a * 3 + this.sortAxis]! -
@@ -27,6 +28,7 @@ export class BVH {
   nodesTested = 0;
   objectsTested = 0;
   visibleCount = 0;
+  /** Initializes a static-object bounding-volume hierarchy; invalid input is rejected. */
   constructor(
     readonly capacity: number,
     readonly leafSize = 8,
@@ -44,6 +46,7 @@ export class BVH {
     this.size = new Uint32Array(capacity * 2);
     this.stack = new Int32Array(capacity * 2);
   }
+  /** Rebuilds static hierarchy nodes from extracted bounds and retains dynamic objects for linear testing. */
   build(world: RenderWorld): void {
     if (world.count > this.capacity) throw new Error("BVH capacity exceeded");
     this.world = world;
@@ -54,6 +57,7 @@ export class BVH {
       else this.dynamic[this.dynamicCount++] = i;
     if (this.staticCount) this.buildNode(0, this.staticCount);
   }
+  /** Recursively partitions one static range and stores its conservative node bounds. */
   private buildNode(first: number, size: number): number {
     const node = this.nodeCount++,
       bounds = node * 3;
@@ -90,6 +94,7 @@ export class BVH {
     this.right[node] = this.buildNode(first + half, size - half);
     return node;
   }
+  /** Classifies a node against the camera planes as outside, intersecting or fully inside. */
   private classify(node: number, frustum: Frustum): number {
     let inside = true;
     const planes = frustum.planes;
@@ -108,6 +113,7 @@ export class BVH {
     }
     return inside ? 1 : 0;
   }
+  /** Traverses static nodes and tests dynamic objects into the retained visible-index array. */
   cull(world: RenderWorld, frustum: Frustum, tester: FrustumCuller): number {
     this.nodesTested = this.objectsTested = this.visibleCount = 0;
     let pending = 0;

@@ -1,3 +1,4 @@
+/** Computes physical render dimensions from CSS size, pixel ratio and render scale, clamped to the device texture limit. */
 export function canvasSize(
   width: number,
   height: number,
@@ -20,6 +21,7 @@ export function canvasSize(
 export class GPUContext {
   readonly queue: GPUQueue;
   private scale = 1;
+  /** Returns the resolution multiplier applied to physical canvas dimensions. */
   get renderScale(): number {
     return this.scale;
   }
@@ -32,6 +34,7 @@ export class GPUContext {
     this.scale = value;
     this.resize();
   }
+  /** Returns the sRGB attachment-view format used for one final linear-to-display encoding. */
   get renderFormat(): GPUTextureFormat {
     return `${this.format}-srgb` as GPUTextureFormat;
   }
@@ -39,6 +42,7 @@ export class GPUContext {
   lost = false;
   disposed = false;
 
+  /** Initializes the WebGPU device, queue and presentation surface. */
   private constructor(
     readonly adapter: GPUAdapter,
     readonly device: GPUDevice,
@@ -52,18 +56,27 @@ export class GPUContext {
     device.addEventListener(
       "uncapturederror",
       (event: GPUUncapturedErrorEvent) => {
+        // Handles the uncapturederror event for gpucontext.
+
         this.errors.push(event.error.message);
         onError(event.error.message);
       },
     );
     void device.lost
       .then((info) => {
+        // Marks the context lost and forwards the loss notification unless it was already disposed.
+
         this.lost = true;
         if (!this.disposed) onLost(info);
       })
-      .catch((error) => onError(String(error)));
+      .catch((error) =>
+        /** Handles asynchronous failure so gpucontext can report or retire the failed operation. */ onError(
+          String(error),
+        ),
+      );
   }
 
+  /** Requests supported optional adapter features, creates the device and configures the sRGB canvas view. */
   static async create(
     canvas: HTMLCanvasElement,
     onLost: (info: GPUDeviceLostInfo) => void,
@@ -105,6 +118,7 @@ export class GPUContext {
     return gpu;
   }
 
+  /** Updates physical canvas dimensions from CSS size, device pixel ratio and render scale within device limits. */
   resize(): boolean {
     if (this.lost || this.disposed) return false;
     const [width, height] = canvasSize(
@@ -128,6 +142,7 @@ export class GPUContext {
     return changed;
   }
 
+  /** Unconfigures presentation and destroys the owned device without resuming rendering. */
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;

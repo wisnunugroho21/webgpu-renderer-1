@@ -6,6 +6,8 @@ Object.assign(globalThis, {
   GPUBufferUsage: { VERTEX: 32, INDEX: 16, COPY_DST: 8 },
 });
 describe("mesh asset uploads", () => {
+  // Groups checks for mesh asset uploads.
+
   for (const [mode, expected, topology] of [
     [0, [0, 1, 2, 3], 2],
     [1, [0, 1, 2, 3], 1],
@@ -16,12 +18,18 @@ describe("mesh asset uploads", () => {
     [6, [0, 1, 2, 0, 2, 3], 0],
   ] as const) {
     it(`converts primitive mode ${mode} once into a shared GPU mesh`, () => {
+      // Verifies mesh asset uploads.
+
       const queue = { writeBuffer: vi.fn() } as unknown as GPUQueue,
         device = {
-          createBuffer: vi.fn((d: GPUBufferDescriptor) => ({
-            size: d.size,
-            destroy: vi.fn(),
-          })),
+          createBuffer: vi.fn(
+            (
+              d: GPUBufferDescriptor,
+            ) => /** Builds a record containing size, destroy. */ ({
+              size: d.size,
+              destroy: vi.fn(),
+            }),
+          ),
         } as unknown as GPUDevice;
       const resources = new Resources(device),
         meshes = new MeshManager(resources, queue);
@@ -44,7 +52,9 @@ describe("mesh asset uploads", () => {
         new Uint32Array(expected),
       );
       expect(resources.stats.bufferCreations).toBe(2);
-      expect(() => meshes.get(5)).toThrow("Unknown mesh");
+      expect(() =>
+        /** Returns the keyed entry from meshes. */ meshes.get(5),
+      ).toThrow("Unknown mesh");
     });
   }
 });

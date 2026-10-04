@@ -49,6 +49,7 @@ export class RendererStats {
   frustumRejected = 0;
   visibleObjects = 0;
   bvhNodesTested = 0;
+  /** Clears per-frame work counters while leaving long-lived configuration outside the statistics object. */
   reset(): void {
     this.geometryClusterCandidates =
       this.geometryClusterDraws =

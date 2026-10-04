@@ -84,28 +84,45 @@ export function assertBenchmarkReport(report, errors) {
           assert.equal(row.resourcesBefore[key], row.resourcesAfter[key]);
     }
     const narrow = report.geometry.benchmarks.find(
-        (x) => x.enabled && x.workload === "mostly-outside",
+        (x) =>
+          /** Evaluates the x.enabled && x.workload === "mostly-outside" condition. */ x.enabled &&
+          x.workload === "mostly-outside",
       ),
       full = report.geometry.benchmarks.find(
-        (x) => x.enabled && x.workload === "fully-visible",
+        (x) =>
+          /** Evaluates the x.enabled && x.workload === "fully-visible" condition. */ x.enabled &&
+          x.workload === "fully-visible",
       );
     assert.ok(narrow.diagnostic.rejected > narrow.diagnostic.candidates / 2);
     assert.equal(full.diagnostic.rejected, 0);
     assert.ok(
-      report.geometry.checks.find((x) => x.name === "morph-skin-fallback").stats
-        .activeMorphTargets > 0,
+      report.geometry.checks.find(
+        (x) =>
+          /** Evaluates the x.name === "morph-skin-fallback" condition. */ x.name ===
+          "morph-skin-fallback",
+      ).stats.activeMorphTargets > 0,
     );
     assert.equal(
-      report.geometry.checks.find((x) => x.name === "cpu-lod").stats.lod1,
+      report.geometry.checks.find(
+        (x) =>
+          /** Evaluates the x.name === "cpu-lod" condition. */ x.name ===
+          "cpu-lod",
+      ).stats.lod1,
       1,
     );
     assert.ok(
-      report.geometry.checks.find((x) => x.name === "shadows").stats
-        .shadowDrawCalls > 0,
+      report.geometry.checks.find(
+        (x) =>
+          /** Evaluates the x.name === "shadows" condition. */ x.name ===
+          "shadows",
+      ).stats.shadowDrawCalls > 0,
     );
     assert.equal(
-      report.geometry.checks.find((x) => x.name === "culling-disabled")
-        .diagnostic.rejected,
+      report.geometry.checks.find(
+        (x) =>
+          /** Evaluates the x.name === "culling-disabled" condition. */ x.name ===
+          "culling-disabled",
+      ).diagnostic.rejected,
       0,
     );
     for (const name of [
@@ -114,8 +131,10 @@ export function assertBenchmarkReport(report, errors) {
       "morph-skin-fallback",
     ])
       assert.equal(
-        report.geometry.checks.find((x) => x.name === name).stats
-          .geometryClusterCandidates,
+        report.geometry.checks.find(
+          (x) =>
+            /** Evaluates the x.name === name condition. */ x.name === name,
+        ).stats.geometryClusterCandidates,
         0,
       );
   }

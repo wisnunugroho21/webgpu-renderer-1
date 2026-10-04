@@ -2,6 +2,7 @@ import dracoWasm from "draco3dgltf/draco_decoder_gltf.wasm?url";
 import { JSONDocument, WebIO } from "@gltf-transform/core";
 /** Decoder dependencies are loader-owned and lazy; failed Draco startup remains retryable. */
 export class GLTFCodecs {
+  /** Applies [ "KHR_draco_mesh_compression", "EXT_meshopt_compression", "KHR_texture_basisu", "KHR_mesh_quantization", ].some, import, names.has to prepare. */
   async prepare(io: WebIO, document: JSONDocument): Promise<void> {
     const names = new Set(document.json.extensionsUsed ?? []);
     if (
@@ -10,7 +11,9 @@ export class GLTFCodecs {
         "EXT_meshopt_compression",
         "KHR_texture_basisu",
         "KHR_mesh_quantization",
-      ].some((name) => names.has(name))
+      ].some((name) =>
+        /** Delegates this operation to names.has. */ names.has(name),
+      )
     )
       return;
     const extensions = await import("@gltf-transform/extensions");
@@ -27,6 +30,8 @@ export class GLTFCodecs {
     }
     if (names.has("KHR_draco_mesh_compression")) {
       this.draco ??= (async () => {
+        // Delegates this operation to createDecoder.
+
         const { default: createDecoder } =
           await import("draco3dgltf/draco_decoder_gltf_nodejs.js");
         const options =
@@ -39,6 +44,8 @@ export class GLTFCodecs {
             : undefined;
         return createDecoder(options);
       })().catch((error) => {
+        // Handles asynchronous failure so gltfcodecs can report or retire the failed operation.
+
         this.draco = undefined;
         throw error;
       });

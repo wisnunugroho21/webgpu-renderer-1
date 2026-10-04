@@ -13,8 +13,11 @@ interface DeviceRebuildInput {
   readonly materials: MaterialManager;
   readonly profiler: CPUProfiler;
   readonly assets: ApplicationAssets["loader"];
+  /** Reports whether teardown prevents further resource publication. */
   isDisposing(): boolean;
+  /** Handles device loss for the supplied context and schedules recovery when enabled. */
   onLost(gpu: GPUContext): void;
+  /** Reports an uncaptured GPU failure and stops unsafe submission. */
   onError(message: string): void;
 }
 
@@ -31,7 +34,8 @@ export async function rebuildDeviceResources(input: DeviceRebuildInput) {
   try {
     nextGPU = await GPUContext.create(
       input.canvas,
-      () => input.onLost(nextGPU!),
+      () =>
+        /** Delegates this operation to input.onLost. */ input.onLost(nextGPU!),
       input.onError,
     );
     if (input.isDisposing())

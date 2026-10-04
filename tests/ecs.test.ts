@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import { World } from "../src/ecs/World";
 import { TransformSystem } from "../src/ecs/systems/TransformSystem";
 describe("data oriented world and dirty transforms", () => {
+  // Groups checks for data oriented world and dirty transforms.
+
   it("creates numeric monotonic entities and queries component intersections", () => {
+    // Verifies creates numeric monotonic entities and queries component intersections.
+
     const w = new World(4),
       a = w.create(),
       b = w.create();
@@ -17,10 +21,19 @@ describe("data oriented world and dirty transforms", () => {
     expect(w.create()).not.toBe(a);
     expect(w.count).toBe(2);
     w.create();
-    expect(() => w.create()).toThrow("capacity");
-    expect(() => w.query(new Uint32Array(0), w.transforms)).toThrow("capacity");
+    expect(() =>
+      /** Delegates this operation to w.create. */ w.create(),
+    ).toThrow("capacity");
+    expect(() =>
+      /** Delegates this operation to w.query. */ w.query(
+        new Uint32Array(0),
+        w.transforms,
+      ),
+    ).toThrow("capacity");
   });
   it("updates exactly 100 dirty transforms among 10,000 and preserves the others", () => {
+    // Verifies updates exactly 100 dirty transforms among 10,000 and preserves the others.
+
     const w = new World(10000),
       system = new TransformSystem(w.capacity);
     for (let i = 0; i < 10000; i++) {
@@ -37,6 +50,8 @@ describe("data oriented world and dirty transforms", () => {
     );
   });
   it("propagates changes to descendants and resolves parent updates first", () => {
+    // Verifies propagates changes to descendants and resolves parent updates first.
+
     const w = new World(5),
       system = new TransformSystem(5),
       child = w.create(),
@@ -52,9 +67,16 @@ describe("data oriented world and dirty transforms", () => {
     w.transforms.setPosition(parent, 4, 0, 0);
     expect(system.update(w.transforms)).toBe(2);
     expect(w.transforms.worldMatrices[child * 16 + 12]).toBe(7);
-    expect(() => w.transforms.setParent(parent, child)).toThrow("cycle");
+    expect(() =>
+      /** Delegates this operation to w.transforms.setParent. */ w.transforms.setParent(
+        parent,
+        child,
+      ),
+    ).toThrow("cycle");
   });
   it("detaches children on parent destruction, preserving their local transforms", () => {
+    // Verifies detaches children on parent destruction, preserving their local transforms.
+
     const w = new World(4),
       system = new TransformSystem(4),
       parent = w.create(),
@@ -71,6 +93,8 @@ describe("data oriented world and dirty transforms", () => {
     expect(w.transforms.worldMatrices[child * 16 + 12]).toBe(2);
   });
   it("reparents sibling lists correctly and handles component removal/readdition", () => {
+    // Verifies reparents sibling lists correctly and handles component removal/readdition.
+
     const w = new World(4),
       system = new TransformSystem(4);
     for (let i = 0; i < 4; i++) w.transforms.add(w.create());
@@ -90,6 +114,8 @@ describe("data oriented world and dirty transforms", () => {
     expect(w.transforms.worldMatrices[2 * 16]).toBe(1);
   });
   it("updates deep hierarchies without recursive stack overflow", () => {
+    // Verifies updates deep hierarchies without recursive stack overflow.
+
     const w = new World(10000),
       system = new TransformSystem(10000);
     for (let i = 0; i < 10000; i++) {

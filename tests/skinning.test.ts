@@ -7,17 +7,26 @@ import {
   RuntimePrimitive,
 } from "../src/assets/gltf/RuntimeAsset";
 import { Mat4 } from "../src/math/Mat4";
+/** Returns Array.from({ length: 3 }, (_, i) => ({ children: new Uint32Array(i < 2 ? [i + 1] : []), })) as RuntimeAsset["nodes"]. */
 const nodes = () =>
-  Array.from({ length: 3 }, (_, i) => ({
-    children: new Uint32Array(i < 2 ? [i + 1] : []),
-  })) as RuntimeAsset["nodes"];
+  Array.from(
+    { length: 3 },
+    (_, i) => /** Builds a record containing children. */ ({
+      children: new Uint32Array(i < 2 ? [i + 1] : []),
+    }),
+  ) as RuntimeAsset["nodes"];
+/** Builds a record containing joints, inverse bind matrices, skeleton. */
 const skin = () => ({
   joints: new Uint32Array([0, 2]),
   inverseBindMatrices: new Float32Array([...Mat4.create(), ...Mat4.create()]),
   skeleton: 0,
 });
 describe("skeleton assets and instances", () => {
+  // Groups checks for skeleton assets and instances.
+
   it("finds joint parents through non-joint nodes and shares bind data", () => {
+    // Verifies finds joint parents through non-joint nodes and shares bind data.
+
     const asset = new SkeletonAsset(skin(), nodes());
     expect(asset.parents).toEqual(new Int32Array([-1, 0]));
     const entities = new Int32Array([10, 11, 12]),
@@ -31,34 +40,44 @@ describe("skeleton assets and instances", () => {
     expect(a.jointOffset).toBe(-1);
   });
   it("rejects invalid bind counts, duplicate/unknown joints and missing runtime nodes", () => {
+    // Verifies rejects invalid bind counts, duplicate/unknown joints and missing runtime nodes.
+
     expect(
       () =>
-        new SkeletonAsset(
+        /** Creates SkeletonAsset storage for this operation. */ new SkeletonAsset(
           { ...skin(), joints: new Uint32Array([0, 0]) },
           nodes(),
         ),
     ).toThrow();
     expect(
       () =>
-        new SkeletonAsset(
+        /** Creates SkeletonAsset storage for this operation. */ new SkeletonAsset(
           { ...skin(), inverseBindMatrices: new Float32Array(16) },
           nodes(),
         ),
     ).toThrow();
     expect(
       () =>
-        new SkeletonAsset(
+        /** Creates SkeletonAsset storage for this operation. */ new SkeletonAsset(
           { ...skin(), joints: new Uint32Array([0, 10]) },
           nodes(),
         ),
     ).toThrow();
     const s = new SkeletonAsset(skin(), nodes());
     expect(
-      () => new SkeletonInstance(s, 1, new Int32Array([0, 1, -1])),
+      () =>
+        /** Creates SkeletonInstance storage for this operation. */ new SkeletonInstance(
+          s,
+          1,
+          new Int32Array([0, 1, -1]),
+        ),
     ).toThrow();
   });
 });
 describe("static skin influences", () => {
+  // Groups checks for static skin influences.
+
+  /** Builds a record containing mode, indices, material, targets, attributes. */
   const primitive = (
     attributes: Record<string, Float32Array>,
   ): RuntimePrimitive => ({
@@ -69,6 +88,8 @@ describe("static skin influences", () => {
     attributes: { POSITION: new Float32Array(3), ...attributes },
   });
   it("retains and normalizes both influence sets with one total weight", () => {
+    // Verifies retains and normalizes both influence sets with one total weight.
+
     const data = SkinVertexData.fromPrimitive(
       primitive({
         JOINTS_0: new Float32Array([0, 1, 0, 0]),
@@ -80,18 +101,24 @@ describe("static skin influences", () => {
     expect(data.primary.weights).toEqual(new Float32Array([0.5, 0.25, 0, 0]));
     expect(data.secondary?.weights).toEqual(new Float32Array([0.25, 0, 0, 0]));
     data.validateJointCount(4);
-    expect(() => data.validateJointCount(3)).toThrow();
+    expect(() =>
+      /** Delegates this operation to data.validateJointCount. */ data.validateJointCount(
+        3,
+      ),
+    ).toThrow();
   });
   it("rejects malformed attributes, bad joint indices and zero weights", () => {
+    // Verifies rejects malformed attributes, bad joint indices and zero weights.
+
     expect(SkinVertexData.fromPrimitive(primitive({}))).toBeUndefined();
     expect(() =>
-      SkinVertexData.fromPrimitive(
+      /** Delegates this operation to SkinVertexData.fromPrimitive. */ SkinVertexData.fromPrimitive(
         primitive({ JOINTS_0: new Float32Array(4) }),
       ),
     ).toThrow();
     for (const j of [-1, 0.5, Infinity])
       expect(() =>
-        SkinVertexData.fromPrimitive(
+        /** Delegates this operation to SkinVertexData.fromPrimitive. */ SkinVertexData.fromPrimitive(
           primitive({
             JOINTS_0: new Float32Array([j, 0, 0, 0]),
             WEIGHTS_0: new Float32Array([1, 0, 0, 0]),
@@ -99,7 +126,7 @@ describe("static skin influences", () => {
         ),
       ).toThrow();
     expect(() =>
-      SkinVertexData.fromPrimitive(
+      /** Delegates this operation to SkinVertexData.fromPrimitive. */ SkinVertexData.fromPrimitive(
         primitive({
           JOINTS_0: new Float32Array(4),
           WEIGHTS_0: new Float32Array(4),
@@ -114,6 +141,9 @@ import { TransformSystem } from "../src/ecs/systems/TransformSystem";
 import { SkeletonSystem } from "../src/ecs/systems/SkeletonSystem";
 import { SkeletonRegistry } from "../src/animation/skinning/SkeletonRegistry";
 describe("mesh-relative skeleton updates", () => {
+  // Groups checks for mesh-relative skeleton updates.
+
+  /** Builds a record containing world, mesh, root, tip, instance, registry. */
   const rig = () => {
     const world = new World(4),
       mesh = world.create(),
@@ -151,6 +181,8 @@ describe("mesh-relative skeleton updates", () => {
     return { world, mesh, root, tip, instance, registry, transforms, system };
   };
   it("applies inverse mesh * joint world * inverse bind in column-vector order", () => {
+    // Verifies applies inverse mesh * joint world * inverse bind in column-vector order.
+
     const { world, mesh, instance, registry, system } = rig();
     system.update(world, registry);
     expect(instance.matrices[0]).toBe(0.5);
@@ -167,6 +199,8 @@ describe("mesh-relative skeleton updates", () => {
     expect(system.updatedJoints).toBe(2);
   });
   it("updates only changed joint ranges and propagates joint/mesh motion", () => {
+    // Verifies updates only changed joint ranges and propagates joint/mesh motion.
+
     const { world, mesh, tip, instance, registry, transforms, system } = rig();
     system.update(world, registry);
     instance.dirtyJoints.fill(0);
@@ -185,16 +219,30 @@ describe("mesh-relative skeleton updates", () => {
     expect(instance.matrices[12]).toBe(-5);
   });
   it("rejects singular mesh transforms and removed live joints", () => {
+    // Verifies rejects singular mesh transforms and removed live joints.
+
     const { world, mesh, root, registry, transforms, system } = rig();
     world.transforms.setScale(mesh, 0, 1, 1);
     transforms.update(world.transforms);
-    expect(() => system.update(world, registry)).toThrow("Singular");
+    expect(() =>
+      /** Delegates this operation to system.update. */ system.update(
+        world,
+        registry,
+      ),
+    ).toThrow("Singular");
     world.transforms.setScale(mesh, 1, 1, 1);
     transforms.update(world.transforms);
     world.destroy(root);
-    expect(() => system.update(world, registry)).toThrow("removed");
+    expect(() =>
+      /** Delegates this operation to system.update. */ system.update(
+        world,
+        registry,
+      ),
+    ).toThrow("removed");
   });
   it("inverts affine and projective matrices in place", () => {
+    // Verifies inverts affine and projective matrices in place.
+
     const p = Mat4.create();
     Mat4.perspective(p, Math.PI / 3, 1.5, 0.1, 100);
     const inverse = p.slice();
@@ -205,8 +253,16 @@ describe("mesh-relative skeleton updates", () => {
       expect(identity[i]).toBeCloseTo(i % 5 === 0 ? 1 : 0, 5);
   });
   it("rejects cycles containing joints", () => {
+    // Verifies rejects cycles containing joints.
+
     const n = nodes();
     n[2]!.children = new Uint32Array([0]);
-    expect(() => new SkeletonAsset(skin(), n)).toThrow("cycle");
+    expect(
+      () =>
+        /** Creates SkeletonAsset storage for this operation. */ new SkeletonAsset(
+          skin(),
+          n,
+        ),
+    ).toThrow("cycle");
   });
 });

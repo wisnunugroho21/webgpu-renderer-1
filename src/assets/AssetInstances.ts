@@ -10,6 +10,7 @@ export interface InstanceLifetime {
   readonly entities: readonly EntityHandle[];
   readonly animator: Animator | undefined;
   readonly disposed: boolean;
+  /** Releases this owner or scene lifetime according to its independent ownership contract. */
   dispose(): void;
 }
 interface InstanceRecord {
@@ -22,20 +23,25 @@ interface InstanceRecord {
 /** Application-owned scene instances; shared assets outlive individual scene lifetimes. */
 export class AssetInstances {
   private readonly entries = new Map<string, Set<InstanceRecord>>();
+  /** Initializes scene leases, shared-resource references and entity ownership. */
   constructor(
     private readonly world: World,
     private readonly animations: AnimationSystem,
     private readonly skeletons: SkeletonRegistry,
   ) {}
+  /** Publishes a scene lease and records its shared asset references for later independent despawning. */
   add(url: string, start: number, end: number, release: () => void): void {
     this.addEntities(
       url,
       Array.from({ length: end - start }, (_, i) =>
-        this.world.handle(start + i),
+        /** Delegates this operation to this.world.handle. */ this.world.handle(
+          start + i,
+        ),
       ),
       release,
     );
   }
+  /** Tracks entity ownership and generations for one instantiated scene. */
   addEntities(
     url: string,
     entities: readonly EntityHandle[],
@@ -66,9 +72,11 @@ export class AssetInstances {
     return Object.freeze({
       entities: record.entities,
       animator: record.animators.values().next().value,
+      /** Reports whether this independent scene lifetime has detached its entities. */
       get disposed() {
         return record.disposed;
       },
+      /** Releases owned scene leases, shared-resource references and entity ownership and prevents its remaining state from being used. */
       dispose: () => {
         if (record.disposed) return;
         // Shared mesh/material references are allowed; entity-owned bindings are not.
@@ -81,11 +89,13 @@ export class AssetInstances {
       },
     });
   }
+  /** Retires a scene lease once and drops its tracked ownership references. */
   private retire(record: InstanceRecord): void {
     for (const handle of record.entities) this.world.destroy(handle);
     record.release();
     record.disposed = true;
   }
+  /** Rejects retirement while surviving consumers still depend on the asset resources. */
   private assertConsumers(
     records: Iterable<InstanceRecord>,
     uploaded?: UploadedAsset,
@@ -94,9 +104,14 @@ export class AssetInstances {
       world = this.world;
     const own = new Set(
       list
-        .flatMap((record) => record.entities)
-        .filter((handle) => world.resolve(handle) !== null)
-        .map((handle) => handle.index),
+        .flatMap((record) => /** Returns record entities. */ record.entities)
+        .filter(
+          (handle) =>
+            /** Evaluates the world.resolve(handle) !== null condition. */ world.resolve(
+              handle,
+            ) !== null,
+        )
+        .map((handle) => /** Returns handle index. */ handle.index),
     );
     const meshes = new Set(uploaded?.meshIds.flat() ?? []),
       materials = new Set(
@@ -110,14 +125,18 @@ export class AssetInstances {
     for (let id = 0; id < this.animations.animators.length; id++)
       if (
         list.some((record) =>
-          record.animators.has(this.animations.animators[id]!),
+          /** Delegates this operation to record.animators.has. */ record.animators.has(
+            this.animations.animators[id]!,
+          ),
         )
       )
         animators.add(id);
     for (let id = 0; id < this.animations.morphStates.length; id++)
       if (
         list.some((record) =>
-          record.morphs.has(this.animations.morphStates[id]!),
+          /** Delegates this operation to record.morphs.has. */ record.morphs.has(
+            this.animations.morphStates[id]!,
+          ),
         )
       )
         morphs.add(id);
@@ -145,7 +164,9 @@ export class AssetInstances {
       if (
         usedSkins.has(id) &&
         !skins.has(id) &&
-        this.skeletons.instances[id]!.jointEntities.some((e) => own.has(e))
+        this.skeletons.instances[id]!.jointEntities.some((e) =>
+          /** Delegates this operation to own.has. */ own.has(e),
+        )
       )
         throw new Error("Asset joints are referenced by an external skeleton");
   }
@@ -153,6 +174,7 @@ export class AssetInstances {
   assertCanUnload(url: string, uploaded: UploadedAsset): void {
     this.assertConsumers(this.entries.get(url) ?? [], uploaded);
   }
+  /** Removes owned entities and compacts animation/morph/skeleton registry references safely. */
   detach(url: string, asset: RuntimeAsset): void {
     for (const record of this.entries.get(url) ?? []) this.retire(record);
     this.entries.delete(url);
@@ -168,6 +190,7 @@ export class AssetInstances {
     this.animations.releaseUnused(this.world);
     this.skeletons.releaseUnused(this.world, asset);
   }
+  /** Reverts a failed instantiation transaction and restores registry/material ownership. */
   rollback(start: number, asset: RuntimeAsset): void {
     for (let e = start; e < this.world.nextEntity; e++) this.world.destroy(e);
     this.animations.releaseUnused(this.world);

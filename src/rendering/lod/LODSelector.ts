@@ -8,6 +8,7 @@ export class LODSelector {
   culled = 0;
   private readonly previous: Int8Array;
   private readonly previousGroup: Int32Array;
+  /** Initializes projected-size LOD choices with hysteresis. */
   constructor(
     capacity: number,
     readonly groups: LODGroups,
@@ -16,6 +17,7 @@ export class LODSelector {
     this.previous = new Int8Array(capacity).fill(-2);
     this.previousGroup = new Int32Array(capacity).fill(-1);
   }
+  /** Chooses authored meshes by projected physical-pixel size while applying retained hysteresis decisions. */
   select(
     world: RenderWorld,
     camera: Camera,

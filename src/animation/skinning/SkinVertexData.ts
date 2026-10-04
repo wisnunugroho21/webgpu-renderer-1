@@ -5,18 +5,24 @@ export interface Influences {
 }
 /** Static influence streams; both sets normalize jointly for the shared eight-weight GPU path. */
 export class SkinVertexData {
+  /** Initializes validated four/eight-influence joint indices and weights. */
   private constructor(
     readonly primary: Influences,
     readonly secondary?: Influences,
   ) {}
+  /** Decodes primary/secondary glTF skin attributes and validates jointly normalized influence weights. */
   static fromPrimitive(p: RuntimePrimitive): SkinVertexData | undefined {
     if (
       Object.keys(p.attributes).some(
-        (key) => Number(/^(?:JOINTS|WEIGHTS)_(\d+)$/.exec(key)?.[1] ?? 0) > 1,
+        (key) =>
+          /** Evaluates the Number(/^(?:JOINTS|WEIGHTS)_(\d+)$/.exec(key)?.[1] ?? 0) > 1 condition. */ Number(
+            /^(?:JOINTS|WEIGHTS)_(\d+)$/.exec(key)?.[1] ?? 0,
+          ) > 1,
       )
     )
       throw new Error("More than eight skin influences are unsupported");
     const count = p.attributes.POSITION!.length / 3;
+    /** Copies one accessor component into packed influence storage using its declared stride and offset. */
     const read = (set: number): Influences | undefined => {
       const j = p.attributes[`JOINTS_${set}`],
         w = p.attributes[`WEIGHTS_${set}`];
@@ -58,6 +64,7 @@ export class SkinVertexData {
     }
     return new SkinVertexData(primary, secondary);
   }
+  /** Rejects vertex influences addressing joints outside the attached skeleton palette. */
   validateJointCount(count: number): void {
     for (const set of [this.primary, this.secondary])
       if (set)

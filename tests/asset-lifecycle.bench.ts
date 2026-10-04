@@ -4,15 +4,26 @@ import { RangeAllocator } from "../src/assets/RangeAllocator";
 bench(
   "load/unload 100 decoded assets with a 16-record LRU budget",
   async () => {
+    // Measures load/unload 100 decoded assets with a 16-record LRU budget.
+
     let resident = 0;
     const loader = new AssetLoader(
-      async () => new Uint8Array(1024),
-      async (data) => data,
-      async () => ++resident,
-      async () => {},
+      async () =>
+        /** Measures load/unload 100 decoded assets with a 16-record LRU budget. */ new Uint8Array(
+          1024,
+        ),
+      async (data) =>
+        /** Measures load/unload 100 decoded assets with a 16-record LRU budget. */ data,
+      async () =>
+        /** Measures load/unload 100 decoded assets with a 16-record LRU budget. */ ++resident,
+      async () => {
+        // Intentionally performs no work at this optional callback boundary.
+      },
       {
+        /** Returns data byte length. */
         decodedBytes: (data) => data.byteLength,
         budget: { maxRecords: 16, maxDecodedBytes: 16384 },
+        /** Provides the controlled callback used by load/unload 100 decoded assets with a 16-record LRU budget. */
         release: async () => {
           resident--;
         },
@@ -27,6 +38,8 @@ bench(
   },
 );
 bench("allocate/release 1000 fragmented shared arena ranges", () => {
+  // Measures allocate/release 1000 fragmented shared arena ranges.
+
   const arena = new RangeAllocator(64000),
     offsets: number[] = [];
   for (let i = 0; i < 1000; i++) offsets.push(arena.allocate(64));

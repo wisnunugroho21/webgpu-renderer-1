@@ -25,7 +25,9 @@ await new NodeIO().write("public/regression/triangle.glb", document);
 
 // Deterministic RGBA PNGs keep the regression fixture independent of image tools.
 const { deflateSync } = await import("node:zlib");
+/** Builds a deterministic PNG fixture from raw pixel bytes. */
 function png(width, height, pixels) {
+  /** Encodes a PNG chunk with its length, type, payload and CRC. */
   const chunk = (type, data) => {
     const name = Buffer.from(type),
       body = Buffer.concat([name, data]);
@@ -62,12 +64,14 @@ function png(width, height, pixels) {
 }
 const pbr = new Document(),
   pb = pbr.createBuffer();
+/** Creates a glTF accessor with the requested component data and buffer ownership. */
 const attr = (type, values) =>
   pbr
     .createAccessor()
     .setType(type)
     .setArray(new Float32Array(values))
     .setBuffer(pb);
+/** Renders the requested configuration and captures its diagnostic reference pixels. */
 const image = (name, color) =>
   pbr
     .createTexture(name)
@@ -234,15 +238,21 @@ const bcDFD = nativeBC.dataFormatDescriptor[0];
 bcDFD.colorModel = 128;
 bcDFD.texelBlockDimension = [3, 3, 0, 0];
 bcDFD.bytesPlane = [8, 0, 0, 0, 0, 0, 0, 0];
-bcDFD.samples = [0, 1].map((channelType) => ({
-  bitOffset: 0,
-  bitLength: 63,
-  channelType,
-  samplePosition: [0, 0, 0, 0],
-  sampleLower: 0,
-  sampleUpper: 0xffffffff,
-}));
+bcDFD.samples = [0, 1].map(
+  (
+    channelType,
+  ) => /** Builds a record containing bit offset, bit length, channel type, sample position, sample lower, sample upper. */ ({
+    bitOffset: 0,
+    bitLength: 63,
+    channelType,
+    samplePosition: [0, 0, 0, 0],
+    sampleLower: 0,
+    sampleUpper: 0xffffffff,
+  }),
+);
 nativeBC.levels = [4, 1, 1, 1].map((blocks) => {
+  // Builds a record containing level data, uncompressed byte length.
+
   const levelData = new Uint8Array(blocks * 8);
   for (let i = 0; i < blocks; i++) {
     levelData[i * 8 + 1] = 0xf8;

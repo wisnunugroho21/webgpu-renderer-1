@@ -8,17 +8,31 @@ Object.assign(globalThis, {
 const world = new RenderWorld(1, 6400);
 world.jointCount = 6400;
 const palette = new JointMatrixBuffer(
-    { create: () => ({}) } as unknown as BufferManager,
+    {
+      /** Returns an empty fixture handle for a controlled test dependency. */
+      create: () => ({}),
+    } as unknown as BufferManager,
     6400,
   ),
-  queue = { writeBuffer: () => {} } as unknown as GPUQueue;
+  queue = {
+    /** Intentionally performs no work at this optional callback boundary. */
+    writeBuffer: () => {},
+  } as unknown as GPUQueue;
 describe("Phase 19 6,400 joints CPU dirty-range staging (mock queue)", () => {
-  bench("unchanged ranges", () => palette.upload(queue, world));
+  // Groups checks for Phase 19 6,400 joints CPU dirty-range staging (mock queue).
+
+  bench("unchanged ranges", () =>
+    /** Measures unchanged ranges. */ palette.upload(queue, world),
+  );
   bench("all joints changed", () => {
+    // Measures all joints changed.
+
     world.jointDirty.fill(1);
     palette.upload(queue, world);
   });
   bench("100 sparse changes", () => {
+    // Measures 100 sparse changes.
+
     for (let j = 0; j < 6400; j += 64) world.jointDirty[j] = 1;
     palette.upload(queue, world);
   });

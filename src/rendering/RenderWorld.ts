@@ -40,6 +40,7 @@ export class RenderWorld {
   readonly sphere: Float32Array;
   readonly boundsMin: Float32Array;
   readonly boundsMax: Float32Array;
+  /** Initializes persistent compact render-object, bounds, light and deformation arrays. */
   constructor(
     readonly capacity: number,
     readonly jointCapacity = Math.max(1, capacity * 4),

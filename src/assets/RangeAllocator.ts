@@ -4,11 +4,16 @@ export class RangeAllocator {
   count = 0;
   private readonly live = new Map<number, number>();
   private readonly free: { offset: number; size: number }[] = [];
+  /** Initializes a bounded first-fit arena with reusable released ranges. */
   constructor(readonly capacity: number) {}
+  /** Reserves a contiguous first-fit range and throws when no free block can satisfy the request. */
   allocate(size: number): number {
     if (!Number.isSafeInteger(size) || size < 1)
       throw new Error("Invalid arena allocation");
-    const index = this.free.findIndex((range) => range.size >= size);
+    const index = this.free.findIndex(
+      (range) =>
+        /** Evaluates the range.size >= size condition. */ range.size >= size,
+    );
     let offset: number;
     if (index >= 0) {
       const range = this.free[index]!;
@@ -25,12 +30,16 @@ export class RangeAllocator {
     this.live.set(offset, size);
     return offset;
   }
+  /** Returns a live range to the allocator and merges adjacent free blocks. */
   release(offset: number): void {
     const size = this.live.get(offset);
     if (size === undefined) return;
     this.live.delete(offset);
     this.free.push({ offset, size });
-    this.free.sort((a, b) => a.offset - b.offset);
+    this.free.sort(
+      (a, b) =>
+        /** Computes the a.offset - b.offset result. */ a.offset - b.offset,
+    );
     for (let i = 1; i < this.free.length;) {
       const a = this.free[i - 1]!,
         b = this.free[i]!;

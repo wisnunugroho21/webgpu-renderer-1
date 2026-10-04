@@ -12,9 +12,12 @@ const world = new World(100),
   skeletons = new SkeletonRegistry(),
   morphs = new MorphStatePool(),
   system = new AnimatedBoundsSystem(),
-  nodes = Array.from({ length: 64 }, () => ({
-    children: new Uint32Array(),
-  })) as RuntimeAsset["nodes"];
+  nodes = Array.from(
+    { length: 64 },
+    () => /** Builds a record containing children. */ ({
+      children: new Uint32Array(),
+    }),
+  ) as RuntimeAsset["nodes"];
 const bind = new Float32Array(1024);
 for (let j = 0; j < 64; j++) bind.set(Mat4.create(), j * 16);
 const bounds = {
@@ -24,13 +27,16 @@ const bounds = {
 const boundsMesh = { bounds };
 const asset = new SkeletonAsset(
     {
-      joints: Uint32Array.from({ length: 64 }, (_, i) => i),
+      joints: Uint32Array.from({ length: 64 }, (_, i) => /** Returns i. */ i),
       inverseBindMatrices: bind,
       skeleton: 0,
     },
     nodes,
   ),
-  meshes = { get: () => boundsMesh } as unknown as MeshManager;
+  meshes = {
+    /** Returns bounds mesh. */
+    get: () => boundsMesh,
+  } as unknown as MeshManager;
 for (let i = 0; i < 100; i++) {
   const e = world.create();
   world.transforms.add(e);
@@ -43,7 +49,14 @@ for (let i = 0; i < 100; i++) {
   );
 }
 describe("Phase 25 conservative animated bounds", () => {
+  // Groups checks for Phase 25 conservative animated bounds.
+
   bench("100 objects x 64 joint boxes; independent of vertex count", () =>
-    system.update(world, meshes, skeletons, morphs),
+    /** Measures 100 objects x 64 joint boxes; independent of vertex count. */ system.update(
+      world,
+      meshes,
+      skeletons,
+      morphs,
+    ),
   );
 });

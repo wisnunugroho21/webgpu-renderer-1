@@ -5,9 +5,12 @@ import { Renderer } from "../src/rendering/Renderer";
 import * as recoveryResources from "../src/app/rebuildDeviceResources";
 
 afterEach(() => {
+  // Applies vi.restoreAllMocks, vi.unstubAllGlobals to the current callback state.
+
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
+/** Builds controlled test dependencies and reusable state for application-recovery. */
 function fixture() {
   vi.stubGlobal("window", { devicePixelRatio: 1 });
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
@@ -31,9 +34,13 @@ function fixture() {
   return { app, previous, gpu, replacement };
 }
 it("disposal between preparation and publication rejects recovery and cleans both owners", async () => {
+  // Verifies disposal between preparation and publication rejects recovery and cleans both owners.
+
   const { app, previous, gpu, replacement } = fixture();
   let resolve!: (value: typeof replacement) => void;
   const prepared = new Promise<typeof replacement>((done) => {
+    // Verifies disposal between preparation and publication rejects recovery and cleans both owners.
+
     resolve = done;
   });
   vi.spyOn(recoveryResources, "rebuildDeviceResources").mockReturnValue(
@@ -58,11 +65,15 @@ it("disposal between preparation and publication rejects recovery and cleans bot
   expect(gpu.dispose).toHaveBeenCalledOnce();
 });
 it("failed publication retains original owners and releases the staged replacement", async () => {
+  // Verifies failed publication retains original owners and releases the staged replacement.
+
   const { app, previous, gpu, replacement } = fixture();
   vi.spyOn(recoveryResources, "rebuildDeviceResources").mockResolvedValue(
     replacement,
   );
   vi.mocked(replacement.renderer.restoreStreaming).mockImplementation(() => {
+    // Rejects invalid input for the current operation.
+
     throw new Error("Rebind failed");
   });
   await expect(app.recoverDevice(false)).rejects.toThrow("Rebind failed");

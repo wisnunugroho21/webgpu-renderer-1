@@ -17,23 +17,29 @@ export class CPUProfiler {
   private readonly starts = new Float64Array(9);
   frames = 0;
   private frameStart = 0;
+  /** Initializes fixed CPU-stage timing history. */
   constructor(
     readonly capacity = 600,
-    private readonly now: () => number = () => performance.now(),
+    private readonly now: () => number = () =>
+      /** Delegates this operation to performance.now. */ performance.now(),
   ) {
     this.history = new Float64Array(capacity * 9);
     this.totals = new Float64Array(capacity);
   }
+  /** Resets current CPU-stage samples before frame preparation. */
   beginFrame(): void {
     this.values.fill(0);
     this.frameStart = this.now();
   }
+  /** Stores the monotonic start timestamp for one CPU stage. */
   start(stage: number): void {
     this.starts[stage] = this.now();
   }
+  /** Accumulates elapsed milliseconds for the selected stage. */
   end(stage: number): void {
     this.values[stage]! += Math.max(0, this.now() - this.starts[stage]!);
   }
+  /** Publishes current CPU durations into the fixed history ring. */
   finishFrame(): void {
     const slot = this.frames++ % this.capacity;
     this.history.set(this.values, slot * 9);

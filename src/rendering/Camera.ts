@@ -28,21 +28,27 @@ export class Camera {
   private zFar = 100;
   private fieldOfView = Math.PI / 3;
   private height = 10;
+  /** Returns the selected perspective or orthographic projection type. */
   get projectionType(): "perspective" | "orthographic" {
     return this.kind;
   }
+  /** Returns the near clipping distance in world units. */
   get near(): number {
     return this.zNear;
   }
+  /** Returns the far clipping distance in world units. */
   get far(): number {
     return this.zFar;
   }
+  /** Returns the perspective vertical field of view in radians. */
   get fovY(): number {
     return this.fieldOfView;
   }
+  /** Returns the orthographic vertical view span in world units. */
   get orthographicHeight(): number {
     return this.height;
   }
+  /** Copies camera pose and projection settings for resource recovery or controller handoff. */
   copyFrom(other: Camera): void {
     this.position.set(other.position);
     this.target.set(other.target);
@@ -55,6 +61,7 @@ export class Camera {
     this.height = other.height;
     this.dirty = true;
   }
+  /** Validates perspective options and selects vertical-FOV projection in radians. */
   setPerspective(options: PerspectiveOptions = {}): void {
     const near = options.near ?? 0.1,
       far = options.far ?? 100,
@@ -69,6 +76,7 @@ export class Camera {
     this.fixedAspect = options.aspect;
     this.dirty = true;
   }
+  /** Validates orthographic options and selects a constant-height world-space projection. */
   setOrthographic(options: OrthographicOptions = {}): void {
     const near = options.near ?? 0.1,
       far = options.far ?? 100,
@@ -83,6 +91,7 @@ export class Camera {
     this.fixedAspect = options.aspect;
     this.dirty = true;
   }
+  /** Rejects nonfinite/invalid clipping, aspect and projection ranges. */
   private validate(near: number, far: number, aspect?: number): void {
     if (
       !Number.isFinite(near) ||
@@ -93,16 +102,20 @@ export class Camera {
     )
       throw new Error("Invalid camera projection");
   }
+  /** Writes the finite world-space eye position. */
   setPosition(x: number, y: number, z: number): void {
     this.vector(this.position, x, y, z);
   }
+  /** Writes the finite world-space look-at target. */
   setTarget(x: number, y: number, z: number): void {
     this.vector(this.target, x, y, z);
   }
+  /** Writes the finite camera up vector used to construct the view basis. */
   setUp(x: number, y: number, z: number): void {
     if (Math.hypot(x, y, z) === 0) throw new Error("Invalid camera up");
     this.vector(this.up, x, y, z);
   }
+  /** Validates and copies a three-component camera vector. */
   private vector(out: Float32Array, x: number, y: number, z: number): void {
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z))
       throw new Error("Invalid camera vector");
@@ -110,6 +123,7 @@ export class Camera {
     Vec3.set(out, x, y, z);
     this.dirty = true;
   }
+  /** Rebuilds view, projection and combined matrices using the viewport aspect when no override is supplied. */
   update(viewportAspect: number): boolean {
     if (!Number.isFinite(viewportAspect) || viewportAspect <= 0)
       throw new Error("Invalid camera aspect");

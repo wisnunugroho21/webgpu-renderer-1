@@ -38,8 +38,12 @@ for (let i = 0; i < 10000; i++) {
   animators.push(a);
 }
 describe("Phase 16 animation sampling", () => {
+  // Groups checks for Phase 16 animation sampling.
+
   for (const count of [100, 1000, 10000])
     bench(`${count} independent animators, shared TRS clip`, () => {
+      // Measures Phase 16 animation sampling.
+
       for (let i = 0; i < count; i++) animators[i]!.update(1 / 60);
     });
 });

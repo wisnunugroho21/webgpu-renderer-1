@@ -28,6 +28,7 @@ export function createCollectExample(app: Application): {
   });
   w.meshes.set(app.sceneEntity, 0, playerMaterial);
   w.transforms.setScale(app.sceneEntity, 0.35, 0.35, 0.35);
+  /** Creates a cube entity with local bounds, shared geometry and the requested pose/material. */
   const cube = (
     material: number,
     x: number,
@@ -93,17 +94,20 @@ export function createCollectExample(app: Application): {
   const touch = new TouchJoystick(touchTarget);
   let following = false;
   app.canvas.addEventListener("pointerdown", focus);
+  /** Focuses the canvas so scoped movement keys reach this game. */
   function focus(): void {
     app.canvas.focus();
   }
   let shownScore = -1,
     elapsed = 0;
+  /** Updates the score and controls text only when the score changes. */
   const updateStatus = () => {
     if (shownScore === game.score) return;
     shownScore = game.score;
     app.status.textContent = `Collected ${game.score}/${items.length}\nWASD / stick: move · R / A: restart · C / Y: camera
 F / X: follow · Drag: orbit · Wheel: zoom\n${game.score === items.length ? "All collected! Press R to play again." : "Click the scene to focus the controls."}`;
   };
+  /** Restarts simulation and restores collected meshes without allocating new entities. */
   const reset = () => {
     game.reset();
     for (const e of items) w.meshes.set(e, 0, itemMaterial);
@@ -111,6 +115,8 @@ F / X: follow · Drag: orbit · Wheel: zoom\n${game.score === items.length ? "Al
     updateStatus();
   };
   const offFixed = app.onFixedUpdate((dt) => {
+    // Polls controls, applies reset/camera actions and advances collection gameplay on fixed simulation ticks.
+
     gamepad.update();
     if (input.consumePressed("KeyR") || gamepad.consumePressed(0)) reset();
     if (input.consumePressed("KeyF") || gamepad.consumePressed(2)) {
@@ -139,6 +145,8 @@ F / X: follow · Drag: orbit · Wheel: zoom\n${game.score === items.length ? "Al
     updateStatus();
   });
   const offUpdate = app.onUpdate((dt, alpha) => {
+    // Interpolates the player visual pose, updates the camera and animates remaining pickups before render extraction.
+
     elapsed += dt;
     // Interpolate the visual pose between completed fixed ticks; collision uses simulation state.
     w.transforms.setPosition(
@@ -177,6 +185,7 @@ F / X: follow · Drag: orbit · Wheel: zoom\n${game.score === items.length ? "Al
   app.canvas.focus();
   return {
     game,
+    /** Unsubscribes game hooks, removes input listeners and despawns example-owned entities. */
     dispose: () => {
       offFixed();
       offUpdate();

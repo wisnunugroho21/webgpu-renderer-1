@@ -17,6 +17,7 @@ struct Counter {
 @group(0) @binding(1) var<storage, read> visibility: array<u32>;
 @group(0) @binding(2) var<storage, read_write> visibleInstances: array<u32>;
 @group(0) @binding(3) var<storage, read_write> counter: Counter;
+// Appends visible object IDs into bounded GPU storage and records overflow conservatively.
 @compute @workgroup_size(64) fn compact(@builtin(global_invocation_id) invocation: vec3<u32>) {
   let id = invocation.x;
   if (id >= params.count || visibility[id] == 0u) {

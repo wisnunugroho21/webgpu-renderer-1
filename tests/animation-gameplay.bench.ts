@@ -23,11 +23,15 @@ events.set(0, [
   { time: 0.8, name: "right" },
 ]);
 let hits = 0;
-events.on(() => hits++);
+events.on(() => /** Returns hits++. */ hits++);
 bench("1000 root-motion deltas spanning a loop seam", () => {
+  // Measures 1000 root-motion deltas spanning a loop seam.
+
   for (let i = 0; i < 1000; i++) root.delta(0.99, 1.01, out);
 });
 bench("1000 animation event crossing windows", () => {
+  // Measures 1000 animation event crossing windows.
+
   for (let i = 0; i < 1000; i++) events.advance(0, 0.1, 0.75, true);
   if (hits < 1) throw new Error("Missing event");
 });

@@ -37,6 +37,7 @@ export class MaterialTextures {
   private disposed = false;
   private readonly white: GPUTextureView;
   private readonly flatNormal: GPUTextureView;
+  /** Initializes deduplicated role-correct texture bindings and resource leases. */
   constructor(
     private readonly device: GPUDevice,
     private readonly resources: Resources,
@@ -45,28 +46,31 @@ export class MaterialTextures {
       device,
       resources,
       this.metrics,
-      () => this.disposed,
+      () => /** Returns disposed. */ this.disposed,
     );
     this.basis = this.uploader.basis;
     this.mipmaps = this.uploader.mipmaps;
     this.layout = device.createBindGroupLayout({
-      entries: textureRoles.flatMap((_, i) => [
-        {
-          binding: i * 2,
-          visibility: GPUShaderStage.FRAGMENT,
-          texture: { sampleType: "float" as const },
-        },
-        {
-          binding: i * 2 + 1,
-          visibility: GPUShaderStage.FRAGMENT,
-          sampler: { type: "filtering" as const },
-        },
-      ]),
+      entries: textureRoles.flatMap(
+        (_, i) => /** Returns the ordered values needed by this operation. */ [
+          {
+            binding: i * 2,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: { sampleType: "float" as const },
+          },
+          {
+            binding: i * 2 + 1,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: { type: "filtering" as const },
+          },
+        ],
+      ),
     });
     this.white = this.pixel([255, 255, 255, 255]);
     this.flatNormal = this.pixel([128, 128, 255, 255]);
     this.fallback = this.group();
   }
+  /** Creates a one-pixel fallback texture for an absent material texture role. */
   private pixel(bytes: number[]): GPUTextureView {
     const texture = this.resources.textures.create({
       size: [1, 1],
@@ -81,26 +85,30 @@ export class MaterialTextures {
     );
     return texture.createView();
   }
+  /** Builds one retained material texture/sampler binding group from the prepared role slots. */
   private group(
     views?: GPUTextureView[],
     slots?: (RuntimeTextureSlot | undefined)[],
   ): GPUBindGroup {
     return this.device.createBindGroup({
       layout: this.layout,
-      entries: textureRoles.flatMap((_, i) => [
-        {
-          binding: i * 2,
-          resource: views?.[i] ?? (i === 2 ? this.flatNormal : this.white),
-        },
-        {
-          binding: i * 2 + 1,
-          resource: this.resources.samplers.get(
-            samplerDescriptor(slots?.[i], this.maxAnisotropy),
-          ),
-        },
-      ]),
+      entries: textureRoles.flatMap(
+        (_, i) => /** Returns the ordered values needed by this operation. */ [
+          {
+            binding: i * 2,
+            resource: views?.[i] ?? (i === 2 ? this.flatNormal : this.white),
+          },
+          {
+            binding: i * 2 + 1,
+            resource: this.resources.samplers.get(
+              samplerDescriptor(slots?.[i], this.maxAnisotropy),
+            ),
+          },
+        ],
+      ),
     });
   }
+  /** Releases retained texture records and material bindings. */
   dispose(): void {
     this.disposed = true;
     this.basis.dispose();
@@ -108,11 +116,13 @@ export class MaterialTextures {
     this.cache.clear();
     this.prepared.clear();
   }
+  /** Deduplicates role-correct texture preparation and builds a material binding transaction. */
   async prepare(asset: RuntimeAsset): Promise<GPUBindGroup[]> {
     if (this.disposed) throw new Error("Texture manager disposed");
     const owned = new Set<string>();
     const bitmaps = new Map<string, Promise<ImageBitmap>>();
     const pending: Promise<GPUTextureView>[] = [];
+    /** Creates a role-compatible texture view for material sampling. */
     const view = async (
       slot: RuntimeTextureSlot,
       role: string,
@@ -157,6 +167,8 @@ export class MaterialTextures {
         this.cache.set(key, cached);
         const created = cached;
         void created.catch(() => {
+          // Handles asynchronous failure so material textures can report or retire the failed operation.
+
           if (this.cache.get(key) === created) this.cache.delete(key);
         });
       }
@@ -165,11 +177,18 @@ export class MaterialTextures {
     try {
       const groups = await Promise.all(
         asset.materials.map(async (material) => {
-          const slots = textureRoles.map((role) => material.textures[role]);
+          // Delegates this operation to this.group.
+
+          const slots = textureRoles.map(
+            (role) =>
+              /** Returns material textures[role]. */ material.textures[role],
+          );
           const textures = await Promise.all(
             slots.map((slot, i) =>
-              slot
+              /** Selects the result according to slot. */ slot
                 ? (() => {
+                    // Starts the slot texture-view operation and tracks it so failed preparation can await cleanup.
+
                     const result = view(slot, textureRoles[i]!);
                     pending.push(result);
                     return result;
@@ -186,7 +205,9 @@ export class MaterialTextures {
       return groups;
     } catch (error) {
       await Promise.allSettled(pending);
-      await this.device.queue.onSubmittedWorkDone().catch(() => {});
+      await this.device.queue.onSubmittedWorkDone().catch(() => {
+        // Intentionally performs no work at this optional callback boundary.
+      });
       const failed: GPUBindGroup[] = [];
       this.ownership.set(failed, owned);
       await this.release(failed);
@@ -214,9 +235,16 @@ export class MaterialTextures {
     for (const [old, asset] of this.prepared) {
       const replacement = await next.prepare(asset);
       arrays.set(old, replacement);
-      old.forEach((group, i) => groups.set(group, replacement[i]!));
+      old.forEach((group, i) =>
+        /** Delegates this operation to groups.set. */ groups.set(
+          group,
+          replacement[i]!,
+        ),
+      );
     }
     this.groups.forEach((group, id) => {
+      // Applies groups.get to the current callback state.
+
       const replacement = groups.get(group);
       if (!replacement)
         throw new Error(
@@ -236,7 +264,12 @@ export class MaterialTextures {
       const count = (this.references.get(key) ?? 1) - 1;
       this.references.set(key, count);
       if (count) continue;
-      const texture = await this.cache.get(key)?.catch(() => undefined);
+      const texture = await this.cache
+        .get(key)
+        ?.catch(
+          () =>
+            /** Handles asynchronous failure so material textures can report or retire the failed operation. */ undefined,
+        );
       if ((this.references.get(key) ?? 0) !== 0) continue;
       this.references.delete(key);
       this.cache.delete(key);

@@ -10,14 +10,17 @@ export class EnvironmentSkybox {
   private group?: GPUBindGroup;
   private readonly pipelines = new Map<GPUTextureFormat, GPURenderPipeline>();
   private readonly inverse = Mat4.create();
+  /** Initializes camera-rotation-only environment background drawing. */
   constructor(
     private readonly gpu: GPUContext,
     private readonly resources: Resources,
     private readonly environmentLayout: () => GPUBindGroupLayout | undefined,
   ) {}
+  /** Reports whether the installed environment is drawn as the scene background. */
   get enabled(): boolean {
     return this.active;
   }
+  /** Toggles the environment background, preparing shared skybox resources on first requested use. */
   set enabled(value: boolean) {
     if (value) {
       const layout = this.environmentLayout();
@@ -25,6 +28,7 @@ export class EnvironmentSkybox {
     }
     this.active = value;
   }
+  /** Builds the shared fullscreen skybox pipeline/group after an environment becomes available. */
   prepare(environmentLayout: GPUBindGroupLayout): void {
     if (!this.active && this.pipelines.size) return;
     if (this.buffer) return;
@@ -71,11 +75,13 @@ export class EnvironmentSkybox {
         }),
       );
   }
+  /** Packs inverse camera orientation/projection for a background unaffected by eye translation. */
   update(camera: Camera): void {
     if (!this.active || !this.buffer) return;
     Mat4.invert(this.inverse, camera.viewProjection);
     this.gpu.queue.writeBuffer(this.buffer, 0, this.inverse);
   }
+  /** Draws environment radiance behind geometry with the selected camera projection. */
   encode(
     pass: GPURenderPassEncoder,
     environment: GPUBindGroup | undefined,

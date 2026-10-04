@@ -20,6 +20,7 @@ export class ClusteredLighting {
   private readonly pipeline: GPUComputePipeline;
   private readonly frames: GPUBindGroup[];
   private readonly output: GPUBindGroup;
+  /** Initializes bounded tile/depth-slice light lists. */
   constructor(
     device: GPUDevice,
     resources: Resources,
@@ -77,13 +78,15 @@ export class ClusteredLighting {
       compute: { module, entryPoint: "cs" },
     });
     this.frames = buffers.map((buffer) =>
-      device.createBindGroup({
-        layout: frameLayout,
-        entries: [
-          { binding: 0, resource: { buffer, offset: 0, size: 192 } },
-          { binding: 9, resource: { buffer: lights } },
-        ],
-      }),
+      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+        {
+          layout: frameLayout,
+          entries: [
+            { binding: 0, resource: { buffer, offset: 0, size: 192 } },
+            { binding: 9, resource: { buffer: lights } },
+          ],
+        },
+      ),
     );
     this.output = device.createBindGroup({
       layout: outputLayout,
@@ -94,6 +97,7 @@ export class ClusteredLighting {
     });
     this.resize(width, height);
   }
+  /** Increases screen tile size until tile×slice storage fits the fixed cluster capacity. */
   resize(width: number, height: number): void {
     if (
       !Number.isInteger(width) ||
@@ -110,6 +114,7 @@ export class ClusteredLighting {
       this.tileSize *= 2;
     } while (this.tilesX * this.tilesY * this.slices > this.capacity);
   }
+  /** Selects clustered shading from the configured mode and bounded-light workload. */
   choose(world: RenderWorld): boolean {
     if (this.mode === "off" || !world.lightCount) return (this.active = false);
     let bounded = 0;
@@ -120,6 +125,7 @@ export class ClusteredLighting {
       this.mode === "on" ||
       (world.lightCount >= 32 && bounded >= world.lightCount / 2));
   }
+  /** Dispatches per-cluster light-list construction into retained metadata/index buffers. */
   encode(
     encoder: GPUCommandEncoder,
     slot: number,

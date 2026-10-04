@@ -4,6 +4,7 @@ export class MeshClusters {
   readonly bounds: Float32Array;
   readonly firstIndex: Uint32Array;
   readonly indexCount: Uint32Array;
+  /** Initializes consecutive triangle ranges and conservative per-cluster bounds; invalid input is rejected. */
   constructor(
     positions: Float32Array,
     indices: Uint32Array,

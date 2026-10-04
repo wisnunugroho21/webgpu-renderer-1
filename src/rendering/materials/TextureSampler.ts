@@ -4,6 +4,7 @@ export function samplerDescriptor(
   slot?: RuntimeTextureSlot,
   anisotropy = 1,
 ): GPUSamplerDescriptor {
+  /** Selects the result according to value === 33071. */
   const wrap = (value: number): GPUAddressMode =>
     value === 33071
       ? "clamp-to-edge"

@@ -8,6 +8,7 @@ export class BatchBuilder {
   readonly pipeline: Uint8Array;
   readonly material: Uint32Array;
   readonly mesh: Uint32Array;
+  /** Initializes consecutive pipeline/material/mesh instance batches. */
   constructor(capacity: number) {
     this.lodGroup = new Int32Array(capacity).fill(-1);
     this.firstInstance = new Uint32Array(capacity);
@@ -16,6 +17,7 @@ export class BatchBuilder {
     this.material = new Uint32Array(capacity);
     this.mesh = new Uint32Array(capacity);
   }
+  /** Groups consecutive compatible pipeline/material/mesh records when instancing is selected. */
   build(
     queue: RenderQueue,
     world: RenderWorld,

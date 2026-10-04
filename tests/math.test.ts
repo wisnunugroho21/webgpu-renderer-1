@@ -7,12 +7,17 @@ import { BoundingSphere } from "../src/math/BoundingSphere";
 import { Frustum } from "../src/math/Frustum";
 import { Camera } from "../src/rendering/Camera";
 
+/** Applies expect(actual[i]).toBeCloseTo, expect to close. */
 function close(actual: ArrayLike<number>, expected: ArrayLike<number>): void {
   for (let i = 0; i < actual.length; i++)
     expect(actual[i]).toBeCloseTo(expected[i]!, 5);
 }
 describe("math conventions and aliasing", () => {
+  // Groups checks for math conventions and aliasing.
+
   it("supports aliased vector operations and zero normalization", () => {
+    // Verifies supports aliased vector operations and zero normalization.
+
     const a = Vec3.create(1, 0, 0);
     Vec3.cross(a, a, [0, 1, 0]);
     close(a, [0, 0, 1]);
@@ -20,6 +25,8 @@ describe("math conventions and aliasing", () => {
     close(a, [0, 0, 0]);
   });
   it("composes TRS with normalized quaternion rotation", () => {
+    // Verifies composes TRS with normalized quaternion rotation.
+
     const q = Quat.create();
     Quat.fromAxisAngle(q, [0, 1, 0], Math.PI / 2);
     const m = Mat4.create();
@@ -27,6 +34,8 @@ describe("math conventions and aliasing", () => {
     close(Mat4.transformPoint(Vec3.create(), m, [1, 0, 0]), [2, 3, 2]);
   });
   it("supports either aliased matrix multiply operand", () => {
+    // Verifies supports either aliased matrix multiply operand.
+
     const a = Mat4.create(),
       b = Mat4.create();
     a[12] = 2;
@@ -41,6 +50,8 @@ describe("math conventions and aliasing", () => {
     close(bb, expected);
   });
   it("maps perspective near/far to WebGPU 0/1 depth", () => {
+    // Verifies maps perspective near/far to WebGPU 0/1 depth.
+
     const m = Mat4.create();
     Mat4.perspective(m, Math.PI / 2, 1, 0.1, 100);
     expect(Mat4.transformPoint(Vec3.create(), m, [0, 0, -0.1])[2]).toBeCloseTo(
@@ -51,9 +62,19 @@ describe("math conventions and aliasing", () => {
       1,
       5,
     );
-    expect(() => Mat4.perspective(m, 0, 1, 0.1, 100)).toThrow();
+    expect(() =>
+      /** Delegates this operation to Mat4.perspective. */ Mat4.perspective(
+        m,
+        0,
+        1,
+        0.1,
+        100,
+      ),
+    ).toThrow();
   });
   it("maps the camera eye to origin and its target to negative Z", () => {
+    // Verifies maps the camera eye to origin and its target to negative Z.
+
     const camera = new Camera();
     camera.update(4 / 3);
     close(
@@ -70,14 +91,28 @@ describe("math conventions and aliasing", () => {
     expect(camera.update(4 / 3)).toBe(true);
   });
   it("rejects degenerate camera inputs", () => {
+    // Verifies rejects degenerate camera inputs.
+
     expect(() =>
-      Mat4.lookAt(Mat4.create(), [0, 0, 0], [0, 0, 0], [0, 1, 0]),
+      /** Delegates this operation to Mat4.lookAt. */ Mat4.lookAt(
+        Mat4.create(),
+        [0, 0, 0],
+        [0, 0, 0],
+        [0, 1, 0],
+      ),
     ).toThrow();
     expect(() =>
-      Mat4.lookAt(Mat4.create(), [0, 1, 0], [0, 0, 0], [0, 1, 0]),
+      /** Delegates this operation to Mat4.lookAt. */ Mat4.lookAt(
+        Mat4.create(),
+        [0, 1, 0],
+        [0, 0, 0],
+        [0, 1, 0],
+      ),
     ).toThrow();
   });
   it("slerps the shortest quaternion arc and handles opposite representations", () => {
+    // Verifies slerps the shortest quaternion arc and handles opposite representations.
+
     const a = Quat.create(),
       b = Quat.create(),
       out = Quat.create();
@@ -89,7 +124,11 @@ describe("math conventions and aliasing", () => {
   });
 });
 describe("bounds and WebGPU frustum", () => {
+  // Groups checks for bounds and WebGPU frustum.
+
   it("tests touching and disjoint boxes/spheres", () => {
+    // Verifies tests touching and disjoint boxes/spheres.
+
     const box = new AABB();
     box.expand([-1, -1, -1]);
     box.expand([1, 1, 1]);
@@ -111,6 +150,8 @@ describe("bounds and WebGPU frustum", () => {
     ).toBe(false);
   });
   it("extracts the near plane from row 2 rather than OpenGL row 3+2", () => {
+    // Verifies extracts the near plane from row 2 rather than OpenGL row 3+2.
+
     const f = new Frustum();
     f.setFromMatrix(Mat4.create());
     expect(
@@ -136,13 +177,19 @@ describe("bounds and WebGPU frustum", () => {
 });
 
 it("normalizes quaternion extremes and preserves aliased outputs", () => {
+  // Verifies normalizes quaternion extremes and preserves aliased outputs.
+
   const out = Quat.create();
   for (const magnitude of [0, 1e-300, 1e-160, 1e-30, 1, 1e30, 1e160, 1e300]) {
     const source = [magnitude, -2 * magnitude, 3 * magnitude, -4 * magnitude];
     const length = Math.hypot(...source);
     Quat.normalize(out, source);
     const expected = source.map((component, i) =>
-      length === 0 ? (i === 3 ? 1 : 0) : component / length,
+      /** Selects the result according to length === 0. */ length === 0
+        ? i === 3
+          ? 1
+          : 0
+        : component / length,
     );
     for (let axis = 0; axis < 4; axis++)
       expect(out[axis]).toBeCloseTo(expected[axis]!, 6);
@@ -156,6 +203,8 @@ it("normalizes quaternion extremes and preserves aliased outputs", () => {
 });
 
 it("composes and multiplies packed matrices without views, including exact-range aliases", () => {
+  // Verifies composes and multiplies packed matrices without views, including exact-range aliases.
+
   const packed = new Float32Array(64).fill(123);
   const a = Mat4.create(),
     b = Mat4.create(),
@@ -180,6 +229,8 @@ it("composes and multiplies packed matrices without views, including exact-range
 });
 
 it("slerps packed quaternion keys and supports overlapping output", () => {
+  // Verifies slerps packed quaternion keys and supports overlapping output.
+
   const keys = new Float32Array([9, 9, 0, 0, 0, 1, 0, 0, -1, 0, 9, 9]);
   const expected = Quat.create();
   Quat.slerp(expected, keys.subarray(2, 6), keys.subarray(6, 10), 0.3);

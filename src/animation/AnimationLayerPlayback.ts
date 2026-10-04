@@ -18,6 +18,7 @@ export class AnimationLayerPlayback {
   private clock: number;
   private amount: number;
   private rate: number;
+  /** Initializes an independent layer playback clock and blend controls; invalid input is rejected. */
   constructor(
     options: AnimationLayerOptions,
     private readonly duration: number,
@@ -28,7 +29,12 @@ export class AnimationLayerPlayback {
       !["override", "additive"].includes(options.mode) ||
       !Number.isFinite(options.referenceTime ?? 0) ||
       (options.referenceTime ?? 0) < 0 ||
-      options.nodes?.some((node) => !Number.isInteger(node) || node < 0)
+      options.nodes?.some(
+        (node) =>
+          /** Evaluates the !Number.isInteger(node) || node < 0 condition. */ !Number.isInteger(
+            node,
+          ) || node < 0,
+      )
     )
       throw new Error("Invalid animation layer");
     this.clip = options.clip;
@@ -44,28 +50,35 @@ export class AnimationLayerPlayback {
     this.weight = options.weight;
     this.speed = options.speed ?? 1;
   }
+  /** Returns this layer playback time in seconds. */
   get time(): number {
     return this.clock;
   }
+  /** Changes the finite layer playback clock independently of the base animator. */
   set time(value: number) {
     if (!Number.isFinite(value)) throw new Error("Invalid layer time");
     this.clock = Math.max(0, Math.min(this.duration, value));
   }
+  /** Returns this layer blend contribution; zero removes its pose influence. */
   get weight(): number {
     return this.amount;
   }
+  /** Validates and changes this layer blend weight. */
   set weight(value: number) {
     if (!Number.isFinite(value) || value < 0 || value > 1)
       throw new Error("Invalid layer weight");
     this.amount = value;
   }
+  /** Returns the layer playback-rate multiplier. */
   get speed(): number {
     return this.rate;
   }
+  /** Validates and changes this layer playback speed. */
   set speed(value: number) {
     if (!Number.isFinite(value)) throw new Error("Invalid layer speed");
     this.rate = value;
   }
+  /** Advances the layer clock independently of the base clip using its speed and loop policy. */
   advance(delta: number): void {
     if (!this.playing || this.duration === 0) return;
     const next = this.clock + delta * this.rate;

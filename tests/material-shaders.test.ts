@@ -21,31 +21,41 @@ describe("custom surface material families", () => {
     registry.commit(candidate);
     expect(registry.candidate({ name: "unlit", source })).toBe(candidate);
     expect(() =>
-      registry.candidate({ name: "unlit", source: source + "\n// different" }),
+      /** Attempt to replace a registered name with different WGSL; identity must remain stable. */ registry.candidate(
+        { name: "unlit", source: source + "\n// different" },
+      ),
     ).toThrow("different");
     for (let i = 1; i < MAX_MATERIAL_SHADER_FAMILIES; i++)
       registry.commit(registry.candidate({ name: `family${i}`, source }));
-    expect(() => registry.candidate({ name: "overflow", source })).toThrow(
-      "capacity",
-    );
+    expect(() =>
+      /** Attempt one more family after filling the bounded registry. */ registry.candidate(
+        { name: "overflow", source },
+      ),
+    ).toThrow("capacity");
   });
   it("rejects custom coverage and entry points while allowing comments", () => {
     // Surface extensions must preserve depth/shadow coverage and shared bindings.
     const registry = new MaterialShaderRegistry();
     expect(() =>
-      registry.candidate({
-        name: "discard",
-        source: source.replace("return", "discard; return"),
-      }),
+      /** Try custom discard to verify color, depth and shadow coverage cannot diverge. */ registry.candidate(
+        {
+          name: "discard",
+          source: source.replace("return", "discard; return"),
+        },
+      ),
     ).toThrow("coverage");
     expect(() =>
-      registry.candidate({
-        name: "binding",
-        source: "@group(3) @binding(0) var t: texture_2d<f32>;" + source,
-      }),
+      /** Try an extra texture binding to verify the shared surface layout stays fixed. */ registry.candidate(
+        {
+          name: "binding",
+          source: "@group(3) @binding(0) var t: texture_2d<f32>;" + source,
+        },
+      ),
     ).toThrow("bindings");
     expect(() =>
-      registry.candidate({ name: "missing", source: "fn other() {}" }),
+      /** Try source without the required surface function to verify registration rejects it. */ registry.candidate(
+        { name: "missing", source: "fn other() {}" },
+      ),
     ).toThrow("shadeMaterial");
     expect(
       registry.candidate({
@@ -86,17 +96,36 @@ describe("custom surface material families", () => {
     manager.uploadShaderParameters(queue, buffer);
     expect(manager.shaderUploadBytes).toBe(64);
     const snapshot = manager.shaderParameters.slice();
-    expect(() => manager.set(id, { shaderId: 99 })).toThrow("Unknown");
-    expect(() => manager.setShaderParameters(id, [1e100])).toThrow("f32");
-    expect(() => manager.setShaderParameters(id, new Float32Array(17))).toThrow(
-      "16",
-    );
+    expect(() =>
+      /** Attempt an unknown family without modifying the existing material. */ manager.set(
+        id,
+        { shaderId: 99 },
+      ),
+    ).toThrow("Unknown");
+    expect(() =>
+      /** Attempt a finite JavaScript value that overflows the GPU f32 representation. */ manager.setShaderParameters(
+        id,
+        [1e100],
+      ),
+    ).toThrow("f32");
+    expect(() =>
+      /** Attempt a row larger than the four-vec4 parameter ABI. */ manager.setShaderParameters(
+        id,
+        new Float32Array(17),
+      ),
+    ).toThrow("16");
     expect(manager.shaderParameters).toEqual(snapshot);
     manager.release(id);
     const replacement = manager.create();
     expect(replacement).toBe(id);
     expect(manager.shaderIds[id]).toBe(0);
-    expect(manager.shaderParameters.every((value) => value === 0)).toBe(true);
+    expect(
+      manager.shaderParameters.every(
+        (value) =>
+          /** Check that recycling clears every parameter, including zero-padded values. */ value ===
+          0,
+      ),
+    ).toBe(true);
   });
   it("retains pending rows before buffer installation and clears diagnostics on a failed upload", () => {
     // Lazy setup and failed device writes must not consume the dirty CPU range.
@@ -115,9 +144,12 @@ describe("custom surface material families", () => {
       // Simulate a synchronous device failure before the row can be committed.
       throw new Error("device write failed");
     });
-    expect(() => manager.uploadShaderParameters(queue, buffer)).toThrow(
-      "device write failed",
-    );
+    expect(() =>
+      /** Attempt a device write failure to verify pending rows survive for retry. */ manager.uploadShaderParameters(
+        queue,
+        buffer,
+      ),
+    ).toThrow("device write failed");
     expect(manager.shaderUploadBytes).toBe(0);
     manager.uploadShaderParameters(queue, buffer);
     expect(manager.shaderUploadBytes).toBe(64);

@@ -22,7 +22,8 @@ export function instantiate(
   skeletons?: SkeletonRegistry,
   uploaded?: UploadedAsset,
   allocation?: {
-    readonly available: number; /** Allocates the next entity identity for imported scene construction. */
+    readonly available: number;
+    /** Allocates the next entity identity for imported scene construction. */
     create(): number;
   },
 ): Uint32Array {

@@ -13,7 +13,7 @@ pnpm run dev
 
 Open the localhost URL printed by Vite in a WebGPU-capable browser. WebGPU requires a secure context; localhost is suitable for development. Run `pnpm run build` and `pnpm run preview` to try a production build.
 
-The existing entry is [src/main.ts](src/main.ts). [index.html](index.html) provides `canvas#viewport` and `output#status`. Try `/?example=collect` for the complete collection game, or `/?example=lighting` for a lighting scene. The collection example supports keyboard, gamepad, touch, orbit and follow controls. Read [collect.ts](src/examples/collect.ts) and [CollectGame.ts](src/examples/CollectGame.ts) together: the former connects rendering/input; the latter owns simulation rules.
+The existing entry is [src/main.ts](src/main.ts). [index.html](index.html) provides `canvas#viewport` and `output#status`. Try `/?example=collect` for the complete collection game, `/?example=lighting` for a lighting scene, or `/?example=shaders` for procedural materials (M switches between PBR and the custom surface). The collection example supports keyboard, gamepad, touch, orbit and follow controls. Read [collect.ts](src/examples/collect.ts) and [CollectGame.ts](src/examples/CollectGame.ts) together: the former connects rendering/input; the latter owns simulation rules.
 
 ## 2. Understand the responsibilities
 
@@ -22,10 +22,16 @@ The existing entry is [src/main.ts](src/main.ts). [index.html](index.html) provi
 | `app.world`                | Creates entities and changes transform, mesh, bounds, light and camera components. |
 | `app.onFixedUpdate`        | Advances authoritative gameplay by a fixed duration in seconds.                    |
 | `app.onUpdate`             | Interpolates visuals and updates frame-dependent presentation before extraction.   |
-| `app.materials`            | Creates shared PBR material descriptions.                                          |
+| `app.materials`            | Creates shared PBR/custom material descriptions and updates their parameter rows.  |
 | `app.renderer`             | Configures rendering and the direct camera; it consumes an extracted snapshot.     |
 | `app.instantiateAsset`     | Loads a scene with independent entity lifetime and shared underlying assets.       |
 | `app.pick` / `app.spatial` | Queries the latest extracted scene bounds.                                         |
+
+The browser entry point creates the application, waits for startup and delegates demonstration selection to [installExample.ts](src/examples/installExample.ts). [createDefaultScene.ts](src/app/createDefaultScene.ts) creates the initial cube and directional light before GPU startup. `app.sceneEntity` and `app.defaultLightEntity` refer to those existing entities; reuse them in a prototype. Mesh/material slot zero belongs to the bootstrap cube. Loading an asset adds scene entities rather than replacing that cube, so remove its mesh component when you no longer want it visible:
+
+```ts
+app.world.meshes.remove(app.sceneEntity); // Keeps the entity and its transform alive.
+```
 
 Each frame, the application advances simulation, evaluates animation and transforms, updates skeletons and animated bounds, extracts `RenderWorld`, prepares visibility/batches and encodes GPU passes. Rendering passes operate on the snapshot rather than querying gameplay entities. See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed sequence.
 
@@ -224,6 +230,12 @@ await hero.dispose();
 
 `app.loadAsset(url)` returns numeric node IDs; `app.loadAssetHandles(url)` returns handles. Prefer a scene lease when you need one clearly disposable level/character instance. `app.cancelAssetLoad(url)` cancels pending work. `app.unloadAsset(url)` removes application-owned instances and shared resources for that URL; it can reject if another retained consumer still owns the resources. Dispose/release those consumers first. Load failure should show a recoverable game UI instead of silently leaving a partially constructed level.
 
+For a level transition, first prevent gameplay from acting on the outgoing scene, unsubscribe its callbacks and dispose its input/controllers. Then `await` its lease's `dispose()` before releasing shared resources. Load the next lease and install its gameplay hooks only after loading succeeds. Catch load failures at your scene boundary and provide a retry/menu action; do not register another update hook on each retry without releasing the old hook. If an asynchronous load finishes after the player has left that scene, dispose the returned lease instead of keeping its entities active.
+
+The distinction between a scene lease and the cached asset matters: two calls to `instantiateAsset` create independent entities while sharing meshes, materials and textures. Disposing one lease removes only its entities. `unloadAsset(url)` is the separate shared-resource retirement operation and rejects unsafe removal while retained consumers exist. If you intentionally keep an asset cached for another level, detach the lease without unloading the URL.
+
+Decoding and publication have separate responsibilities. [convertRuntimeAsset.ts](src/assets/gltf/convertRuntimeAsset.ts) coordinates pure geometry/material/scene conversion into the named records in [RuntimeAsset.ts](src/assets/gltf/RuntimeAsset.ts). Decoded accessor/image arrays belong to the runtime asset and can cross worker boundaries. These conversion helpers do not spawn entities or create GPU resources; scene lifetime and publication go through the application asset APIs.
+
 The importer supports the formats/extensions documented in [README.md](README.md); use `pnpm run validate:codecs` when changing compressed asset workflows.
 
 ## 7. Control animation
@@ -296,7 +308,44 @@ Phase 44 geometry optimization is enabled by default on adapters supporting `ind
 
 Other controls include culling, `visibilityMode` (`linear` or `bvh`), depth prepass, clustered lighting and submission mode. Change them at explicit settings boundaries, then benchmark your scene. Enable BVH handling only with correct static/dynamic flags. Read [README.md](README.md) for supported combinations and diagnostic counters.
 
-Custom WGSL surface materials are also supported. Register them during loading with `app.registerMaterialShader`, then select their IDs through material creation or `materials.setShader`. See [CUSTOM_MATERIALS.md](CUSTOM_MATERIALS.md) and `/?example=shaders` for shared parameters, texture access and the geometry/coverage contract.
+### Add a custom shader material
+
+Register a WGSL surface family after `await app.start()` and before gameplay starts. This example assumes `app`, `world` and `player` from the playable sample. It replaces the player's cube material with an unlit pulse; lights are not automatically applied to a custom shader's returned RGB.
+
+```ts
+const pulseShader = await app.registerMaterialShader({
+  name: "game-pulse",
+  source: `
+// Shade the existing surface using shared elapsed time; geometry and alpha stay renderer-owned.
+fn shadeMaterial(surface: MaterialSurface, parameters: MaterialShaderParameters) -> vec3<f32> {
+  let pulse = 0.75 + 0.25 * sin(parameters.values[0].x * 3.0);
+  return surface.baseColor.rgb * pulse;
+}`,
+});
+const pulseMaterial = app.materials.create({
+  shaderId: pulseShader,
+  baseColor: [0.2, 0.8, 1, 1],
+  shaderParameters: [0],
+});
+world.meshes.set(player, 0, pulseMaterial);
+const pulseParameters = new Float32Array(4);
+const offPulse = app.onUpdate((dt) => {
+  // Retain the parameter array; update one shared row without uploading mesh vertices.
+  pulseParameters[0] = pulseParameters[0]! + dt;
+  app.materials.setShaderParameters(pulseMaterial, pulseParameters);
+});
+// During scene cleanup: offPulse();
+```
+
+The material's vertex color and base-color texture already contribute to `surface.baseColor`, so the default cube's colored faces affect the result. Return linear RGB radiance; presentation performs gamma conversion and, when enabled, tone mapping. For renderer lighting, use the surface fields and lighting helpers described in [CUSTOM_MATERIALS.md](CUSTOM_MATERIALS.md).
+
+Each material has at most 16 finite f32 parameters, exposed as four vec4 values. JavaScript indices 0–3 map to `parameters.values[0]`, 4–7 to `values[1]`, and so on. The setter zero-pads unspecified values and marks a 64-byte row dirty. Reuse arrays and call setters only when values need changing; calling with identical values still schedules an upload. A material shared by multiple entities animates all of them together. Separate material IDs are needed for independent parameter rows and can increase batch diversity.
+
+Switch an existing material with `app.materials.setShader(id, pulseShader)` or return to PBR with `setShader(id, 0)`. These preserve PBR factors, texture metadata and existing custom parameters; an optional third argument replaces the parameter row. In contrast, `materials.set(id, description)` replaces the description: omitted shader ID selects PBR and omitted parameters reset to zero. Use setters rather than writing the exposed parameter arrays directly.
+
+Register families during loading; compilation and direct/HDR/environment pipeline preparation are cold work. Registration rejects invalid WGSL without publishing a family ID. Identical name/source registrations reuse their ID; different source under the same name is rejected. Up to 16 custom families are retained for the application lifetime, with no unregister/hot-reload API. Recovery rebuilds definitions and parameters from CPU state. Avoid retaining an old renderer reference across recovery.
+
+Custom surface shaders return RGB only. Material alpha mode/cutoff, blending, shadows, depth, morphs and skinning keep their existing behavior. Vertex displacement, new discard rules, fragment depth and arbitrary bindings are outside this API. HDR/bloom can consume radiance above one. Test the actual material with the submission modes and effects your game enables; see [CUSTOM_MATERIALS.md](CUSTOM_MATERIALS.md) for complete contracts and `/?example=shaders` for a working example.
 
 ## 10. Picking and collision
 
@@ -346,3 +395,24 @@ The full gate stops at the first failed prerequisite. GPU checks require the con
 Keep loading, resource creation, pipeline compilation and shader variant setup out of ordinary frame callbacks. Preallocate scratch storage, share mesh/material resources, avoid per-object temporary arrays, keep spatial bounds correct and use the existing animation/GPU deformation path. Optional effects can increase frame cost even if draw count stays unchanged. Measure the complete game loop rather than extrapolating from an isolated animation benchmark.
 
 A practical development order is: playable fixed-step prototype → reliable entity/scene lifetime → authored assets and animation → camera/input UX → lighting/post effects → scene-specific performance profiling → production validation. Keep [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) as the architecture/performance source of truth and consult [PROGRESS.md](PROGRESS.md) for current evidence and limits.
+
+## 13. Organize your game and find the right extension point
+
+Keep game rules in your own model module, as [CollectGame.ts](src/examples/CollectGame.ts) does. Connect the model to world components, input and HUD in a scene module, as [collect.ts](src/examples/collect.ts) does. Let `main.ts` create the application, choose the scene and handle application exit. Store cleanup callbacks with the scene that owns them. New games can use their own folder; the `examples` directory demonstrates integration rather than requiring all gameplay to live there.
+
+| Goal                                                        | Use or read first                                                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Add player movement, pickups or damage                      | `app.onFixedUpdate`, your game model, component setters                              |
+| Smooth motion, update a camera or animate shader parameters | `app.onUpdate`, reusable presentation state                                          |
+| Load/despawn a level or character                           | `app.instantiateAsset`, scene leases, `ApplicationAssets.ts`                         |
+| Add authored animation                                      | The lease's animator; clip, mask and root-motion APIs                                |
+| Add a procedural visual style                               | `app.registerMaterialShader`, `materials.setShaderParameters`, `CUSTOM_MATERIALS.md` |
+| Adjust presentation or quality settings                     | Renderer HDR/environment/visibility/geometry controls                                |
+| Add an engine material feature                              | `MaterialManager.ts` and `MaterialShaderParameters.ts`                               |
+| Change shader assembly, bindings or pipeline variants       | `rendering/pipelines/createColorResources.ts` and its focused helpers                |
+| Change imported metadata                                    | `assets/gltf/convertGeometry.ts`, `convertMaterials.ts`, `convertScene.ts`           |
+| Change GPU submission                                       | `rendering/passes/ColorPass.ts`, `Renderer.ts`, the render graph                     |
+
+Follow the existing ownership boundaries when extending the engine. Shader registration lives in `CustomMaterialShaders.ts`; drawing reads its prepared tables. GPU destruction stays with the renderer's resource owners. Material parameter changes use one shared dirty-range upload. Passes consume `RenderWorld` rather than reaching into the ECS. Do not create per-object buffers, compile shaders each frame or add normal-frame GPU readbacks to implement a game effect.
+
+Use [ARCHITECTURE.md](ARCHITECTURE.md) for the module contracts and [benchmarks/CODEBASE_MAINTENANCE_REPORT.md](benchmarks/CODEBASE_MAINTENANCE_REPORT.md) for the restructuring's validation evidence. A scene-specific game feature normally belongs in your model/scene code; change renderer internals when it needs a new rendering capability shared by multiple games or scenes.

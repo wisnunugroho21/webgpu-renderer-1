@@ -203,7 +203,11 @@ describe("glTF to independent engine assets", () => {
           .setType("SCALAR")
           .setArray(new Uint16Array([99])),
       );
-    expect(() => convertRuntimeAsset(geometry)).toThrow("index out of range");
+    expect(() =>
+      /** Exercise index validation with a reference beyond the position accessor. */ convertRuntimeAsset(
+        geometry,
+      ),
+    ).toThrow("index out of range");
     const skin = fixture();
     skin
       .getRoot()
@@ -211,15 +215,21 @@ describe("glTF to independent engine assets", () => {
       .setInverseBindMatrices(
         skin.createAccessor().setType("MAT4").setArray(new Float32Array(32)),
       );
-    expect(() => convertRuntimeAsset(skin)).toThrow("does not match joints");
+    expect(() =>
+      /** Exercise inverse-bind validation with more matrices than joints. */ convertRuntimeAsset(
+        skin,
+      ),
+    ).toThrow("does not match joints");
     const animation = fixture();
     animation
       .getRoot()
       .listAnimations()[0]!
       .listChannels()[0]!
       .setSampler(null);
-    expect(() => convertRuntimeAsset(animation)).toThrow(
-      "Incomplete animation channel",
-    );
+    expect(() =>
+      /** Exercise channel validation after removing its required sampler. */ convertRuntimeAsset(
+        animation,
+      ),
+    ).toThrow("Incomplete animation channel");
   });
 });

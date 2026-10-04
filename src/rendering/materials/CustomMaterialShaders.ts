@@ -94,7 +94,8 @@ export class CustomMaterialShaders {
         });
     }
   }
-  /** Serializes registration so concurrent names/IDs publish in a stable order after validation. */
+  /** Snapshot the caller's definition and queue compilation after earlier registration attempts.
+   * A failed attempt rejects its caller without blocking the next attempt or publishing a material family. */
   registerShader(definition: MaterialShaderDefinition): Promise<number> {
     const snapshot = { ...definition };
     const result = this.registration.then(() => {
@@ -106,7 +107,8 @@ export class CustomMaterialShaders {
     });
     return result;
   }
-  /** Validates assembled WGSL before preparing pipeline variants and publishing the material family. */
+  /** Compile the assembled surface, prepare required feature variants, then commit CPU provenance.
+   * Validation or device failure removes candidate tables and rejects registration; cached GPU objects remain Resources-owned. */
   private async installShader(
     definition: MaterialShaderDefinition,
   ): Promise<number> {

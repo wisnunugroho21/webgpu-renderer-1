@@ -2,9 +2,10 @@ import { Application } from "../app/Application";
 import { KeyboardInput } from "../input/KeyboardInput";
 
 /** Installs a shared procedural RGB shader; alpha, transforms and draw submission remain renderer-owned. */
-export async function createMaterialShaderExample(
-  app: Application,
-): Promise<{ dispose(): void }> {
+export async function createMaterialShaderExample(app: Application): Promise<{
+  /** Removes example hooks and controls; shared GPU objects remain owned by the application. */
+  dispose(): void;
+}> {
   const shaderId = await app.registerMaterialShader({
     name: "procedural-bands",
     source: `

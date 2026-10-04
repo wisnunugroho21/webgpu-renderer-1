@@ -28,7 +28,8 @@ export class MaterialShaderParameters {
       )
         throw new Error("Material shader parameters must be finite f32 values");
   }
-  /** Writes a zero-padded shared parameter row and marks its byte range dirty. */
+  /** Replace one 16-float row, zero-pad unused values and expand the pending row range.
+   * MaterialManager validates IDs/values before calling this method so invalid updates cannot partially mutate storage. */
   write(id: number, values?: ArrayLike<number>): void {
     const offset = id * MATERIAL_SHADER_PARAMETER_WORDS;
     this.data.fill(0, offset, offset + MATERIAL_SHADER_PARAMETER_WORDS);
@@ -38,7 +39,8 @@ export class MaterialShaderParameters {
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
   }
-  /** Creates one shared parameter buffer only when a custom shader is first installed. */
+  /** Allocate capacity × 64 bytes for all materials and mark existing rows for upload.
+   * First installation and device recovery use the same CPU table; no per-material buffer is created. */
   createBuffer(manager: BufferManager, count: number): GPUBuffer {
     this.dirtyStart = 0;
     this.dirtyEnd = count;
@@ -48,7 +50,8 @@ export class MaterialShaderParameters {
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
   }
-  /** Uploads dirty custom rows once; ordinary unchanged frames perform no parameter writes. */
+  /** Return the uploaded byte count, coalescing dirty rows into one writeBuffer call.
+   * Missing GPU storage and failed writes retain pending rows; successful writes clear them. Unchanged frames return zero. */
   upload(queue: GPUQueue, buffer?: GPUBuffer): number {
     if (!buffer || this.dirtyStart === Infinity) return 0;
     const offset = this.dirtyStart * MATERIAL_SHADER_PARAMETER_BYTES;

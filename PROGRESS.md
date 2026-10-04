@@ -1,6 +1,6 @@
 # Implementation progress
 
-Source of truth: `IMPLEMENTATION_PLAN.md`, copied from the supplied document. On 2026-10-03 the user explicitly amended Phase 44 to allow an optional feature before benchmark justification; both the repository plan and supplied source were updated.
+Source of truth: `IMPLEMENTATION_PLAN.md`, copied from the supplied document. On 2026-10-03 the user explicitly amended Phase 44 to allow an optional feature before benchmark justification; both the repository plan and supplied source were updated. The latest user amendment enables Phase 44 by default on supported adapters; earlier default-off entries below are historical.
 
 Repository audit: initially empty; no implementation or existing tests. Execute numbered phases in order, with validation gates before advancing. Future measurement-gated optimizations require benchmark evidence.
 
@@ -584,3 +584,17 @@ Final long-animation matrix passes reference images and work/resource assertions
 Separated renderer shared-resource construction, HDR reduction/presentation pipelines, animation layer setup/binding types, worker transfer protocols, application picking and DOM input cleanup. Frame coordination names scene preparation, single submission, optional GPU preparation and upload statistics while preserving profiler spans/order. Comments and ARCHITECTURE.md describe owners and cold/frame boundaries. Original animation binding construction and tight loops remain after exploratory timings showed sensitivity. Public APIs/import paths, shared identities, layouts and defaults remain compatible.
 
 232 tests across 60 files, strict build, formatting and all production GPU checks pass. New tests cover worker failure/retry and unrelated-listener teardown. Final long matrix preserves images and all 86 work/resource snapshots exactly. 1,000×64-joint CPU/completion medians 25.4/28.9 → 25.0/28.5 ms; smaller cases vary in both directions. Sequential committed/final CPU sampling means 10.8368/10.8740 ms; crossfade means also vary. This is a maintainability change, not a universal speedup or 60 FPS claim. Evidence: benchmarks/MAINTENANCE_REPORT.md and benchmarks/results/maintenance-*.json. Phase 44 remains optional/default-off.
+
+
+## Phase 44 default enabled — latest user amendment
+
+Renderer construction now enables geometry optimization when `indirect-first-instance` is available and prepares its resources on the cold setup path. Unsupported adapters default off without cluster allocations. Explicit disable/re-enable and all existing ineligible/overflow/deformation/transparency/GPU-object-indirect fallbacks remain available. Recovery retains the caller's configured choice. Updated repository and supplied implementation plans, current documentation and matrix default assertions. Earlier default-off entries record the previous policy.
+
+232 tests across 60 files, strict build, formatting and the complete production GPU validation gate pass. The GPU benchmark matrix confirms default enabled, exact enabled/disabled images, conservative rejection and warm resource stability. On the 200,000-triangle fixture, mostly-outside completion medians are 2.0 ms disabled/enabled with 575 of 782 clusters rejected; fully-visible completion medians are 1.8/2.3 ms. These diagnostic results remain workload-dependent and do not establish a universal speedup. Evidence: benchmarks/PHASE44_DEFAULT_REPORT.md and benchmarks/results/phase44-default.json.
+
+
+## ESLint and Prettier tooling
+
+Added ESLint flat configuration, recommended TypeScript/JavaScript correctness rules, Prettier conflict suppression, lint/fix scripts and lint as the first full-validation gate. Preserved existing Prettier settings and token-preserving WGSL formatting. Added VS Code extension recommendations and format-on-save/fix settings. A locked tools/lint package isolates parser-supported TypeScript 6.0.3 from the unchanged TypeScript 7.0.2 build compiler; npm ci installs it through root postinstall. Addressed nine initial findings, preserving seek-setter sampling and diagnostic capture side effects while making benchmark disposal run before reporting validation failures.
+
+Validation: clean root npm ci installs both locked toolchains; lint and lint:fix pass without warnings, formatting and strict build pass, and all 232 tests plus the complete production GPU gate pass. Negative stdin probes verify lint catches unused TypeScript and Prettier rejects unformatted input. The independent GPU benchmark matrix and render-graph CPU benchmark pass after diagnostic cleanup changes. No rendering defaults, GPU record layouts or animation sampling behavior were changed by the tooling work.

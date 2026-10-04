@@ -1778,7 +1778,7 @@ Avoid copying large typed arrays unnecessarily.
 
 ## 49. Phase 44 — Advanced Geometry Optimization
 
-Optional feature, disabled by default. Experimental implementation is authorized before benchmark evidence justifies enabling it. Validate correctness and benchmark enabled/disabled behavior; retain the conventional renderer as fallback.
+Configurable feature, enabled by default on supported adapters under the latest user amendment. Prepare resources during cold renderer initialization. Unsupported adapters and ineligible batches retain the conventional renderer as fallback; callers can explicitly disable the feature. Validate correctness and benchmark enabled/disabled behavior.
 
 Possible features:
 
@@ -2658,7 +2658,7 @@ The renderer should first become a **fast, correct conventional renderer**, then
 
 ## User-requested game-development improvements — 2026-10-04
 
-Implement in the following dependency order, validating and benchmarking each before advancing. Existing architecture, performance rules and optional Phase 44 defaults continue to apply.
+Implement in the following dependency order, validating and benchmarking each before advancing. Existing architecture and performance rules continue to apply. Phase 44 defaults on where supported under the latest user amendment.
 
 1. Independent asset-instance disposal — implemented and validated.
 2. Animation scalability — implemented and validated.

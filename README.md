@@ -14,6 +14,8 @@ Open the displayed localhost URL in a WebGPU-capable browser. The initial scene 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, animation binding setup, worker protocols, input cleanup, post-processing pipelines, asset upload, and GPU validation have separate responsibilities with comments around their invariants. Public application, renderer and animation APIs retain their existing import paths.
 
 ```sh
+npm run lint
+npm run lint:fix
 npm run format
 npm run format:check
 ```
@@ -110,7 +112,7 @@ The loader uses [glTF Transform core](https://gltf-transform.dev/) for container
 
 Entity and material capacities are explicit. Entity IDs are monotonic, preventing stale-ID aliasing; exhausted capacity fails rather than allocating GPU resources in the frame loop. BVH-static objects are marked with `RenderFlags.STATIC`; changes invalidate the snapshot hierarchy. Gameplay changes should use transform setters so dirty propagation occurs.
 
-Phases 1–44 and the Definition of Done are validated. Phase 44 advanced geometry is an optional feature, disabled by default under the user’s amended rule. CPU instancing remains the default; GPU visibility, indirect drawing, LOD and temporal reuse are available as measured optional paths.
+Phases 1–44 and the Definition of Done are validated. Phase 44 advanced geometry is enabled by default on supported adapters and can be disabled. CPU instancing remains the default; GPU visibility, indirect drawing, LOD and temporal reuse are available as measured optional paths.
 
 PBR shading uses shared material records and five glTF texture maps, with sRGB color attachments and linear blending. Textures decode asynchronously; full GPU mip chains, shared samplers and content-based deduplication are prepared during loading. Linear data and sRGB color uses receive separate cached textures.
 
@@ -216,18 +218,17 @@ Native KTX2 compressed textures support adapter-gated BC, ETC2/EAC and ASTC form
 
 `renderer.stats` exposes draw/state/visibility, uploads, deformation activity, FPS and frame durations. FPS measures RAF submission cadence; GPU timing requires the explicit profiler. `activeMorphTargets` counts nonzero signed weights, while `morphTargets` counts declared attached targets. The 1,000-character benchmark is CPU-animation-bound and exceeds a 60 FPS frame budget on the tested machine.
 
-Enable optional Phase 44 cluster culling after initialization:
+Phase 44 cluster culling is enabled by default when supported. Toggle it after initialization:
 
 ```js
 const geometry = window.rendererApp.renderer.geometryOptimization;
-if (geometry.supported) geometry.enabled = true;
-// Restore conventional mesh draws:
-geometry.enabled = false;
+geometry.enabled = false; // Use conventional mesh draws.
+if (geometry.supported) geometry.enabled = true; // Re-enable cluster culling.
 ```
 
 Uploaded static triangle meshes are divided into shared, consecutive 256-triangle clusters. Compute culls conservative transformed cluster bounds and writes indexed indirect color draws. Small meshes, animated meshes, transparency, unsupported adapters, capacity overflow and `gpu-indirect` object submission use the existing draw path. CPU LOD is supported; depth and shadows retain full geometry. This version provides cluster bounds/culling rather than a mesh-shader API or GPU cluster LOD.
 
-GPU resources and large staging storage allocate once on first supported enable and remain resident until renderer disposal. The fixed limit is 65,536 cluster-instance records per frame; overflowing batches fall back intact. `geometryClusterCandidates` counts cluster-instance records; `geometryClusterDraws` counts submitted indirect commands, including zero-instance culled commands. Actual GPU triangle/instance counts remain `-1` in runtime statistics; benchmark diagnostics read them explicitly. GPU profiler pass 10 measures cluster culling. The expanded `npm run benchmark:gpu` validates enabled/disabled full images and measures both mostly rejected and fully visible 200,000-triangle workloads.
+GPU resources and large staging storage allocate during renderer initialization on supported adapters and remain resident until renderer disposal, including while disabled. Unsupported adapters default to the conventional path without these allocations. The fixed limit is 65,536 cluster-instance records per frame; overflowing batches fall back intact. `geometryClusterCandidates` counts cluster-instance records; `geometryClusterDraws` counts submitted indirect commands, including zero-instance culled commands. Actual GPU triangle/instance counts remain `-1` in runtime statistics; benchmark diagnostics read them explicitly. GPU profiler pass 10 measures cluster culling. The expanded `npm run benchmark:gpu` validates enabled/disabled full images and measures both mostly rejected and fully visible 200,000-triangle workloads.
 
 ## Optional HDR and tone mapping
 
@@ -290,7 +291,7 @@ Basis ETC1S/UASTC textures retain authored mips and role-correct linear/sRGB sam
 
 ## Maintenance checks
 
-Run `npm run validate` for formatting, unit tests, production build and all renderer/asset/game/HDR/recovery/environment/codec GPU checks. It stops at the first failure. Run CPU/GPU benchmarks separately using `npm run benchmark` and `npm run benchmark:gpu`; add `-- --long-animation` to the latter for the long-clip crowd matrix. Module ownership and change locations are documented in [the codebase guide](ARCHITECTURE.md).
+Run `npm run validate` for ESLint, formatting, unit tests, production build and all renderer/asset/game/HDR/recovery/environment/codec GPU checks. It stops at the first failure. Run CPU/GPU benchmarks separately using `npm run benchmark` and `npm run benchmark:gpu`; add `-- --long-animation` to the latter for the long-clip crowd matrix. Module ownership and change locations are documented in [the codebase guide](ARCHITECTURE.md).
 
 ## Independent scene instances
 
@@ -444,3 +445,11 @@ pad.dispose();
 `OrbitCameraController` uses Y-up orientation, bounded distance and pole-safe pitch, and preserves perspective/orthographic projection. Call `syncFromCamera()` after external teleports. For a follow camera, instantiate `ThirdPersonCameraController(camera, { height: 1, followSpeed: 8 })`, then call `follow(dt, playerPosition, headingRadians, dragX, dragY, wheel, snap)` in the variable update. The position is world-space; heading rotates the orbit offset about world Y. Set `snap=true` for spawning/teleports. Smoothing is time-based and target positions can be interpolated from fixed simulation. Camera collision and character movement remain gameplay responsibilities. Use only one active camera controller at a time.
 
 Try `?example=collect`: WASD/arrows, touch stick or gamepad move; R/gamepad A restarts; C/Y switches projection; F/X toggles following; drag orbits and wheel zooms. The thumb pad appears on coarse-pointer devices. The example disposes inputs and update subscriptions together.
+
+## ESLint and Prettier
+
+`npm ci` installs the locked development tools. Run `npm run lint` to check TypeScript source/tests and JavaScript tooling with recommended ESLint rules; `npm run lint:fix` applies available fixes. Warnings fail the lint command. `npm run format` formats supported files with the existing Prettier configuration and then formats WGSL with the token-preserving shader formatter. `npm run format:check` checks both without modifying files. Generated output, assets, dependency directories and benchmark result files are excluded. ESLint uses `eslint-config-prettier` to avoid conflicting formatting rules.
+
+Configuration lives in `eslint.config.js`, `.prettierrc.json` and `.prettierignore`. The complete validation command runs lint first. VS Code extension recommendations and workspace settings enable Prettier format-on-save and explicit ESLint fixes. WGSL remains handled by the dedicated command-line formatter.
+
+The build compiler remains TypeScript 7.0.2. The current typescript-eslint parser requires TypeScript below 6.1, so `tools/lint` is a separate locked dependency package using TypeScript 6.0.3. The root postinstall runs `npm ci --prefix tools/lint`; the configuration imports its parser bridge. This avoids unsupported peer dependencies or downgrading the build compiler. If installation was performed with lifecycle scripts disabled, run `npm ci --prefix tools/lint` before linting. Lint uses syntax-based recommended rules; strict type checking stays in `npm run build`.

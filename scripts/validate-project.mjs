@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 // Run in dependency order and stop at the first failure. GPU scenarios consume the production build.
 const checks = [
+  "lint",
   "format:check",
   "test",
   "build",

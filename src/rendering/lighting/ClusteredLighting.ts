@@ -108,7 +108,7 @@ export class ClusteredLighting {
       this.tilesY = Math.ceil(height / this.tileSize);
       if (this.tilesX * this.tilesY * this.slices <= this.capacity) break;
       this.tileSize *= 2;
-    } while (true);
+    } while (this.tilesX * this.tilesY * this.slices > this.capacity);
   }
   choose(world: RenderWorld): boolean {
     if (this.mode === "off" || !world.lightCount) return (this.active = false);

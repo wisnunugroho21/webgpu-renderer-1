@@ -132,6 +132,8 @@ export function createRendererResources(
     dynamic,
     world.capacity,
   );
+  // Default-on where supported; prepare once during cold renderer construction.
+  geometryOptimization.enabled = geometryOptimization.supported;
   return {
     resources,
     temporal,

@@ -61,7 +61,7 @@ export function assertBenchmarkReport(report, errors) {
     assert.equal(report.occlusion[1].imageDifference.maxDifference, 0);
   }
 
-  assert.equal(report.geometry.defaultEnabled, false);
+  assert.equal(report.geometry.defaultEnabled, report.geometry.supported);
   if (report.geometry.supported) {
     for (const row of [
       ...report.geometry.benchmarks,

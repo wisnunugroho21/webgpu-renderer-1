@@ -1,6 +1,6 @@
 # Codebase guide
 
-`IMPLEMENTATION_PLAN.md` defines feature scope, architecture, and performance rules. `PROGRESS.md` records implementation evidence and the user's amendment making Phase 44 optional. This guide describes the code organization and where to make changes.
+`IMPLEMENTATION_PLAN.md` defines feature scope, architecture, and performance rules. `PROGRESS.md` records implementation evidence and the user's amendments making Phase 44 configurable and default-on where supported. This guide describes the code organization and where to make changes.
 
 ## Start reading here
 
@@ -87,7 +87,7 @@ Resize allocation, asset loading and first supported enable of optional geometry
 
 ## Optional features and correctness constraints
 
-CPU instancing is the default. BVH, depth prepass, GPU visibility/occlusion/indirect submission, temporal reuse, and Phase 44 geometry optimization remain measured optional choices. Phase 44 remains disabled by default, with static multi-cluster triangle eligibility and conservative fallbacks for unsupported/deforming/transparent/overflowing batches.
+CPU instancing is the default. BVH, depth prepass, GPU visibility/occlusion/indirect submission and temporal reuse remain measured optional choices. Phase 44 geometry optimization defaults on for supported adapters, remains explicitly disableable, and retains static multi-cluster triangle eligibility and conservative fallbacks for unsupported/deforming/transparent/overflowing batches. Its supported resources are prepared during cold renderer construction.
 
 Hi-Z reduces maximum standard-Z depth over complete footprints, including odd dimensions. Occlusion keeps near-plane intersections visible and tests every touched cell. Temporal visibility reuse requires an exact stable snapshot. GPU-generated counts are reported as unknown (`-1`) in CPU frame statistics where observing them would require readback. Diagnostic APIs can return the actual counts explicitly.
 
@@ -164,3 +164,7 @@ AssetWorkerProtocol and EnvironmentWorkerProtocol define both ends of their tran
 InputScope records only listener registrations during setup, handles focus/visibility clearing and removes exactly its subscriptions during teardown. Gesture owners retain pointer capture, touch styles and accumulated state. Disposal preserves unrelated listeners and each input's existing focus behavior.
 
 Small math, ECS stores, sampling kernels, visibility structures, mesh preparation, GPU caches and WGSL pass modules retain their focused responsibilities. Extend these seams when adding features; avoid moving hot arithmetic behind generic callback/context abstractions. `benchmarks/MAINTENANCE_REPORT.md` records validation and comparison with the committed game-improvement baseline.
+
+## Code quality tools
+
+ESLint's flat config covers TypeScript and JavaScript with recommended correctness rules. Prettier owns formatting; eslint-config-prettier disables competing style rules. WGSL uses the existing token-preserving formatter. Validation runs lint before formatting, tests and build. `tools/lint` owns a locked TypeScript 6 parser runtime because typescript-eslint's supported peer range excludes the project's TypeScript 7 build compiler. Root postinstall installs that isolated package; ordinary runtime/build imports do not reference it.

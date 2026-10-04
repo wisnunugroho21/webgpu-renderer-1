@@ -28,21 +28,26 @@ export const runBenchmarkMatrix = async (options = {}) => {
     app.renderer.camera.setPosition(0, 0, 60);
     app.renderer.camera.setTarget(0, 0, 0);
     app.gpu.device.pushErrorScope("validation");
+    let result, validationError, gpuErrors;
     try {
-      return await run(app);
+      result = await run(app);
     } finally {
-      const error = await app.gpu.device.popErrorScope();
-      if (error) throw new Error(error.message);
-      if (app.gpu.errors.length) throw new Error(app.gpu.errors.join("\n"));
-      app.dispose();
-      canvas.remove();
+      try {
+        validationError = await app.gpu.device.popErrorScope();
+        gpuErrors = app.gpu.errors.slice();
+      } finally {
+        await app.dispose();
+        canvas.remove();
+      }
     }
+    if (validationError) throw new Error(validationError.message);
+    if (gpuErrors.length) throw new Error(gpuErrors.join("\n"));
+    return result;
   };
   const measure = async (app, before = () => {}, long = false) => {
     const r = app.renderer,
       gpu = app.gpu,
       rows = [];
-    let time = 0;
     const resources = { ...r.resources.stats };
     const frameCount = long ? 120 : 10,
       warmup = long ? 60 : 5;
@@ -91,7 +96,6 @@ export const runBenchmarkMatrix = async (options = {}) => {
       await gpu.queue.onSubmittedWorkDone();
       row.completion = performance.now() - start;
       if (frame >= warmup) rows.push(row);
-      time += 1 / 60;
     }
     r.gpuProfiler.enabled = false;
     const intervals = await r.gpuProfiler.readSamples(),
@@ -242,8 +246,11 @@ export const runBenchmarkMatrix = async (options = {}) => {
             return sample.call(this, time, out);
           };
         }
-        for (const animator of app.animations.animators)
-          animator.currentTime = animator.currentTime;
+        // Assigning the same time intentionally invokes the seek setter to re-sample.
+        for (const animator of app.animations.animators) {
+          const sampleTime = animator.currentTime;
+          animator.currentTime = sampleTime;
+        }
         app.transformSystem.update(app.world.transforms);
         app.skeletonSystem.update(app.world, app.skeletons);
         app.animatedBounds.update(

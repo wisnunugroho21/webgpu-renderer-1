@@ -1,14 +1,14 @@
 import { bench, describe } from "vitest";
 import { RenderGraph } from "../src/rendering/graph/RenderGraph";
 const graph = new RenderGraph();
-let calls = 0;
+const counter = { calls: 0 };
 for (let i = 0; i < 8; i++)
   graph.add({
     name: `pass${i}`,
     reads: i ? [`resource${i - 1}`] : [],
     writes: [`resource${i}`],
     execute: () => {
-      calls++;
+      counter.calls++;
     },
   });
 graph.compile();

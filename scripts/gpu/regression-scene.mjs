@@ -627,7 +627,6 @@ export const runRegressionScene = async () => {
   const rw = app.renderWorld,
     renderer = app.renderer,
     skinnedMesh = rw.meshId[0],
-    skinOffset = rw.jointOffset[0],
     materialId = rw.materialId[0];
   app.materials.set(materialId, { metallic: 0, roughness: 1, textures: tex });
   renderer.cullingEnabled = false;
@@ -2159,8 +2158,8 @@ export const runRegressionScene = async () => {
   }
   renderer.gpuOcclusion.resize(renderer.hiz.texture);
   extractShadows();
-  const occlusionImage = await captureClusters(),
-    occlusionFlags = await readVisibility(renderer.gpuFrustum);
+  await captureClusters();
+  const occlusionFlags = await readVisibility(renderer.gpuFrustum);
   const occlusionChecks = {
     live: {
       ids: Array.from(rw.entityId.slice(0, rw.count)),
@@ -2972,8 +2971,8 @@ export const runRegressionScene = async () => {
   );
   const streamingChecks = { lodLoadMs: performance.now() - tStream };
   const streamedMesh = renderer.lodGroups.entries[lodGroup].meshes[1];
-  const streamedImage = await streamCapture(),
-    streamedArgs = await readIndirect();
+  await streamCapture();
+  const streamedArgs = await readIndirect();
   streamingChecks.lod = {
     mesh: streamedMesh,
     indexCount: renderer.meshes.get(streamedMesh).indexCount,

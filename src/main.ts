@@ -16,7 +16,7 @@ let example:
 void app
   .start()
   .then(async () => {
-    // Installs the requested collection/lighting example only after application startup succeeds.
+    // Installs the requested collection, lighting or custom-material example only after application startup succeeds.
 
     if (new URLSearchParams(location.search).get("example") === "collect") {
       const collect = createCollectExample(app);
@@ -28,6 +28,13 @@ void app
       const { createLightingExample } = await import("./examples/lighting");
       example = await createLightingExample(app);
       Object.assign(window, { environmentDemoReady: true });
+    } else if (
+      new URLSearchParams(location.search).get("example") === "shaders"
+    ) {
+      const { createMaterialShaderExample } =
+        await import("./examples/materialShaders");
+      example = await createMaterialShaderExample(app);
+      Object.assign(window, { materialShaderDemoReady: true });
     }
   })
   .catch((error) => {

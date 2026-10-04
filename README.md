@@ -463,3 +463,7 @@ The build compiler remains TypeScript 7.0.2. The current typescript-eslint parse
 Use pnpm 12.6.0, pinned in `package.json`. Install pnpm using the [official installation instructions](https://pnpm.io/installation), then run `pnpm install --frozen-lockfile` from the repository root. The workspace installs the renderer and `tools/lint` together; `pnpm-lock.yaml` is the shared committed lockfile. Use `pnpm add` / `pnpm add -D` for dependencies and `pnpm --filter webgpu-renderer-lint add` for linter-toolchain dependencies. Do not run npm install or create nested npm lockfiles.
 
 Run scripts with `pnpm run <name>` or execute installed tools with `pnpm exec <tool>`. Script arguments follow the script name directly, for example `pnpm run benchmark:gpu --long-animation`. `pnpm run validate` invokes its child checks through pnpm. The root build compiler remains TypeScript 7 and the lint workspace retains TypeScript 6; peer resolution is isolated between them.
+
+## Custom shader materials
+
+Register surface WGSL with `await app.registerMaterialShader({ name, source })`, then create materials with `shaderId` and up to 16 `shaderParameters`. The required `shadeMaterial(MaterialSurface, MaterialShaderParameters) -> vec3<f32>` function returns linear RGB while shared geometry, alpha coverage, instancing, depth/shadows, HDR and recovery remain renderer-owned. See [CUSTOM_MATERIALS.md](CUSTOM_MATERIALS.md) for the complete contract and examples. Try `/?example=shaders`; run `pnpm run validate:materials` for correctness, lifetime and diagnostic benchmarks.

@@ -1,3 +1,7 @@
+import {
+  MATERIAL_PIPELINE_VARIANTS,
+  BLEND_PIPELINE_OFFSET,
+} from "../pipelines/ColorPipelineLayout";
 import shader from "../../shaders/geometry-clusters.wgsl?raw";
 import { Resources } from "../../gpu/Resources";
 import { DynamicBufferAllocator } from "../../gpu/DynamicBufferAllocator";
@@ -171,7 +175,8 @@ export class GeometryOptimization {
       let eligible =
         this.supported &&
         !indirect &&
-        batches.pipeline[b]! < 12 &&
+        batches.pipeline[b]! % MATERIAL_PIPELINE_VARIANTS <
+          BLEND_PIPELINE_OFFSET &&
         mesh.topology === 0 &&
         !mesh.skin &&
         !mesh.morph &&

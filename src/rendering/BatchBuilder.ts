@@ -1,3 +1,7 @@
+import {
+  MATERIAL_PIPELINE_VARIANTS,
+  BLEND_PIPELINE_OFFSET,
+} from "./pipelines/ColorPipelineLayout";
 import { RenderQueue } from "./RenderQueue";
 import { RenderWorld } from "./RenderWorld";
 export class BatchBuilder {
@@ -5,7 +9,7 @@ export class BatchBuilder {
   readonly firstInstance: Uint32Array;
   readonly lodGroup: Int32Array;
   readonly instanceCount: Uint32Array;
-  readonly pipeline: Uint8Array;
+  readonly pipeline: Uint16Array;
   readonly material: Uint32Array;
   readonly mesh: Uint32Array;
   /** Initializes consecutive pipeline/material/mesh instance batches. */
@@ -13,7 +17,7 @@ export class BatchBuilder {
     this.lodGroup = new Int32Array(capacity).fill(-1);
     this.firstInstance = new Uint32Array(capacity);
     this.instanceCount = new Uint32Array(capacity);
-    this.pipeline = new Uint8Array(capacity);
+    this.pipeline = new Uint16Array(capacity);
     this.material = new Uint32Array(capacity);
     this.mesh = new Uint32Array(capacity);
   }
@@ -38,7 +42,8 @@ export class BatchBuilder {
         this.material[last] === material &&
         this.mesh[last] === mesh &&
         (!lodAware ||
-          (pipeline < 12 && this.lodGroup[last] === world.lodGroup[object]))
+          (pipeline % MATERIAL_PIPELINE_VARIANTS < BLEND_PIPELINE_OFFSET &&
+            this.lodGroup[last] === world.lodGroup[object]))
       ) {
         this.instanceCount[last]!++;
         continue;

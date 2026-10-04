@@ -198,6 +198,7 @@ export class Renderer {
       resources: this.resources,
       dynamic: this.dynamic,
       materialBuffer: this.materialBuffer,
+      materials,
       textures: this.textures,
       joints: this.joints,
       morphWeights: this.morphWeights,
@@ -528,9 +529,10 @@ export class Renderer {
       visible,
     );
     for (let i = 0; i < this.world.count; i++)
-      this.queue.pipeline[i] =
-        this.materials.pipelineIndex(this.world.materialId[i]!) * 3 +
-        this.meshes.get(this.world.meshId[i]!).topology;
+      this.queue.pipeline[i] = this.materials.colorPipelineIndex(
+        this.world.materialId[i]!,
+        this.meshes.get(this.world.meshId[i]!).topology,
+      );
     this.sorter.lodAware = indirect;
     this.sorter.sort(
       this.queue,
@@ -590,6 +592,7 @@ export class Renderer {
     this.shadows.prepare(this.world, this.camera, this.gpu.queue, this.stats);
     this.dynamic.flush(this.gpu.queue);
     this.materials.upload(this.gpu.queue, this.materialBuffer);
+    this.colorPass.uploadParameters();
     this.joints.upload(this.gpu.queue, this.world);
     this.morphWeights.upload(this.gpu.queue, this.world);
     this.lights.upload(this.gpu.queue, this.world);
@@ -657,6 +660,7 @@ export class Renderer {
     this.stats.bufferUploadBytes =
       this.dynamic.uploadBytes +
       this.materials.uploadBytes +
+      this.materials.shaderUploadBytes +
       this.joints.uploadBytes +
       this.morphWeights.uploadBytes +
       this.lights.uploadBytes +
@@ -671,6 +675,12 @@ export class Renderer {
       : 0;
   }
 
+  /** Registers a surface shader on the cold path; publication waits for GPU validation. */
+  registerMaterialShader(
+    definition: import("./materials/MaterialShaderRegistry").MaterialShaderDefinition,
+  ): Promise<number> {
+    return this.colorPass.registerShader(definition);
+  }
   /** Stops streaming publication and releases shared GPU resources and profiler ownership. */
   dispose(): void {
     this.meshes.clearRecovery();

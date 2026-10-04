@@ -6,7 +6,7 @@ export class RenderQueue {
   readonly transparent: Uint32Array;
   readonly order: Uint32Array;
   readonly depth: Float32Array;
-  readonly pipeline: Uint8Array;
+  readonly pipeline: Uint16Array;
   opaqueCount = 0;
   maskCount = 0;
   transparentCount = 0;
@@ -18,7 +18,7 @@ export class RenderQueue {
     this.transparent = new Uint32Array(capacity);
     this.order = new Uint32Array(capacity);
     this.depth = new Float32Array(capacity);
-    this.pipeline = new Uint8Array(capacity);
+    this.pipeline = new Uint16Array(capacity);
   }
   /** Classifies candidate objects by alpha mode and records camera-space depth for sorting. */
   build(

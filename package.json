@@ -19,6 +19,7 @@
     "validate:environments": "node scripts/validate-environments.mjs",
     "validate:recovery": "node scripts/validate-device-recovery.mjs",
     "validate:hdr": "node scripts/validate-hdr.mjs",
+    "validate:materials": "node scripts/validate-material-shaders.mjs",
     "validate:features": "node scripts/validate-scene-features.mjs",
     "validate:codecs": "node scripts/validate-codecs.mjs",
     "validate": "node scripts/validate-project.mjs",

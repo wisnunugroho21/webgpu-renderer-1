@@ -131,6 +131,14 @@ export class Application {
     );
   }
 
+  /** Installs validated custom surface shading before assigning its returned family ID to materials. */
+  async registerMaterialShader(
+    definition: import("../rendering/materials/MaterialShaderRegistry").MaterialShaderDefinition,
+  ): Promise<number> {
+    this.checkLoadingDevice();
+    return this.renderer.registerMaterialShader(definition);
+  }
+
   /** Pointer-event picking against the latest extracted bounds; never waits for the GPU. */
   pick(clientX: number, clientY: number): EntityHandle | null {
     return this.picking.pick(this.renderer?.camera, clientX, clientY);

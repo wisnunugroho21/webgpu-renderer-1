@@ -63,8 +63,8 @@ describe("GPU indexed argument generation", () => {
       } as unknown as MeshManager,
       materials = {
         alphaMode: new Uint8Array([0, 2]),
-        /** Computes the id * 2 result. */
-        pipelineIndex: (id: number) => id * 2,
+        /** Encodes the fixture surface/topology state for indirect batches. */
+        colorPipelineIndex: (id: number, topology: number) => id * 6 + topology,
       } as unknown as MaterialManager,
       writeBuffer = vi.fn(),
       gpu = { writeBuffer } as unknown as GPUQueue;

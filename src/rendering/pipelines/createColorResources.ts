@@ -1,3 +1,8 @@
+import surfaceShader from "../../shaders/material-surface.wgsl?raw";
+import {
+  RegisteredMaterialShader,
+  MATERIAL_SHADER_PARAMETER_BYTES,
+} from "../materials/MaterialShaderRegistry";
 import {
   MATERIAL_PIPELINE_VARIANTS,
   BLEND_PIPELINE_OFFSET,
@@ -51,6 +56,10 @@ const sharedShader = [
   pbrShader,
 ].join("\n");
 export interface ColorResourcesInput {
+  /** Compatible custom families share their immutable layout and frame bind groups. */
+  sharedBindings?: { layout: GPUPipelineLayout; frameGroups: GPUBindGroup[] };
+  shader?: RegisteredMaterialShader;
+  shaderParameterBuffer?: GPUBuffer;
   environmentLayout?: GPUBindGroupLayout;
   colorFormat?: GPUTextureFormat;
   gpu: GPUContext;
@@ -66,6 +75,38 @@ export interface ColorResourcesInput {
   clusters: ClusteredLighting;
   shadows: ShadowManager;
   gpuDraws: IndirectDraws;
+}
+/** Assembles a surface-only family while retaining vertex entry points, texture roles and alpha coverage. */
+export function colorShaderSource(
+  input: Pick<ColorResourcesInput, "shader" | "environmentLayout">,
+): string {
+  const ambient = input.environmentLayout ? environmentShader : defaultAmbient;
+  if (!input.shader) return sharedShader + "\n" + ambient;
+  const prefix = pbrShader.slice(0, pbrShader.indexOf("  var result ="));
+  const customFragment = `
+  var viewDirection = safeNormalize(frame.eye.xyz - input.world);
+  if ((u32(frame.lighting.z) & 2u) != 0u) {
+    viewDirection = safeNormalize(vec3<f32>(frame.view[0].z, frame.view[1].z, frame.view[2].z));
+  }
+  let surface = MaterialSurface(base, emissive, clamp(m.surface.x * mr.b, 0.0, 1.0), n,
+    clamp(m.surface.y * mr.g, 0.045, 1.0), input.world, ao, viewDirection,
+    input.materialId, input.uv0, input.uv1, input.position.xy);
+  let result = shadeMaterial(surface, materialShaderParameters[input.materialId]);
+  return vec4<f32>(result, select(1.0, base.a, m.surface.z == 2.0));
+}`;
+  return [
+    frameShader,
+    geometryShader,
+    commonShader,
+    morphShader,
+    skinShader,
+    shadowShader,
+    lightingShader,
+    surfaceShader,
+    prefix + customFragment,
+    ambient,
+    input.shader.source,
+  ].join("\n");
 }
 /** Cold setup only: prepare bounded pipeline variants and one bind group per arena slot.
  * The frame loop retains these objects and changes only dynamic instance offsets. */
@@ -87,102 +128,119 @@ export function createColorResources(input: ColorResourcesInput) {
   } = input;
   const device = gpu.device;
   const module = resources.shaders.get(
-    sharedShader +
-      "\n" +
-      (input.environmentLayout ? environmentShader : defaultAmbient),
-    "PBR shader",
+    colorShaderSource(input),
+    input.shader?.name ?? "PBR shader",
   );
-  const groupLayout = device.createBindGroupLayout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-        buffer: { type: "uniform", minBindingSize: FRAME_BYTES },
-      },
-      {
-        binding: 1,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: { type: "read-only-storage", minBindingSize: MATRIX_BYTES },
-      },
-      {
-        binding: 2,
-        visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: "read-only-storage", minBindingSize: MATERIAL_BYTES },
-      },
-      {
-        binding: 3,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: {
-          type: "read-only-storage",
-          hasDynamicOffset: true,
-          minBindingSize: INSTANCE_BYTES,
-        },
-      },
-      {
-        binding: 4,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: { type: "read-only-storage", minBindingSize: MATRIX_BYTES },
-      },
-      ...[5, 6, 7, 8].map(
-        (
-          binding,
-        ) => /** Builds a record containing binding, visibility, buffer. */ ({
-          binding,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {
-            type: "read-only-storage" as const,
-            minBindingSize: binding === 5 ? 4 : 16,
+  const groupLayout = input.sharedBindings
+    ? undefined
+    : device.createBindGroupLayout({
+        entries: [
+          ...(input.shader
+            ? [
+                {
+                  binding: 16,
+                  visibility: GPUShaderStage.FRAGMENT,
+                  buffer: {
+                    type: "read-only-storage" as const,
+                    minBindingSize: MATERIAL_SHADER_PARAMETER_BYTES,
+                  },
+                },
+              ]
+            : []),
+          {
+            binding: 0,
+            visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+            buffer: { type: "uniform", minBindingSize: FRAME_BYTES },
           },
-        }),
-      ),
-      {
-        binding: 9,
-        visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: "read-only-storage", minBindingSize: LIGHT_BYTES },
-      },
-      ...[10, 11].map(
-        (
-          binding,
-        ) => /** Builds a record containing binding, visibility, buffer. */ ({
-          binding,
-          visibility: GPUShaderStage.FRAGMENT,
-          buffer: {
-            type: "read-only-storage" as const,
-            minBindingSize: binding === 10 ? 8 : 4,
+          {
+            binding: 1,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: { type: "read-only-storage", minBindingSize: MATRIX_BYTES },
           },
-        }),
-      ),
-      {
-        binding: 12,
-        visibility: GPUShaderStage.FRAGMENT,
-        buffer: { type: "read-only-storage", minBindingSize: SHADOW_BYTES },
-      },
-      {
-        binding: 13,
-        visibility: GPUShaderStage.FRAGMENT,
-        texture: { sampleType: "depth", viewDimension: "2d-array" },
-      },
-      {
-        binding: 15,
-        visibility: GPUShaderStage.VERTEX,
-        buffer: { type: "read-only-storage", minBindingSize: 16 },
-      },
-      {
-        binding: 14,
-        visibility: GPUShaderStage.FRAGMENT,
-        sampler: { type: "comparison" },
-      },
-    ],
-  });
+          {
+            binding: 2,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: {
+              type: "read-only-storage",
+              minBindingSize: MATERIAL_BYTES,
+            },
+          },
+          {
+            binding: 3,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: {
+              type: "read-only-storage",
+              hasDynamicOffset: true,
+              minBindingSize: INSTANCE_BYTES,
+            },
+          },
+          {
+            binding: 4,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: { type: "read-only-storage", minBindingSize: MATRIX_BYTES },
+          },
+          ...[5, 6, 7, 8].map(
+            (
+              binding,
+            ) => /** Builds a record containing binding, visibility, buffer. */ ({
+              binding,
+              visibility: GPUShaderStage.VERTEX,
+              buffer: {
+                type: "read-only-storage" as const,
+                minBindingSize: binding === 5 ? 4 : 16,
+              },
+            }),
+          ),
+          {
+            binding: 9,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: { type: "read-only-storage", minBindingSize: LIGHT_BYTES },
+          },
+          ...[10, 11].map(
+            (
+              binding,
+            ) => /** Builds a record containing binding, visibility, buffer. */ ({
+              binding,
+              visibility: GPUShaderStage.FRAGMENT,
+              buffer: {
+                type: "read-only-storage" as const,
+                minBindingSize: binding === 10 ? 8 : 4,
+              },
+            }),
+          ),
+          {
+            binding: 12,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: { type: "read-only-storage", minBindingSize: SHADOW_BYTES },
+          },
+          {
+            binding: 13,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: { sampleType: "depth", viewDimension: "2d-array" },
+          },
+          {
+            binding: 15,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: { type: "read-only-storage", minBindingSize: 16 },
+          },
+          {
+            binding: 14,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: { type: "comparison" },
+          },
+        ],
+      });
   const pipelineDescriptor: GPURenderPipelineDescriptor = {
     label: "Cube pipeline",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [
-        groupLayout,
-        textures.layout,
-        ...(input.environmentLayout ? [input.environmentLayout] : []),
-      ],
-    }),
+    layout:
+      input.sharedBindings?.layout ??
+      device.createPipelineLayout({
+        bindGroupLayouts: [
+          groupLayout!,
+          textures.layout,
+          ...(input.environmentLayout ? [input.environmentLayout] : []),
+        ],
+      }),
     vertex: {
       module,
       entryPoint: "vs",
@@ -265,45 +323,64 @@ export function createColorResources(input: ColorResourcesInput) {
     },
   );
   const alignment = dynamic.alignment;
-  const frameGroups = dynamic.buffers.map((buffer) =>
-    /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
-      {
-        layout: groupLayout,
-        entries: [
-          { binding: 0, resource: { buffer, offset: 0, size: FRAME_BYTES } },
-          {
-            binding: 1,
-            resource: {
-              buffer,
-              offset: alignment,
-              size: world.capacity * MATRIX_BYTES,
+  const frameGroups =
+    input.sharedBindings?.frameGroups ??
+    dynamic.buffers.map((buffer) =>
+      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+        {
+          layout: groupLayout!,
+          entries: [
+            ...(input.shader
+              ? [
+                  {
+                    binding: 16,
+                    resource: { buffer: input.shaderParameterBuffer! },
+                  },
+                ]
+              : []),
+            { binding: 0, resource: { buffer, offset: 0, size: FRAME_BYTES } },
+            {
+              binding: 1,
+              resource: {
+                buffer,
+                offset: alignment,
+                size: world.capacity * MATRIX_BYTES,
+              },
             },
-          },
-          { binding: 2, resource: { buffer: materialBuffer } },
-          { binding: 4, resource: { buffer: joints.buffer } },
-          { binding: 5, resource: { buffer: morphWeights.buffer } },
-          { binding: 6, resource: { buffer: morphDeltas.position } },
-          { binding: 7, resource: { buffer: morphDeltas.normal } },
-          { binding: 8, resource: { buffer: morphDeltas.tangent } },
-          { binding: 9, resource: { buffer: lights.buffer } },
-          { binding: 10, resource: { buffer: clusters.counts } },
-          { binding: 11, resource: { buffer: clusters.indices } },
-          { binding: 12, resource: { buffer: shadows.buffer } },
-          { binding: 13, resource: shadows.view },
-          { binding: 14, resource: shadows.sampler },
-          { binding: 15, resource: { buffer: gpuDraws.visibleRecords } },
-          {
-            binding: 3,
-            resource: {
-              buffer,
-              offset: 0,
-              size: world.capacity * INSTANCE_BYTES,
+            { binding: 2, resource: { buffer: materialBuffer } },
+            { binding: 4, resource: { buffer: joints.buffer } },
+            { binding: 5, resource: { buffer: morphWeights.buffer } },
+            { binding: 6, resource: { buffer: morphDeltas.position } },
+            { binding: 7, resource: { buffer: morphDeltas.normal } },
+            { binding: 8, resource: { buffer: morphDeltas.tangent } },
+            { binding: 9, resource: { buffer: lights.buffer } },
+            { binding: 10, resource: { buffer: clusters.counts } },
+            { binding: 11, resource: { buffer: clusters.indices } },
+            { binding: 12, resource: { buffer: shadows.buffer } },
+            { binding: 13, resource: shadows.view },
+            { binding: 14, resource: shadows.sampler },
+            { binding: 15, resource: { buffer: gpuDraws.visibleRecords } },
+            {
+              binding: 3,
+              resource: {
+                buffer,
+                offset: 0,
+                size: world.capacity * INSTANCE_BYTES,
+              },
             },
-          },
-        ],
-      },
-    ),
-  );
+          ],
+        },
+      ),
+    );
 
-  return { pipelineDescriptor, pipeline, pipelines, frameGroups };
+  return {
+    pipelineDescriptor,
+    pipeline,
+    pipelines,
+    frameGroups,
+    bindings: {
+      layout: pipelineDescriptor.layout as GPUPipelineLayout,
+      frameGroups,
+    },
+  };
 }

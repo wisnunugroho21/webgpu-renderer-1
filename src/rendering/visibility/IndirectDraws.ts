@@ -167,8 +167,10 @@ export class IndirectDraws {
         this.batches.instanceCount[batch] = count;
         this.batches.mesh[batch] = meshId;
         this.batches.material[batch] = material;
-        this.batches.pipeline[batch] =
-          materials.pipelineIndex(material) * 3 + mesh.topology;
+        this.batches.pipeline[batch] = materials.colorPipelineIndex(
+          material,
+          mesh.topology,
+        );
         this.data[o] = mesh.indexCount;
         this.data[o + 1] = count;
         this.data[o + 2] = firstInstance;

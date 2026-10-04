@@ -172,3 +172,7 @@ ESLint's flat config covers TypeScript and JavaScript with recommended correctne
 ## Function documentation
 
 Implemented TypeScript/JavaScript functions, constructors, accessors and callbacks have adjacent explanations, as do WGSL helpers and entry points. Named functions use JSDoc; anonymous callbacks use a first-body comment or an inline expression comment. Interface methods describe the ownership contract callers depend on. Keep comments synchronized with behavior, especially coordinate spaces, units, cancellation, resource lifetime, dirty tracking and cold versus frame work. The game integration walkthrough is [GAME_DEVELOPMENT_GUIDE.md](GAME_DEVELOPMENT_GUIDE.md).
+
+## Custom surface shader families
+
+MaterialShaderRegistry retains immutable validated CPU definitions; MaterialManager stores stable family IDs and a separate 16-float parameter row without changing the 80-byte PBR ABI. ColorPass serializes cold registration and owns lazily allocated shared parameter storage plus bounded color/HDR/environment pipeline tables. Compatible families reuse layouts/frame bind groups. The shared vertex path and renderer-owned alpha coverage keep depth/shadows consistent. Family IDs participate in queue/batch sorting and indirect metadata selection, using 16-bit pipeline storage. Recovery replays committed definitions against the replacement device. No custom GPU objects are created by upload or encode. The public surface-only contract and limitations are documented in CUSTOM_MATERIALS.md.

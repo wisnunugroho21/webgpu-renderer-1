@@ -188,3 +188,15 @@ describe("optional geometry clusters", () => {
     expect(device.createBuffer).not.toHaveBeenCalled();
   });
 });
+
+it("keeps custom opaque families eligible and custom transparent families on the intact fallback", () => {
+  // High family IDs retain surface eligibility after decoding the local 18-variant state.
+  const { g, b, prepare } = make();
+  b.pipeline.set([288, 300]);
+  g.enabled = true;
+  prepare();
+  expect(g.count).toBe(4);
+  expect(g.clusterCount[0]).toBe(4);
+  expect(g.clusterCount[1]).toBe(0);
+  expect(g.fallbackBatches).toBe(1);
+});

@@ -296,6 +296,8 @@ Phase 44 geometry optimization is enabled by default on adapters supporting `ind
 
 Other controls include culling, `visibilityMode` (`linear` or `bvh`), depth prepass, clustered lighting and submission mode. Change them at explicit settings boundaries, then benchmark your scene. Enable BVH handling only with correct static/dynamic flags. Read [README.md](README.md) for supported combinations and diagnostic counters.
 
+Custom WGSL surface materials are also supported. Register them during loading with `app.registerMaterialShader`, then select their IDs through material creation or `materials.setShader`. See [CUSTOM_MATERIALS.md](CUSTOM_MATERIALS.md) and `/?example=shaders` for shared parameters, texture access and the geometry/coverage contract.
+
 ## 10. Picking and collision
 
 For selection, pass browser client coordinates to `app.pick`:

@@ -1,0 +1,103 @@
+{
+  "cycles": [
+    {
+      "ms": 66.2000000178814,
+      "differingBytes": 0,
+      "resources": {
+        "pipelineCreations": 149,
+        "shaderModules": 14,
+        "bufferCreations": 42,
+        "textureCreations": 14,
+        "samplerCreations": 4,
+        "buffers": 42,
+        "textures": 14,
+        "bufferBytes": 61135932,
+        "cacheHits": 183,
+        "cacheMisses": 167
+      },
+      "warm": {
+        "pipelineCreations": 149,
+        "shaderModules": 14,
+        "bufferCreations": 42,
+        "textureCreations": 14,
+        "samplerCreations": 4,
+        "buffers": 42,
+        "textures": 14,
+        "bufferBytes": 61135932,
+        "cacheHits": 183,
+        "cacheMisses": 167
+      },
+      "oldBuffers": 0,
+      "oldTextures": 0,
+      "state": "ready"
+    },
+    {
+      "ms": 52.599999994039536,
+      "differingBytes": 0,
+      "resources": {
+        "pipelineCreations": 149,
+        "shaderModules": 14,
+        "bufferCreations": 42,
+        "textureCreations": 14,
+        "samplerCreations": 4,
+        "buffers": 42,
+        "textures": 14,
+        "bufferBytes": 61135932,
+        "cacheHits": 183,
+        "cacheMisses": 167
+      },
+      "warm": {
+        "pipelineCreations": 149,
+        "shaderModules": 14,
+        "bufferCreations": 42,
+        "textureCreations": 14,
+        "samplerCreations": 4,
+        "buffers": 42,
+        "textures": 14,
+        "bufferBytes": 61135932,
+        "cacheHits": 183,
+        "cacheMisses": 167
+      },
+      "oldBuffers": 0,
+      "oldTextures": 0,
+      "state": "ready"
+    },
+    {
+      "ms": 50,
+      "differingBytes": 0,
+      "resources": {
+        "pipelineCreations": 149,
+        "shaderModules": 14,
+        "bufferCreations": 42,
+        "textureCreations": 14,
+        "samplerCreations": 4,
+        "buffers": 42,
+        "textures": 14,
+        "bufferBytes": 61135932,
+        "cacheHits": 183,
+        "cacheMisses": 167
+      },
+      "warm": {
+        "pipelineCreations": 149,
+        "shaderModules": 14,
+        "bufferCreations": 42,
+        "textureCreations": 14,
+        "samplerCreations": 4,
+        "buffers": 42,
+        "textures": 14,
+        "bufferBytes": 61135932,
+        "cacheHits": 183,
+        "cacheMisses": 167
+      },
+      "oldBuffers": 0,
+      "oldTextures": 0,
+      "state": "ready"
+    }
+  ],
+  "failedRetry": true,
+  "automatic": true,
+  "unload": true,
+  "gpuErrors": [],
+  "buffers": 0,
+  "textures": 0
+}

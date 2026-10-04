@@ -1,3 +1,4 @@
+import { ColorPass } from "./passes/ColorPass";
 import { EnvironmentSkybox } from "./environment/EnvironmentSkybox";
 import { HDRRendering } from "./post/HDRRendering";
 import { EnvironmentData } from "./environment/EnvironmentData";
@@ -12,10 +13,6 @@ import {
 } from "./layouts";
 import { createBootstrapMesh } from "./geometry/createBootstrapMesh";
 import { MESH_VERTEX_LAYOUT } from "./geometry/VertexLayout";
-import {
-  ColorResourcesInput,
-  createColorResources,
-} from "./pipelines/createColorResources";
 import { configureRenderGraph } from "./graph/configureRenderGraph";
 import { GeometryOptimization } from "./geometry/GeometryOptimization";
 import { RendererStreaming } from "./RendererStreaming";
@@ -28,7 +25,7 @@ import { GPUFrustumCuller } from "./visibility/GPUFrustumCuller";
 import { HiZPyramid } from "./visibility/HiZPyramid";
 import { DepthPrepass } from "./DepthPrepass";
 import { CPUProfiler, CPUStage } from "../profiling/CPUProfiler";
-import { GPUProfiler, GPUPass } from "../profiling/GPUProfiler";
+import { GPUProfiler } from "../profiling/GPUProfiler";
 import { RenderGraph } from "./graph/RenderGraph";
 import { ShadowManager } from "./shadows/ShadowManager";
 import { ClusteredLighting } from "./lighting/ClusteredLighting";
@@ -56,15 +53,12 @@ import { MeshManager } from "./MeshManager";
 
 import { MaterialTextures } from "./materials/MaterialTextures";
 
+/** Snapshot-only frame coordinator. Pass owners prepare resources; encode reuses shared frame state. */
 export class Renderer {
   readonly environment: EnvironmentLighting;
   readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
-  private hdrColor?: ReturnType<typeof createColorResources>;
-  private hdrEnvironmentColor?: ReturnType<typeof createColorResources>;
-  private environmentLayout?: GPUBindGroupLayout;
-  private readonly colorInput: ColorResourcesInput;
-  private environmentColor?: ReturnType<typeof createColorResources>;
+  private readonly colorPass: ColorPass;
   readonly geometryOptimization: GeometryOptimization;
   readonly camera: Camera;
   readonly lodGroups = new LODGroups();
@@ -115,7 +109,6 @@ export class Renderer {
   private colorInstanceOffset = 0;
   private readonly frameUniforms = new FrameUniforms();
   readonly pipelines: readonly GPURenderPipeline[];
-  private readonly frameGroups: GPUBindGroup[];
   private frameNumber = 0;
   readonly frameBuffer: GPUBuffer;
   readonly vertexBuffer: GPUBuffer;
@@ -264,7 +257,7 @@ export class Renderer {
       this.dynamic,
       world.capacity,
     );
-    this.colorInput = {
+    this.colorPass = new ColorPass({
       gpu,
       world,
       resources: this.resources,
@@ -278,39 +271,27 @@ export class Renderer {
       clusters: this.clusters,
       shadows: this.shadows,
       gpuDraws: this.gpuDraws,
-    };
-    const color = createColorResources(this.colorInput);
-    this.hdr = new HDRRendering(gpu, this.resources, () => {
-      this.hdrColor ??= createColorResources({
-        ...this.colorInput,
-        colorFormat: "rgba16float",
-      });
-      this.prepareHDREnvironment();
+      batches: this.batches,
+      geometryOptimization: this.geometryOptimization,
+      depthPrepass: this.depthPrepass,
+      stats: this.stats,
+      gpuProfiler: this.gpuProfiler,
+      meshes: this.meshes,
     });
-    this.skybox = new EnvironmentSkybox(
-      gpu,
-      this.resources,
-      () => this.environmentLayout,
-    );
-    this.environment = new EnvironmentLighting(
-      device,
-      this.resources,
-      (environmentLayout) => {
-        this.environmentLayout = environmentLayout;
-        if (this.skybox.enabled) this.skybox.prepare(environmentLayout);
-        // Prepare retained HDR variants even when the feature is temporarily disabled.
-        if (this.hdrColor) this.prepareHDREnvironment();
-        this.environmentColor ??= createColorResources({
-          ...this.colorInput,
-          environmentLayout,
-        });
-      },
-    );
+    this.environment = this.colorPass.environment;
+    this.skybox = this.colorPass.skybox;
+    this.hdr = this.colorPass.hdr;
+    const color = this.colorPass.base;
     this.pipelineDescriptor = color.pipelineDescriptor;
     this.pipeline = color.pipeline;
     this.pipelines = color.pipelines;
-    this.frameGroups = color.frameGroups;
-    this.frameGroup = this.frameGroups[0]!;
+    this.frameGroup = color.frameGroups[0]!;
+    this.configurePasses();
+    this.resize();
+  }
+
+  /** Compile persistent callbacks after every pass owner exists. Encoding follows graph dependencies. */
+  private configurePasses(): void {
     configureRenderGraph(this.graph, {
       gpuFrustum: (encoder) =>
         this.gpuFrustum.encode(
@@ -339,7 +320,14 @@ export class Renderer {
           this.colorInstanceOffset,
           this.gpuProfiler,
         ),
-      color: (encoder, view) => this.encodeColor(encoder, view),
+      color: (encoder, view) =>
+        this.colorPass.encode(
+          encoder,
+          view,
+          this.depthView!,
+          this.colorInstanceOffset,
+          this.clearColor,
+        ),
       toneMapping: (encoder, view) =>
         this.hdr.encode(encoder, view, this.gpuProfiler),
       hiz: (encoder) => {
@@ -381,7 +369,6 @@ export class Renderer {
       gpuLod: (encoder) =>
         this.gpuLOD.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
     });
-    this.resize();
   }
 
   /** Cold device recovery: preserve CPU controls, never transfer old-device GPU objects. */
@@ -711,120 +698,6 @@ export class Renderer {
       ? this.clusters.tilesX * this.clusters.tilesY * this.clusters.slices
       : 0;
     this.colorInstanceOffset = instanceOffset;
-  }
-
-  private prepareHDREnvironment(): void {
-    if (this.environmentLayout)
-      this.hdrEnvironmentColor ??= createColorResources({
-        ...this.colorInput,
-        colorFormat: "rgba16float",
-        environmentLayout: this.environmentLayout,
-      });
-  }
-
-  private encodeColor(encoder: GPUCommandEncoder, view: GPUTextureView): void {
-    const pass = encoder.beginRenderPass({
-      label: "Opaque cube",
-      timestampWrites: this.gpuProfiler.writes(GPUPass.color),
-      colorAttachments: [
-        {
-          view: this.hdr.enabled ? this.hdr.view! : view,
-          clearValue: this.clearColor,
-          loadOp: "clear",
-          storeOp: "store",
-        },
-      ],
-      depthStencilAttachment: {
-        view: this.depthView!,
-        depthClearValue: 1,
-        depthLoadOp: this.depthPrepass.enabled ? "load" : "clear",
-        depthStoreOp: "store",
-      },
-    });
-    this.skybox.encode(
-      pass,
-      this.environment.group,
-      this.hdr.enabled ? "rgba16float" : this.gpu.renderFormat,
-    );
-    const environment = this.environment.active;
-    const colors = this.hdr.enabled
-      ? environment
-        ? this.hdrEnvironmentColor!
-        : this.hdrColor!
-      : environment
-        ? this.environmentColor!
-        : undefined;
-    const pipelines = colors?.pipelines ?? this.pipelines;
-    const frameGroups = colors?.frameGroups ?? this.frameGroups;
-    if (environment) pass.setBindGroup(2, this.environment.group!);
-    pass.setBindGroup(0, frameGroups[this.dynamic.frameSlot]!, [
-      this.colorInstanceOffset,
-    ]);
-    let previousPipeline = -1,
-      previousMaterial = -1,
-      previousMesh = -1;
-    const batches = this.gpuDraws.enabled
-      ? this.gpuDraws.batches
-      : this.batches;
-    for (let i = 0; i < batches.count; i++) {
-      const mesh = batches.mesh[i]!,
-        material = batches.material[i]!,
-        pipeline = batches.pipeline[i]!,
-        count = batches.instanceCount[i]!;
-      const geometry = this.meshes.get(mesh);
-      if (pipeline !== previousPipeline) {
-        pass.setPipeline(
-          pipelines[
-            pipeline +
-              (this.depthPrepass.enabled ? 18 : 0) +
-              (this.gpuDraws.enabled ? 36 : 0)
-          ]!,
-        );
-        previousPipeline = pipeline;
-        this.stats.pipelineSwitches++;
-      }
-      if (material !== previousMaterial) {
-        previousMaterial = material;
-        pass.setBindGroup(
-          1,
-          this.textures.groups[material] ?? this.textures.fallback,
-        );
-        this.stats.materialSwitches++;
-      }
-      if (mesh !== previousMesh) {
-        previousMesh = mesh;
-        this.stats.meshSwitches++;
-        pass.setVertexBuffer(0, geometry.vertex);
-        pass.setIndexBuffer(geometry.index, "uint32");
-      }
-      if (this.gpuDraws.enabled) {
-        pass.drawIndexedIndirect(this.gpuDraws.arguments, i * 20);
-        this.stats.indirectDraws++;
-      } else if (this.geometryOptimization.clusterCount[i]) {
-        const first = this.geometryOptimization.firstCluster[i]!,
-          count = this.geometryOptimization.clusterCount[i]!;
-        for (let c = first; c < first + count; c++)
-          pass.drawIndexedIndirect(
-            this.geometryOptimization.arguments!,
-            c * 20,
-          );
-        this.stats.geometryClusterDraws += count;
-        this.stats.indirectDraws += count;
-        this.stats.drawCalls += count - 1;
-      } else
-        pass.drawIndexed(
-          geometry.indexCount,
-          count,
-          0,
-          0,
-          batches.firstInstance[i]!,
-        );
-      this.stats.drawCalls++;
-      this.stats.instances += count;
-      if (geometry.topology === 0)
-        this.stats.triangles += (geometry.indexCount / 3) * count;
-    }
-    pass.end();
   }
 
   dispose(): void {

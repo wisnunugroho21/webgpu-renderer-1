@@ -5,9 +5,9 @@
 ## Start reading here
 
 1. `src/main.ts` creates the browser application.
-2. `src/app/Application.ts` owns startup, shutdown, resize observation, asset instantiation, and simulation order.
+2. `src/app/Application.ts` owns browser lifecycle, frame order, and recovery publication; `ApplicationAssets.ts` owns scene/asset transactions.
 3. `src/rendering/RenderExtractor.ts` copies ECS state into the persistent `RenderWorld` snapshot.
-4. `src/rendering/Renderer.ts` prepares visibility, sorts batches, uploads shared frame state, and executes the render graph.
+4. `src/rendering/Renderer.ts` prepares visibility, sorts batches, uploads shared frame state, and executes the render graph. `passes/ColorPass.ts` owns color variants, HDR/IBL inputs, and batch drawing.
 5. `src/rendering/graph/configureRenderGraph.ts` declares pass dependencies. Individual pass classes encode the GPU work.
 
 ## Module ownership
@@ -55,7 +55,7 @@ Optional animation layers own playback clocks and persistent binding/reference p
 5. `uploadFrameState()` fills persistent staging arrays, advances the arena slot, uploads dirty shared records, and prepares optional GPU paths.
 6. The compiled graph encodes all enabled work; the application submits one command buffer.
 
-The compiled graph order is GPU frustum → shadows → light clusters → depth → geometry clusters → Hi-Z → GPU occlusion → GPU LOD → compaction → indirect arguments → color → Hi-Z debug. Optional pass callbacks may do no work. Resource names describe explicit versions/dependencies, not a transient resource allocator.
+The compiled graph order is GPU frustum → shadows → light clusters → depth → geometry clusters → Hi-Z → GPU occlusion → GPU LOD → compaction → indirect arguments → color → tone mapping → Hi-Z debug. Optional pass callbacks may do no work. Resource names describe explicit versions/dependencies, not a transient resource allocator.
 
 Color, camera depth and shadow shaders share `deformVertex`: base attributes → additive morph deltas → joint blending → model transform. Normal cofactors and determinant signs preserve nonuniform scale, shear and reflection. CPU bounds must conservatively cover the same deformation before visibility tests.
 
@@ -124,3 +124,15 @@ Environment file decoding dynamically loads HDR/EXR parsers into the cold asset 
 Eight-weight meshes preserve the 104-byte vertex and 48-byte instance layouts and existing vertex storage-binding count. Secondary joint IDs/weights occupy two vec4 records per vertex after target-major morph records in the shared tangent arena; IDs are stored as exact numeric floats rather than denormal bit patterns. SKIN_EIGHT selects additional palette contributions in the common deformation helper. All passes apply morph → joint blend → model; LOD records carry the selected mesh's arena base and vertex count. LOD compatibility rejects different influence layouts. Cold mesh upload, rollback, unload and recovery own the combined arena allocation.
 
 GLTFLoader lazily registers Draco/Meshopt/quantization/Basis extension decoding and retains engine-owned accessor arrays. AssetDecoder uses the same loader in its persistent transferable worker. MaterialTextures owns lazy Basis workers, format negotiation, authored mip upload and RGBA fallback; compressed and uncompressed outputs enter the same role-specific content cache and lease lifecycle. Three.js contributes cold file/transcoder helpers only; it never owns engine scenes or GPU rendering. No decoder work occurs in rendering frames.
+
+## Focused ownership boundaries
+
+The application facade preserves existing public properties and loading methods. `ApplicationAssets` owns fetch/decode/upload records, controller/entity rollback, exact entity allocation and unload vetoes. Its context resolves the current GPU/renderer at operation time, so recovery cannot leave a service pointing at retired resources. Unload detaches consumers synchronously before its asynchronous GPU fence. `rebuildDeviceResources` prepares and validates a replacement; Application publishes leases, streaming, device and renderer together, then resumes the prior loop state. Both preparation and publication retain failure cleanup.
+
+`GLTFLoader` remains the public main/worker facade. `GLTFCodecs` owns optional dependency registration and retryable decoder startup. `convertRuntimeAsset` copies normalized document/accessor data into engine-owned arrays without fetching or uploading. Codec state cannot leak into ECS or rendering frames.
+
+`MaterialTextures` owns role-specific cache references, preparation transactions, bind groups and recovery definitions. `TextureUploader` handles image/Basis/native decoding, GPU texture upload and partial-upload destruction. The manager closes shared bitmaps after all pending work settles. `TextureSampler` isolates glTF sampler policy while preserving the original exported helper. Environment decoding is similarly separate from bounded bake caching. Both cache owners use `assets/contentHash.ts` after snapshotting mutable source bytes.
+
+`ColorPass` owns bounded default/HDR/environment pipeline sets and reuses existing buffers/material/mesh/pass owners. Render graph callbacks stay persistent and compile in `Renderer.configurePasses`; frame order and GPU layouts remain unchanged. Current clear color, depth view and dynamic instance offset are passed into encoding rather than captured at setup. `ColorPipelineLayout` names queue-ID groups and variant offsets shared by table creation and selection. Ordinary frames add no resource creation, cache work, decoder work, completion waits or readbacks.
+
+For a complete integration gate, run `npm run validate`. It runs formatting, unit tests, production build and every GPU validation in order, stopping at the first failure. Benchmark timing remains separate: `npm run benchmark`, `npm run benchmark:gpu`, and `npm run benchmark:gpu -- --long-animation`. This avoids overlapping validation jobs with timed workloads. See `benchmarks/STRUCTURE_REPORT.md` for equivalence and performance evidence from this restructuring.

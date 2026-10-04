@@ -1,4 +1,10 @@
 import {
+  MATERIAL_PIPELINE_VARIANTS,
+  BLEND_PIPELINE_OFFSET,
+  INDIRECT_VERTEX_OFFSET,
+  COLOR_PIPELINE_COUNT,
+} from "./ColorPipelineLayout";
+import {
   FRAME_BYTES,
   MATRIX_BYTES,
   INSTANCE_BYTES,
@@ -187,56 +193,65 @@ export function createColorResources(input: ColorResourcesInput) {
   const pipeline = resources.pipelines.get(pipelineDescriptor);
   // 18 material/topology variants × two depth modes × two vertex entry points.
   // This bounded table is built once; queue pipeline IDs index it directly each frame.
-  const pipelines = Array.from({ length: 72 }, (_, variant) => {
-    const index = variant % 18;
-    return resources.pipelines.get({
-      ...pipelineDescriptor,
-      vertex: {
-        ...pipelineDescriptor.vertex,
-        entryPoint: variant >= 36 ? "vsIndirect" : "vs",
-      },
-      primitive: {
-        ...pipelineDescriptor.primitive,
-        topology:
-          index % 3 === 0
-            ? "triangle-list"
-            : index % 3 === 1
-              ? "line-list"
-              : "point-list",
-        cullMode:
-          index % 3 !== 0 || Math.floor(index / 3) % 2 ? "none" : "back",
-      },
-      depthStencil: {
-        ...pipelineDescriptor.depthStencil!,
-        depthWriteEnabled: (variant >= 36 || variant % 36 < 18) && index < 12,
-        depthCompare: variant % 36 < 18 ? "less" : "less-equal",
-      },
-      fragment: {
-        ...pipelineDescriptor.fragment!,
-        targets: [
-          {
-            format: input.colorFormat ?? gpu.renderFormat,
-            ...(index >= 12
-              ? {
-                  blend: {
-                    color: {
-                      srcFactor: "src-alpha",
-                      dstFactor: "one-minus-src-alpha",
-                      operation: "add",
-                    },
-                    alpha: {
-                      srcFactor: "one",
-                      dstFactor: "one-minus-src-alpha",
-                      operation: "add",
-                    },
-                  } as GPUBlendState,
-                }
-              : {}),
-          },
-        ],
-      },
-    });
-  });
+  const pipelines = Array.from(
+    { length: COLOR_PIPELINE_COUNT },
+    (_, variant) => {
+      const index = variant % MATERIAL_PIPELINE_VARIANTS;
+      return resources.pipelines.get({
+        ...pipelineDescriptor,
+        vertex: {
+          ...pipelineDescriptor.vertex,
+          entryPoint: variant >= INDIRECT_VERTEX_OFFSET ? "vsIndirect" : "vs",
+        },
+        primitive: {
+          ...pipelineDescriptor.primitive,
+          topology:
+            index % 3 === 0
+              ? "triangle-list"
+              : index % 3 === 1
+                ? "line-list"
+                : "point-list",
+          cullMode:
+            index % 3 !== 0 || Math.floor(index / 3) % 2 ? "none" : "back",
+        },
+        depthStencil: {
+          ...pipelineDescriptor.depthStencil!,
+          depthWriteEnabled:
+            (variant >= INDIRECT_VERTEX_OFFSET ||
+              variant % INDIRECT_VERTEX_OFFSET < MATERIAL_PIPELINE_VARIANTS) &&
+            index < BLEND_PIPELINE_OFFSET,
+          depthCompare:
+            variant % INDIRECT_VERTEX_OFFSET < MATERIAL_PIPELINE_VARIANTS
+              ? "less"
+              : "less-equal",
+        },
+        fragment: {
+          ...pipelineDescriptor.fragment!,
+          targets: [
+            {
+              format: input.colorFormat ?? gpu.renderFormat,
+              ...(index >= BLEND_PIPELINE_OFFSET
+                ? {
+                    blend: {
+                      color: {
+                        srcFactor: "src-alpha",
+                        dstFactor: "one-minus-src-alpha",
+                        operation: "add",
+                      },
+                      alpha: {
+                        srcFactor: "one",
+                        dstFactor: "one-minus-src-alpha",
+                        operation: "add",
+                      },
+                    } as GPUBlendState,
+                  }
+                : {}),
+            },
+          ],
+        },
+      });
+    },
+  );
   const alignment = dynamic.alignment;
   const frameGroups = dynamic.buffers.map((buffer) =>
     device.createBindGroup({

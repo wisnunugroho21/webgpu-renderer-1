@@ -1,12 +1,13 @@
+import { contentHash } from "../../assets/contentHash";
 import {
   BasisTranscoder,
   isBasis,
 } from "../../assets/textures/BasisTranscoder";
-import {
-  compressedTexture,
-  uploadCompressed,
-} from "../../assets/textures/CompressedTexture";
-import { MipGenerator, mipLevelCount } from "./MipGenerator";
+import { compressedTexture } from "../../assets/textures/CompressedTexture";
+import { MipGenerator } from "./MipGenerator";
+import { TextureUploader } from "./TextureUploader";
+import { samplerDescriptor } from "./TextureSampler";
+export { samplerDescriptor } from "./TextureSampler";
 import { Resources } from "../../gpu/Resources";
 import {
   RuntimeAsset,
@@ -19,37 +20,11 @@ export const textureRoles = [
   "occlusion",
   "emissive",
 ] as const;
-export function samplerDescriptor(
-  slot?: RuntimeTextureSlot,
-  anisotropy = 1,
-): GPUSamplerDescriptor {
-  const wrap = (value: number): GPUAddressMode =>
-    value === 33071
-      ? "clamp-to-edge"
-      : value === 33648
-        ? "mirror-repeat"
-        : "repeat";
-  const min = slot?.minFilter ?? 9987;
-  const linear =
-    slot?.magFilter !== 9728 &&
-    ![9728, 9984, 9986].includes(min) &&
-    ![9984, 9985].includes(min);
-  return {
-    maxAnisotropy: linear
-      ? Math.max(1, Math.min(16, Math.floor(anisotropy)))
-      : 1,
-    addressModeU: wrap(slot?.wrapS ?? 10497),
-    addressModeV: wrap(slot?.wrapT ?? 10497),
-    magFilter: slot?.magFilter === 9728 ? "nearest" : "linear",
-    minFilter: [9728, 9984, 9986].includes(min) ? "nearest" : "linear",
-    mipmapFilter: [9984, 9985].includes(min) ? "nearest" : "linear",
-    lodMaxClamp: [9728, 9729].includes(min) ? 0 : 32,
-  };
-}
 /** Cold-path material textures; all groups and sampler objects are reused by frames. */
 export class MaterialTextures {
   readonly layout: GPUBindGroupLayout;
   private readonly basis: BasisTranscoder;
+  private readonly uploader: TextureUploader;
   readonly fallback: GPUBindGroup;
   readonly groups: GPUBindGroup[] = [];
   readonly mipmaps: MipGenerator;
@@ -66,8 +41,14 @@ export class MaterialTextures {
     private readonly device: GPUDevice,
     private readonly resources: Resources,
   ) {
-    this.basis = new BasisTranscoder(device);
-    this.mipmaps = new MipGenerator(device, resources);
+    this.uploader = new TextureUploader(
+      device,
+      resources,
+      this.metrics,
+      () => this.disposed,
+    );
+    this.basis = this.uploader.basis;
+    this.mipmaps = this.uploader.mipmaps;
     this.layout = device.createBindGroupLayout({
       entries: textureRoles.flatMap((_, i) => [
         {
@@ -139,10 +120,7 @@ export class MaterialTextures {
       const image = asset.textures[slot.texture];
       if (!image) throw new Error("Unknown material texture");
       const bytes = image.image.slice().buffer;
-      const digest = await crypto.subtle.digest("SHA-256", bytes);
-      const hash = Array.from(new Uint8Array(digest), (b) =>
-        b.toString(16).padStart(2, "0"),
-      ).join("");
+      const hash = await contentHash(bytes);
       const basis = image.mimeType === "image/ktx2" && isBasis(image.image);
       const compressed =
         image.mimeType === "image/ktx2" && !basis
@@ -166,84 +144,16 @@ export class MaterialTextures {
       if (cached) this.metrics.hits++;
       else {
         this.metrics.misses++;
-        cached = (async () => {
-          if (basis) {
-            const data = await this.basis.decode(
-              image.image,
-              role === "baseColor" || role === "emissive",
-            );
-            if (this.disposed)
-              throw new Error("Texture manager disposed during Basis decode");
-            const texture = uploadCompressed(
-              this.device,
-              this.resources,
-              data,
-              image.name,
-            );
-            this.metrics.decodes++;
-            this.metrics.uploadBytes += data.levels.reduce(
-              (n, l) => n + l.data.byteLength,
-              0,
-            );
-            return texture;
-          }
-          if (compressed) {
-            this.metrics.decodes++;
-            const texture = uploadCompressed(
-              this.device,
-              this.resources,
-              compressed,
-              image.name,
-            );
-            this.metrics.uploadBytes += compressed.levels.reduce(
-              (sum, level) => sum + level.data.byteLength,
-              0,
-            );
-            return texture;
-          }
-          if (!bitmaps.has(hash)) {
-            this.metrics.decodes++;
-            bitmaps.set(
-              hash,
-              createImageBitmap(new Blob([bytes], { type: image.mimeType }), {
-                colorSpaceConversion: "none",
-                premultiplyAlpha: "none",
-              }),
-            );
-          }
-          const bitmap = await bitmaps.get(hash)!;
-          if (this.disposed)
-            throw new Error("Texture manager disposed during decode");
-          if (
-            bitmap.width > this.device.limits.maxTextureDimension2D ||
-            bitmap.height > this.device.limits.maxTextureDimension2D
-          )
-            throw new Error("Texture exceeds device limits");
-          const texture = this.resources.textures.create({
-            label: image.name,
-            size: [bitmap.width, bitmap.height],
-            format,
-            mipLevelCount: mipLevelCount(bitmap.width, bitmap.height),
-            usage:
-              GPUTextureUsage.TEXTURE_BINDING |
-              GPUTextureUsage.COPY_DST |
-              GPUTextureUsage.COPY_SRC |
-              GPUTextureUsage.RENDER_ATTACHMENT,
-          });
-          try {
-            this.device.queue.copyExternalImageToTexture(
-              { source: bitmap },
-              { texture },
-              [bitmap.width, bitmap.height],
-            );
-            this.mipmaps.generate(texture);
-            this.metrics.uploadBytes += bitmap.width * bitmap.height * 4;
-            return texture;
-          } catch (error) {
-            this.resources.textures.destroy(texture);
-            throw error;
-          }
-        })();
+        cached = this.uploader.upload({
+          image,
+          bytes,
+          hash,
+          format,
+          basis,
+          role,
+          compressed,
+          bitmaps,
+        });
         this.cache.set(key, cached);
         const created = cached;
         void created.catch(() => {

@@ -20,7 +20,8 @@
     "validate:recovery": "node scripts/validate-device-recovery.mjs",
     "validate:hdr": "node scripts/validate-hdr.mjs",
     "validate:features": "node scripts/validate-scene-features.mjs",
-    "validate:codecs": "node scripts/validate-codecs.mjs"
+    "validate:codecs": "node scripts/validate-codecs.mjs",
+    "validate": "node scripts/validate-project.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",

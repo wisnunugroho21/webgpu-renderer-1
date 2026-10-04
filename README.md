@@ -287,3 +287,7 @@ Radiance HDR and OpenEXR decode to top-down linear RGB. The EXR decoder supports
 Basis ETC1S/UASTC textures retain authored mips and role-correct linear/sRGB sampling. Adapter support selects compressed output; absent compression support or non-block-aligned base dimensions select RGBA. Supported input is straight-alpha 2D, `rd` orientation, `rgba` swizzle, and Rec.709/unspecified primaries. Basis HDR output, cubemaps/arrays and alternative orientations/primaries reject explicitly. Workers belong to the texture manager and terminate during disposal/recovery.
 
 `JOINTS_1`/`WEIGHTS_1` automatically enable eight weights without a new vertex layout or storage binding. Static secondary influences share the existing deformation arena and are uploaded once; animated palettes remain shared. GPU LOD groups require matching four/eight-weight layouts. More than eight influences reject. See [codec and skinning validation](benchmarks/CODECS_REPORT.md).
+
+## Maintenance checks
+
+Run `npm run validate` for formatting, unit tests, production build and all renderer/asset/game/HDR/recovery/environment/codec GPU checks. It stops at the first failure. Run CPU/GPU benchmarks separately using `npm run benchmark` and `npm run benchmark:gpu`; add `-- --long-animation` to the latter for the long-clip crowd matrix. Module ownership and change locations are documented in [the codebase guide](ARCHITECTURE.md).

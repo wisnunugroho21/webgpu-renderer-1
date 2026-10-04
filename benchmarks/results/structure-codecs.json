@@ -1,0 +1,349 @@
+{
+  "geometry": [
+    {
+      "url": "/regression/triangle-draco.glb",
+      "loadMs": 18,
+      "worker": false,
+      "difference": {
+        "max": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "url": "/regression/triangle-meshopt.glb",
+      "loadMs": 14.199999988079071,
+      "worker": false,
+      "difference": {
+        "max": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "url": "/regression/triangle-draco.glb",
+      "loadMs": 24.600000023841858,
+      "worker": true,
+      "difference": {
+        "max": 0,
+        "bytes": 0
+      }
+    },
+    {
+      "url": "/regression/triangle-meshopt.glb",
+      "loadMs": 7.5,
+      "worker": true,
+      "difference": {
+        "max": 0,
+        "bytes": 0
+      }
+    }
+  ],
+  "skin": [
+    {
+      "url": "/regression/skinned-eight.glb",
+      "loadMs": 5,
+      "referenceCompletionMs": 1.0999999940395355,
+      "lod": {
+        "difference": {
+          "max": 0,
+          "bytes": 0
+        },
+        "selectedVariant": true,
+        "baseOffset": 0,
+        "variantOffset": 9
+      },
+      "comparisons": [
+        {
+          "mode": "individual",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "mode": "instanced",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "mode": "gpu-indirect",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        }
+      ],
+      "shadowDrawCalls": 1,
+      "depthDrawCalls": 1,
+      "resources": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 52,
+        "textureCreations": 15,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 10,
+        "bufferBytes": 61085636,
+        "cacheHits": 83,
+        "cacheMisses": 67
+      },
+      "warm": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 52,
+        "textureCreations": 15,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 10,
+        "bufferBytes": 61085636,
+        "cacheHits": 83,
+        "cacheMisses": 67
+      },
+      "completionMs": 1.0999999940395355
+    },
+    {
+      "url": "/regression/skinned-secondary.glb",
+      "loadMs": 4.100000023841858,
+      "referenceCompletionMs": 1.0999999940395355,
+      "lod": {
+        "difference": {
+          "max": 0,
+          "bytes": 0
+        },
+        "selectedVariant": true,
+        "baseOffset": 0,
+        "variantOffset": 9
+      },
+      "comparisons": [
+        {
+          "mode": "individual",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "mode": "instanced",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "mode": "gpu-indirect",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        }
+      ],
+      "shadowDrawCalls": 1,
+      "depthDrawCalls": 1,
+      "resources": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 58,
+        "textureCreations": 25,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 10,
+        "bufferBytes": 61085636,
+        "cacheHits": 93,
+        "cacheMisses": 67
+      },
+      "warm": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 58,
+        "textureCreations": 25,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 10,
+        "bufferBytes": 61085636,
+        "cacheHits": 93,
+        "cacheMisses": 67
+      },
+      "completionMs": 1.0999999940395355
+    },
+    {
+      "url": "/regression/combined-eight.glb",
+      "loadMs": 13.200000017881393,
+      "referenceCompletionMs": 1.0999999940395355,
+      "lod": {
+        "difference": {
+          "max": 0,
+          "bytes": 0
+        },
+        "selectedVariant": true,
+        "baseOffset": 0,
+        "variantOffset": 7200
+      },
+      "comparisons": [
+        {
+          "mode": "individual",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "mode": "instanced",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        },
+        {
+          "mode": "gpu-indirect",
+          "difference": {
+            "max": 0,
+            "bytes": 0
+          }
+        }
+      ],
+      "shadowDrawCalls": 1,
+      "depthDrawCalls": 1,
+      "resources": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 64,
+        "textureCreations": 25,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 5,
+        "bufferBytes": 61135576,
+        "cacheHits": 103,
+        "cacheMisses": 67
+      },
+      "warm": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 64,
+        "textureCreations": 25,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 5,
+        "bufferBytes": 61135576,
+        "cacheHits": 103,
+        "cacheMisses": 67
+      },
+      "completionMs": 1.0999999940395355
+    }
+  ],
+  "basis": [
+    {
+      "url": "/regression/triangle-basis-etc1s.glb",
+      "loadMs": 78.09999999403954,
+      "resources": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 66,
+        "textureCreations": 26,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 6,
+        "bufferBytes": 61085636,
+        "cacheHits": 108,
+        "cacheMisses": 67
+      },
+      "warm": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 66,
+        "textureCreations": 26,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 6,
+        "bufferBytes": 61085636,
+        "cacheHits": 108,
+        "cacheMisses": 67
+      },
+      "visible": true
+    },
+    {
+      "url": "/regression/triangle-basis-uastc.glb",
+      "loadMs": 4.5999999940395355,
+      "resources": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 68,
+        "textureCreations": 27,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 6,
+        "bufferBytes": 61085636,
+        "cacheHits": 113,
+        "cacheMisses": 67
+      },
+      "warm": {
+        "pipelineCreations": 52,
+        "shaderModules": 12,
+        "bufferCreations": 68,
+        "textureCreations": 27,
+        "samplerCreations": 3,
+        "buffers": 38,
+        "textures": 6,
+        "bufferBytes": 61085636,
+        "cacheHits": 113,
+        "cacheMisses": 67
+      },
+      "visible": true
+    }
+  ],
+  "fallback": [
+    {
+      "name": "etc1s",
+      "format": "rgba8unorm-srgb",
+      "levels": 6,
+      "bytes": 8520,
+      "decodeMs": 33.099999994039536
+    },
+    {
+      "name": "uastc",
+      "format": "rgba8unorm-srgb",
+      "levels": 6,
+      "bytes": 8520,
+      "decodeMs": 0.699999988079071
+    }
+  ],
+  "fallbackError": null,
+  "recovered": {
+    "max": 0,
+    "bytes": 0
+  },
+  "validationError": null,
+  "recoveryError": null,
+  "decoder": {
+    "workerJobs": 2,
+    "mainJobs": 13,
+    "transferredInputBytes": 2108,
+    "transferredOutputBytes": 336,
+    "lastWorkerDecodeMs": 5.5999999940395355
+  },
+  "gpuErrors": [],
+  "oldResources": {
+    "pipelineCreations": 52,
+    "shaderModules": 12,
+    "bufferCreations": 72,
+    "textureCreations": 28,
+    "samplerCreations": 3,
+    "buffers": 0,
+    "textures": 0,
+    "bufferBytes": 0,
+    "cacheHits": 123,
+    "cacheMisses": 67
+  },
+  "finalResources": {
+    "pipelineCreations": 52,
+    "shaderModules": 12,
+    "bufferCreations": 40,
+    "textureCreations": 6,
+    "samplerCreations": 2,
+    "buffers": 0,
+    "textures": 0,
+    "bufferBytes": 0,
+    "cacheHits": 59,
+    "cacheMisses": 66
+  }
+}

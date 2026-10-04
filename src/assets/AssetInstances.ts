@@ -5,17 +5,23 @@ import { AnimationSystem } from "../ecs/systems/AnimationSystem";
 import { SkeletonRegistry } from "../animation/skinning/SkeletonRegistry";
 import { RuntimeAsset } from "./gltf/RuntimeAsset";
 import { UploadedAsset } from "./gltf/instantiate";
-/** Application-owned scene instances. Retained identities validate generations before touching recycled slots. */
+/** A cold ownership record includes primitive children as well as authored nodes. */
+export interface InstanceLifetime {
+  readonly entities: readonly EntityHandle[];
+  readonly animator: Animator | undefined;
+  readonly disposed: boolean;
+  dispose(): void;
+}
+interface InstanceRecord {
+  entities: readonly EntityHandle[];
+  release: () => void;
+  animators: Set<Animator>;
+  morphs: Set<MorphState>;
+  disposed: boolean;
+}
+/** Application-owned scene instances; shared assets outlive individual scene lifetimes. */
 export class AssetInstances {
-  private readonly entries = new Map<
-    string,
-    {
-      entities: Map<number, EntityHandle>;
-      leases: (() => void)[];
-      animators: Set<Animator>;
-      morphs: Set<MorphState>;
-    }
-  >();
+  private readonly entries = new Map<string, Set<InstanceRecord>>();
   constructor(
     private readonly world: World,
     private readonly animations: AnimationSystem,
@@ -34,52 +40,87 @@ export class AssetInstances {
     url: string,
     entities: readonly EntityHandle[],
     release: () => void,
-  ): void {
-    let entry = this.entries.get(url);
-    if (!entry) {
-      entry = {
-        entities: new Map(),
-        leases: [],
-        animators: new Set(),
-        morphs: new Set(),
-      };
-      this.entries.set(url, entry);
-    }
+    asset?: RuntimeAsset,
+  ): InstanceLifetime {
+    let entries = this.entries.get(url);
+    if (!entries) this.entries.set(url, (entries = new Set()));
+    const record: InstanceRecord = {
+      entities: Object.freeze(Array.from(entities)),
+      release,
+      animators: new Set(),
+      morphs: new Set(),
+      disposed: false,
+    };
     for (const handle of entities) {
       const e = this.world.require(handle);
-      entry.entities.set(e, handle);
       if (this.world.animators.has[e])
-        entry.animators.add(
+        record.animators.add(
           this.animations.animators[this.world.animators.animatorId[e]!]!,
         );
       if (this.world.morphs.has[e])
-        entry.morphs.add(
+        record.morphs.add(
           this.animations.morphStates[this.world.morphs.stateId[e]!]!,
         );
     }
-    entry.leases.push(release);
+    entries.add(record);
+    return Object.freeze({
+      entities: record.entities,
+      animator: record.animators.values().next().value,
+      get disposed() {
+        return record.disposed;
+      },
+      dispose: () => {
+        if (record.disposed) return;
+        // Shared mesh/material references are allowed; entity-owned bindings are not.
+        this.assertConsumers([record]);
+        this.retire(record);
+        entries.delete(record);
+        if (!entries.size) this.entries.delete(url);
+        this.animations.releaseUnused(this.world);
+        this.skeletons.releaseUnused(this.world, asset);
+      },
+    });
   }
-  /** Veto external consumers before changing anything; custom attachments require explicit detachment. */
-  assertCanUnload(url: string, uploaded: UploadedAsset): void {
-    const world = this.world,
-      own = new Set(
-        Array.from(this.entries.get(url)?.entities.values() ?? [])
-          .filter((handle) => world.resolve(handle) !== null)
-          .map((handle) => handle.index),
+  private retire(record: InstanceRecord): void {
+    for (const handle of record.entities) this.world.destroy(handle);
+    record.release();
+    record.disposed = true;
+  }
+  private assertConsumers(
+    records: Iterable<InstanceRecord>,
+    uploaded?: UploadedAsset,
+  ): void {
+    const list = Array.from(records),
+      world = this.world;
+    const own = new Set(
+      list
+        .flatMap((record) => record.entities)
+        .filter((handle) => world.resolve(handle) !== null)
+        .map((handle) => handle.index),
+    );
+    const meshes = new Set(uploaded?.meshIds.flat() ?? []),
+      materials = new Set(
+        uploaded ? [...uploaded.materialIds, uploaded.defaultMaterial] : [],
       );
-    const meshes = new Set(uploaded.meshIds.flat()),
-      materials = new Set([...uploaded.materialIds, uploaded.defaultMaterial]);
     const skins = new Set<number>(),
       morphs = new Set<number>(),
       animators = new Set<number>();
-    const entry = this.entries.get(url);
     for (let id = 0; id < this.skeletons.instances.length; id++)
       if (own.has(this.skeletons.instances[id]!.meshEntity)) skins.add(id);
     for (let id = 0; id < this.animations.animators.length; id++)
-      if (entry?.animators.has(this.animations.animators[id]!))
+      if (
+        list.some((record) =>
+          record.animators.has(this.animations.animators[id]!),
+        )
+      )
         animators.add(id);
     for (let id = 0; id < this.animations.morphStates.length; id++)
-      if (entry?.morphs.has(this.animations.morphStates[id]!)) morphs.add(id);
+      if (
+        list.some((record) =>
+          record.morphs.has(this.animations.morphStates[id]!),
+        )
+      )
+        morphs.add(id);
     const usedSkins = new Set<number>();
     for (let e = 0; e < world.nextEntity; e++)
       if (world.alive[e] && world.skins.has[e])
@@ -108,13 +149,13 @@ export class AssetInstances {
       )
         throw new Error("Asset joints are referenced by an external skeleton");
   }
+  /** URL unload still releases every instance, after one aggregate consumer veto. */
+  assertCanUnload(url: string, uploaded: UploadedAsset): void {
+    this.assertConsumers(this.entries.get(url) ?? [], uploaded);
+  }
   detach(url: string, asset: RuntimeAsset): void {
-    const entry = this.entries.get(url);
-    if (entry) {
-      for (const handle of entry.entities.values()) this.world.destroy(handle);
-      for (const release of entry.leases) release();
-      this.entries.delete(url);
-    }
+    for (const record of this.entries.get(url) ?? []) this.retire(record);
+    this.entries.delete(url);
     this.animations.releaseUnused(this.world);
     this.skeletons.releaseUnused(this.world, asset);
   }

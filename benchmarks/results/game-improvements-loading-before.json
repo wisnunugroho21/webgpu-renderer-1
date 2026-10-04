@@ -1,0 +1,99 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/asset-loading.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/asset-loading.bench.ts",
+          "benchmarks": [
+            {
+              "id": "-1316468646_0",
+              "name": "parse and convert 100000 glTF vertices",
+              "rank": 2,
+              "rme": 1.5763957561397801,
+              "samples": [],
+              "totalTime": 511.24966599999993,
+              "min": 26.02412499999997,
+              "max": 29.407208000000026,
+              "hz": 35.20784696219245,
+              "period": 28.40275922222222,
+              "mean": 28.40275922222222,
+              "variance": 0.8105114844591335,
+              "sd": 0.9002841131882388,
+              "sem": 0.21219900047664034,
+              "df": 17,
+              "critical": 2.11,
+              "moe": 0.4477398910057111,
+              "p75": 29.13383399999998,
+              "p99": 29.407208000000026,
+              "p995": 29.407208000000026,
+              "p999": 29.407208000000026,
+              "sampleCount": 18,
+              "median": 28.559541499999966
+            },
+            {
+              "id": "-1316468646_1",
+              "name": "preprocess and pack 100000 mesh vertices (no GPU upload)",
+              "rank": 1,
+              "rme": 24.876942122345422,
+              "samples": [],
+              "totalTime": 501.59405000000004,
+              "min": 4.4037080000000515,
+              "max": 60.18962499999998,
+              "hz": 147.52966068875816,
+              "period": 6.7782979729729735,
+              "mean": 6.7782979729729735,
+              "variance": 52.946169314179926,
+              "sd": 7.27641184335933,
+              "sem": 0.8458656953180835,
+              "df": 73,
+              "critical": 1.9935,
+              "moe": 1.6862332636165995,
+              "p75": 5.3986670000001595,
+              "p99": 60.18962499999998,
+              "p995": 60.18962499999998,
+              "p999": 60.18962499999998,
+              "sampleCount": 74,
+              "median": 4.550750000000107
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/environment.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/environment.bench.ts",
+          "benchmarks": [
+            {
+              "id": "-1017924698_0",
+              "name": "Cold HDR bake: 16px GGX cube / 4px diffuse / 16px BRDF, 64 samples",
+              "rank": 1,
+              "rme": 1.3154329646847531,
+              "samples": [],
+              "totalTime": 501.3779999999998,
+              "min": 3.371582999999987,
+              "max": 5.944917000000032,
+              "hz": 283.21944720350723,
+              "period": 3.530830985915492,
+              "mean": 3.530830985915492,
+              "variance": 0.07973839728202933,
+              "sd": 0.28237988115662443,
+              "sem": 0.023696793222467375,
+              "df": 141,
+              "critical": 1.96,
+              "moe": 0.046445714716036056,
+              "p75": 3.4951670000000377,
+              "p99": 4.539791999999977,
+              "p995": 5.944917000000032,
+              "p999": 5.944917000000032,
+              "sampleCount": 142,
+              "median": 3.4560830000000067
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

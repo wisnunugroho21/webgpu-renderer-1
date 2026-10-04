@@ -7,7 +7,7 @@ npm ci
 npm run dev
 ```
 
-Open the displayed localhost URL in a WebGPU-capable browser. The initial scene is an indexed cube. Resize handling uses physical pixel dimensions and device limits; device loss stops rendering and reports the loss.
+Open the displayed localhost URL in a WebGPU-capable browser. The initial scene is an indexed cube. Resize handling uses physical pixel dimensions and device limits; unexpected device loss pauses rendering and automatically rebuilds GPU resources before resuming.
 
 ## Code organization
 
@@ -237,7 +237,7 @@ app.renderer.hdr.exposure = 1; // stops: +1 doubles radiance, -1 halves it
 app.renderer.hdr.toneMapping = "reinhard"; // default; "clamp" for a linear clamp
 ```
 
-HDR is disabled by default and allocates no resources until enabled. It renders the full scene, including transparency, into a shared linear `rgba16float` target. Exposure is applied after blending, then Reinhard maps each channel with `x / (1 + x)`. The final sRGB canvas attachment performs display encoding once. Exposure accepts finite values from −16 to +16 stops. This is SDR presentation of HDR lighting; it does not enable an HDR monitor output mode. Reinhard compresses colors per channel and can reduce saturation at high intensity; no bloom or automatic exposure is included.
+HDR is disabled by default and allocates no resources until enabled. It renders the full scene, including transparency, into a shared linear `rgba16float` target. Exposure is applied after blending, then Reinhard maps each channel with `x / (1 + x)`. The final sRGB canvas attachment performs display encoding once. Exposure accepts finite values from −16 to +16 stops. This is SDR presentation of HDR lighting; it does not enable an HDR monitor output mode. Reinhard compresses colors per channel and can reduce saturation at high intensity; Optional bloom and automatic exposure are available as described below.
 
 Disabling HDR restores the original direct rendering path; resources remain cached for reuse. Resize replaces the target, and renderer disposal releases it. The target uses 8 bytes per pixel (about 15.8 MiB at 1920×1080), plus one 16-byte uniform and bounded color/presentation pipeline variants. Half-float scene values above 65504 saturate during presentation. Hi-Z debug runs after tone mapping. No ordinary-frame waits, readbacks or resource creation are added.
 
@@ -291,3 +291,156 @@ Basis ETC1S/UASTC textures retain authored mips and role-correct linear/sRGB sam
 ## Maintenance checks
 
 Run `npm run validate` for formatting, unit tests, production build and all renderer/asset/game/HDR/recovery/environment/codec GPU checks. It stops at the first failure. Run CPU/GPU benchmarks separately using `npm run benchmark` and `npm run benchmark:gpu`; add `-- --long-animation` to the latter for the long-clip crowd matrix. Module ownership and change locations are documented in [the codebase guide](ARCHITECTURE.md).
+
+## Independent scene instances
+
+```ts
+const enemy = await app.instantiateAsset("/enemy.glb");
+enemy.animator?.play(0);
+await enemy.dispose(); // destroys only this instance, including primitive children
+```
+
+Instances expose immutable authored-node handles, a stable optional animator, and a `disposed` flag. Disposal is idempotent and releases the instance cache lease without waiting for or destroying shared GPU resources. External children, skeleton joints, animator or morph bindings veto disposal before any mutation; detach them first. Unused registrations are compacted while sibling controllers/palettes remain valid. Assets remain cached until explicit unload or LRU eviction. URL-wide unload and application disposal invalidate all owned instance lifetimes.
+
+## Explicit animation sampling quality
+
+```ts
+animator.evaluationInterval = 1 / 30; // opt-in 30 Hz poses; clocks keep advancing
+animator.evaluationPhase = characterIndex / characterCount; // stagger work
+animator.evaluationInterval = 0; // restore full-rate quality (default)
+```
+
+Held poses remain consistent in color/depth/shadows and conservative animated bounds. End and completed fade poses are forced; explicit evaluate/seek/play are immediate. This setting trades temporal smoothness for sampling cost; use full rate for close characters. It does not automatically pause gameplay or infer visibility.
+
+## Render quality controls
+
+```ts
+app.gpu.renderScale = 0.75; // 0.25–2; multiplies device pixel ratio, default 1
+app.renderer.antialiasing = "fxaa"; // default "none"
+```
+
+Render scaling changes physical canvas size while retaining CSS size; dependent depth/HDR/Hi-Z targets resize together. FXAA is optional and shares a linear half-float scene target plus presentation pass with HDR. It does not enable HDR exposure or Reinhard mapping when HDR is disabled. It filters mapped color, includes blended transparency, and performs sRGB encoding once. As a spatial filter it can soften fine detail; no temporal history/motion vectors are required. First enable prepares bounded resources; warm frames and toggles reuse them. Scale and anti-aliasing survive device recovery. `npm run validate:quality` checks scale, restoration, image changes, submission modes, depth/HDR, stable warm resources, recovery and cleanup, and records diagnostic completion timings.
+
+## Gameplay animation controls
+
+```ts
+import { AnimationStateMachine } from "./src/animation/AnimationStateMachine";
+import { RootMotionSampler } from "./src/animation/RootMotionSampler";
+
+animator.setEvents(0, [{ time: 0.2, name: "footstep" }]);
+const offEvent = animator.onEvent((marker, clip, direction) => {
+  // Play audio or schedule a game action; marker objects are immutable/shared.
+});
+const states = new AnimationStateMachine(animator, {
+  idle: { clip: 0 },
+  run: { clip: 1, fadeSeconds: 0.2 },
+});
+states.transition("run"); // repeated requests do not restart a fade
+
+// A single-clip authoritative root-motion controller:
+animator.updateMode = "manual";
+animator.setInPlaceRoot(authoredRootNode);
+const root = new RootMotionSampler(animator.clips[0]!, authoredRootNode);
+const delta = new Float32Array(7); // xyz translation, xyzw rotation
+let clock = 0;
+const offFixed = app.onFixedUpdate((dt) => {
+  const previous = clock;
+  clock += dt * animator.speed;
+  root.delta(previous, clock, delta, animator.loop);
+  // Apply delta in actor-local space, with collision handling owned by gameplay.
+  animator.update(dt); // automatic animation stage skips manual controllers
+});
+// On cleanup: offFixed(); offEvent();
+```
+
+RootMotionSampler is pure and does not move ECS entities itself. It normalizes away the clip's initial rigid pose, ignores scale, and composes rotating loop displacement. For transitions, gameplay chooses/mixes source and target track deltas and resets its unwrapped clock when switching clips; visual crossfades remain available independently. Marker crossing windows exclude the starting endpoint and include the destination; seeks/evaluate do not emit events, and paused playback does not advance. Markers at zero fire when crossing a loop seam, not automatically on play. Only the target clip emits during fades. Excessive event crossings reject explicitly; ordinary callbacks allocate no marker/event objects.
+
+## Picking and spatial queries
+
+```ts
+const handle = app.pick(pointerEvent.clientX, pointerEvent.clientY);
+// Returns the nearest renderable primitive's safe identity, or null.
+
+import { Ray } from "./src/spatial/Ray";
+import { RayHit } from "./src/spatial/SpatialQueries";
+const ray = new Ray();
+const hit = new RayHit();
+ray.set([0, 2, 10], [0, 0, -1]);
+if (app.spatial.raycast(ray, hit, 100)) {
+  // hit.entityId/generation, distance, world-space point, snapshot objectIndex
+}
+const output = new Uint32Array(app.renderWorld.capacity);
+const count = app.spatial.queryAABB([-5, -5, -5], [5, 5, 5], output);
+// output[0..count) contains snapshot object indices.
+```
+
+Queries use the latest extracted snapshot and include offscreen objects. Ray hits and overlaps are conservative AABB candidates, not exact mesh intersections or physics contacts. Reuse Ray/RayHit/output scratch for frequent queries, and validate saved identities against current world generations. CSS picking accounts for render scale and both camera projections.
+
+## Responsive loading and offline environment bakes
+
+Large assets prepare canonical vertices, indices, influence streams, morph extrema and cluster metadata in the existing decode worker. Prepared arrays transfer without copies. Uploads publish only after completion, yield between vertex/index writes of at most 1 MiB, and roll back cancellation/device failure. Decoder metrics include worker preparation time and prepared mesh count. Small input assets/main-thread fallback still prepare synchronously; deformation-arena append is also cold work.
+
+```sh
+npm run bake:environment -- public/sky.hdr public/sky.envbin --specular-size 32 --samples 128
+```
+
+```ts
+await app.loadEnvironment("/sky.envbin");
+// Or parse/bake an HDR/EXR file through the lazy environment worker:
+await app.loadEnvironment("/sky.exr", { specularSize: 32, samples: 128 });
+```
+
+Archives fix their bake quality/dimensions at creation; runtime bake options do not change precomputed data. Files contain validated linear float32 faces/mips/LUT data with version/length checks. Browser preparation uses a lazily created reusable worker (`app.environments.preparation.enabled = false` opts into the main-thread path). Clearing the environment cache terminates pending worker preparation. No parsing, baking or asset preparation occurs in ordinary rendering frames.
+
+### Optional HDR post effects
+
+```ts
+app.renderer.hdr.enabled = true;
+app.renderer.hdr.toneMapping = "filmic"; // also reinhard / clamp
+app.renderer.hdr.bloomThreshold = 1;
+app.renderer.hdr.bloomStrength = 0.3;
+app.renderer.hdr.exposureKey = 0.18;
+app.renderer.hdr.adaptationSpeed = 3;
+app.renderer.hdr.autoExposure = true;
+```
+
+Bloom reduces bright radiance into a bounded six-level half-float pyramid. Automatic exposure reduces log luminance to one GPU texel and adapts a persistent GPU gain toward the exposure key. Application supplies frame delta automatically; custom render loops set `hdr.frameDeltaSeconds`. Manual exposure stops multiply the automatic gain. Adaptation speed zero freezes gain; disabling automatic exposure returns to manual gain. Device recovery restarts adaptation from gain one. Filmic is an approximate rational curve, not a reference ACES color pipeline. All effects default off, run after transparent blending and before one sRGB encoding, and perform no runtime readback. FXAA can be combined with these effects. This remains SDR canvas presentation.
+
+### Pointer, touch, gamepad and camera controls
+
+Import helpers from `src/input/PointerInput`, `TouchJoystick`, `GamepadInput`, and `src/camera/OrbitCameraController` / `ThirdPersonCameraController`. They are optional game-layer owners; rendering passes never read input.
+
+```ts
+app.setActiveCamera(null); // let the controller own the renderer camera
+app.canvas.tabIndex = 0;
+const pointer = new PointerInput(app.canvas);
+const pad = new GamepadInput(app.canvas);
+const orbit = new OrbitCameraController(app.renderer.camera, {
+  minDistance: 1,
+  maxDistance: 40,
+});
+const delta = new Float32Array(3);
+const offFixed = app.onFixedUpdate((dt) => {
+  pad.update(); // focus-scoped, standard mapping only
+  // pad.axes[0..1]: left stick; [2..3]: right stick
+  // movePlayer(dt, pad.axes[0], pad.axes[1]);
+  if (pad.consumePressed(0)) jump();
+});
+const offFrame = app.onUpdate(() => {
+  pointer.consume(delta); // consume only once, including completed drags
+  orbit.update(delta[0], delta[1], delta[2]);
+});
+// On scene teardown:
+offFixed();
+offFrame();
+pointer.dispose();
+pad.dispose();
+```
+
+`PointerInput` captures a primary mouse, pen or touch drag and accumulates CSS-pixel drag/wheel deltas in caller-owned storage. Capture/focus loss and hidden documents clear held state; disposal restores the previous CSS touch action. Mount `TouchJoystick` on a separate DOM element (for example a thumb pad) to move with one touch while another touch drags the camera. Its persistent two-float `axes` are radial-clamped to unit length and reset on release/cancel. It accepts touch pointers only. The game owns that element and removes it after disposing the joystick.
+
+`GamepadInput` selects the first connected standard-mapping pad. Its radial deadzone defaults to 0.15, edges persist until consumed, and disconnect/focus loss clears state. Pass no target for explicitly global polling, or supply a provider for deterministic simulation/tests. Call `update()` once per fixed tick; `dispose()` disables future polling. Controller/gamepad storage is reused; browser polling costs are platform-dependent.
+
+`OrbitCameraController` uses Y-up orientation, bounded distance and pole-safe pitch, and preserves perspective/orthographic projection. Call `syncFromCamera()` after external teleports. For a follow camera, instantiate `ThirdPersonCameraController(camera, { height: 1, followSpeed: 8 })`, then call `follow(dt, playerPosition, headingRadians, dragX, dragY, wheel, snap)` in the variable update. The position is world-space; heading rotates the orbit offset about world Y. Set `snap=true` for spawning/teleports. Smoothing is time-based and target positions can be interpolated from fixed simulation. Camera collision and character movement remain gameplay responsibilities. Use only one active camera controller at a time.
+
+Try `?example=collect`: WASD/arrows, touch stick or gamepad move; R/gamepad A restarts; C/Y switches projection; F/X toggles following; drag orbits and wheel zooms. The thumb pad appears on coarse-pointer devices. The example disposes inputs and update subscriptions together.

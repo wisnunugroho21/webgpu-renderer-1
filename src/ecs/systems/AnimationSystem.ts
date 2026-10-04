@@ -86,7 +86,7 @@ export class AnimationSystem {
   update(deltaSeconds: number): void {
     this.activeAnimators = 0;
     for (const animator of this.animators) {
-      animator.update(deltaSeconds);
+      if (animator.updateMode === "automatic") animator.update(deltaSeconds);
       if (animator.playing) this.activeAnimators++;
     }
   }

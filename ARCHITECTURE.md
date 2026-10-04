@@ -136,3 +136,17 @@ The application facade preserves existing public properties and loading methods.
 `ColorPass` owns bounded default/HDR/environment pipeline sets and reuses existing buffers/material/mesh/pass owners. Render graph callbacks stay persistent and compile in `Renderer.configurePasses`; frame order and GPU layouts remain unchanged. Current clear color, depth view and dynamic instance offset are passed into encoding rather than captured at setup. `ColorPipelineLayout` names queue-ID groups and variant offsets shared by table creation and selection. Ordinary frames add no resource creation, cache work, decoder work, completion waits or readbacks.
 
 For a complete integration gate, run `npm run validate`. It runs formatting, unit tests, production build and every GPU validation in order, stopping at the first failure. Benchmark timing remains separate: `npm run benchmark`, `npm run benchmark:gpu`, and `npm run benchmark:gpu -- --long-animation`. This avoids overlapping validation jobs with timed workloads. See `benchmarks/STRUCTURE_REPORT.md` for equivalence and performance evidence from this restructuring.
+
+## Game integration owners
+
+`AssetInstances` owns one record and lease per independent spawned asset. `ApplicationAssets.instantiate` exposes an immutable lifetime facade; asynchronous instance disposal performs CPU detachment without destroying shared cached GPU data. URL unload and recovery remain manager-level operations.
+
+Animation marker crossing and named state transitions belong to controllers. `RootMotionSampler` returns rigid local-space deltas into caller storage; gameplay applies those to an actor. Explicit manual update mode separates fixed simulation clocks from pose preparation. Optional reduced-rate evaluation advances clocks every tick while all render passes use the same held deformation pose.
+
+`SpatialQueries` reads extracted conservative bounds, not ECS. `Application.pick` translates CSS coordinates and validates the returned snapshot generation. These queries require no GPU readback and do not implement triangle collision.
+
+`prepareMesh` is pure CPU canonical packing shared by worker and main paths. Large worker results transfer prepared storage; upload publication owns transactional rollback and bounded vertex/index queue writes. Environment workers produce CPU bake definitions, while versioned offline archives bypass convolution. Recovery retains CPU definitions. Worker startup, uploads and target allocation remain cold lifecycle work.
+
+`HDRRendering` owns optional linear scene presentation. `HDRPostEffects` owns bounded bloom/luminance pyramids, persistent exposure state and compute pipelines. The graph orders color → post-processing → tone mapping. Ordinary effects frames update existing parameter buffers and encode GPU work without allocation, waits or readbacks; configuration/resize prepares resources. FXAA filters mapped linear output before the final sRGB attachment encoding. All new effects default off.
+
+Input helpers own DOM capture/poll state and are disposed by gameplay. Camera controllers receive gameplay positions/deltas and call the existing Camera setters. They never query ECS from render passes, allocate GPU resources, or alter geometry/deformation layouts. The collect example demonstrates their subscription/teardown boundaries.

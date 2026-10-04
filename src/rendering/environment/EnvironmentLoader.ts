@@ -1,11 +1,7 @@
 import { contentHash } from "../../assets/contentHash";
-import {
-  bakeEnvironment,
-  EnvironmentBakeOptions,
-  panoramaSampler,
-} from "./bakeEnvironment";
+import { EnvironmentWorker } from "./EnvironmentWorker";
+import { EnvironmentBakeOptions } from "./bakeEnvironment";
 import { EnvironmentData } from "./EnvironmentData";
-import { decodeEnvironmentPanorama } from "./decodeEnvironmentPanorama";
 export { decodeEnvironmentPanorama } from "./decodeEnvironmentPanorama";
 export type { EnvironmentPanorama } from "./decodeEnvironmentPanorama";
 function dataBytes(data: EnvironmentData): number {
@@ -20,7 +16,8 @@ function dataBytes(data: EnvironmentData): number {
 }
 /** Content-addressed cold CPU bake cache. No device ownership or frame-loop work. */
 export class EnvironmentLoader {
-  readonly metrics = { hits: 0, bakes: 0, decoded: 0 };
+  readonly metrics = { hits: 0, bakes: 0, decoded: 0, archives: 0 };
+  readonly preparation = new EnvironmentWorker();
   private readonly cache = new Map<string, EnvironmentData>();
   private readonly pending = new Map<string, Promise<EnvironmentData>>();
   private bytes = 0;
@@ -45,6 +42,7 @@ export class EnvironmentLoader {
   }
   clear(): void {
     this.epoch++;
+    this.preparation.clear();
     this.pending.clear();
     this.cache.clear();
     this.bytes = 0;
@@ -92,13 +90,15 @@ export class EnvironmentLoader {
     else {
       const epoch = this.epoch;
       operation = (async () => {
-        const panorama = await decodeEnvironmentPanorama(source);
-        this.metrics.decoded++;
-        const baked = bakeEnvironment(
-          panoramaSampler(panorama.width, panorama.height, panorama.pixels),
+        const { data: baked, precomputed } = await this.preparation.prepare(
+          source,
           options,
         );
-        this.metrics.bakes++;
+        if (precomputed) this.metrics.archives++;
+        else {
+          this.metrics.decoded++;
+          this.metrics.bakes++;
+        }
         const size = dataBytes(baked);
         if (epoch === this.epoch && this.maxEntries && size <= this.maxBytes) {
           this.cache.set(key, baked);

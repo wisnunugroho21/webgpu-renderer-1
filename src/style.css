@@ -22,3 +22,23 @@ output {
   background: #101923cc;
   white-space: pre-line;
 }
+
+.touch-stick {
+  display: none;
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: #dbe8f533;
+  border: 2px solid #dbe8f588;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+}
+@media (pointer: coarse) {
+  .touch-stick {
+    display: flex;
+  }
+}

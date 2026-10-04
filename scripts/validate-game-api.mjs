@@ -7,7 +7,10 @@ const server = await startPreviewServer(5192, true);
 let browser;
 try {
   browser = await chromium.launch({ channel: "chrome", headless: true });
-  const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
+  const page = await browser.newPage({
+    viewport: { width: 640, height: 480 },
+    hasTouch: true,
+  });
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("http://127.0.0.1:5192");
@@ -214,6 +217,122 @@ try {
     ...window.rendererApp.renderer.resources.stats,
   }));
   assert.deepEqual(exampleAfter, exampleBefore);
+  // Actual captured mouse and touch streams exercise the reusable helpers through the game.
+  const cameraBefore = await page.evaluate(() =>
+    Array.from(window.rendererApp.renderer.camera.position),
+  );
+  await page.mouse.move(500, 300);
+  await page.mouse.down();
+  await page.mouse.move(550, 320, { steps: 3 });
+  await page.mouse.up();
+  const cameraDragged = await page.evaluate(() => {
+    window.rendererApp.simulation.advance(1 / 60);
+    return Array.from(window.rendererApp.renderer.camera.position);
+  });
+  assert.notDeepEqual(cameraDragged, cameraBefore);
+  await page.mouse.wheel(0, 120);
+  const cameraZoomed = await page.evaluate(() => {
+    window.rendererApp.simulation.advance(1 / 60);
+    return Array.from(window.rendererApp.renderer.camera.position);
+  });
+  assert.notDeepEqual(cameraZoomed, cameraDragged);
+  await page.keyboard.press("r");
+  await page.evaluate(() => window.rendererApp.simulation.advance(1 / 60));
+  const touchRect = await page.locator(".touch-stick").boundingBox();
+  assert.ok(touchRect);
+  const touchSession = await page.context().newCDPSession(page);
+  const x = touchRect.x + touchRect.width / 2,
+    y = touchRect.y + touchRect.height / 2;
+  await touchSession.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x, y, id: 1 }],
+  });
+  await touchSession.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: x + 48, y, id: 1 }],
+  });
+  const touchMoved = await page.evaluate(() => {
+    for (let i = 0; i < 30; i++) window.rendererApp.simulation.advance(1 / 60);
+    return window.collectGame.x;
+  });
+  assert.ok(touchMoved > 2.4);
+  await touchSession.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  const touchStopped = await page.evaluate(() => {
+    for (let i = 0; i < 30; i++) window.rendererApp.simulation.advance(1 / 60);
+    return window.collectGame.x;
+  });
+  assert.equal(touchStopped, touchMoved);
+  await touchSession.detach();
+  // Browsers expose hardware pads through polling; inject only that boundary for deterministic coverage.
+  const pads = await page.evaluate(() => {
+    const app = window.rendererApp;
+    app.canvas.focus();
+    const pad = {
+      index: 0,
+      id: "diagnostic",
+      connected: true,
+      mapping: "standard",
+      axes: [-1, 0, 0, 0],
+      buttons: [{ pressed: false, value: 0 }],
+    };
+    Object.defineProperty(navigator, "getGamepads", {
+      configurable: true,
+      value: () => (pad.connected ? [pad] : []),
+    });
+    for (let i = 0; i < 30; i++) app.simulation.advance(1 / 60);
+    const moved = window.collectGame.x;
+    pad.connected = false;
+    for (let i = 0; i < 30; i++) app.simulation.advance(1 / 60);
+    const stopped = window.collectGame.x;
+    pad.connected = true;
+    pad.axes[0] = 0;
+    pad.buttons[0] = { pressed: true, value: 1 };
+    app.simulation.advance(1 / 60);
+    const restarted = window.collectGame.x;
+    pad.buttons[0] = { pressed: false, value: 0 };
+    pad.axes[0] = 1;
+    app.canvas.blur();
+    for (let i = 0; i < 30; i++) app.simulation.advance(1 / 60);
+    const unfocused = window.collectGame.x;
+    delete navigator.getGamepads;
+    app.canvas.focus();
+    return { moved, stopped, restarted, unfocused };
+  });
+  assert.ok(pads.moved < touchStopped - 2.4);
+  assert.equal(pads.stopped, pads.moved);
+  assert.equal(pads.restarted, 0);
+  assert.equal(pads.unfocused, 0);
+  await page.keyboard.press("f");
+  const followed = await page.evaluate(() => {
+    for (let i = 0; i < 90; i++) window.rendererApp.simulation.advance(1 / 60);
+    return Array.from(window.rendererApp.renderer.camera.target);
+  });
+  assert.ok(Math.abs(followed[1] - 0.5) < 0.001);
+  const controllerFrames = await page.evaluate(() => window.rendererApp.frames);
+  await page.evaluate(() => window.rendererApp.resume());
+  await page.waitForFunction(
+    (target) => window.rendererApp.frames >= target,
+    controllerFrames + 6,
+  );
+  await page.evaluate(() => window.rendererApp.pause());
+  assert.deepEqual(
+    await page.evaluate(() => ({
+      ...window.rendererApp.renderer.resources.stats,
+    })),
+    exampleBefore,
+  );
+  report.controllers = {
+    cameraBefore,
+    cameraDragged,
+    cameraZoomed,
+    touchMoved,
+    touchStopped,
+    pads,
+    followed,
+  };
   await page.screenshot({ path: "artifacts/collect-game.png" });
   const exampleErrors = await page.evaluate(
     () => window.rendererApp.gpu.errors,

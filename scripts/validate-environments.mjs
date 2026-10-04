@@ -1,3 +1,5 @@
+import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -9,6 +11,26 @@ const bytes = new Uint8Array([
   ),
   ...Array.from({ length: 4 }, () => [128, 128, 128, 129]).flat(),
 ]);
+await writeFile("artifacts/environment-source.hdr", bytes);
+const baked = spawnSync(
+  process.execPath,
+  [
+    "scripts/bake-environment.mjs",
+    "artifacts/environment-source.hdr",
+    "artifacts/environment.envbin",
+    "--specular-size",
+    "2",
+    "--diffuse-size",
+    "1",
+    "--brdf-size",
+    "2",
+    "--samples",
+    "8",
+  ],
+  { encoding: "utf8" },
+);
+if (baked.status !== 0) throw new Error(baked.stderr || baked.stdout);
+const archive = await readFile("artifacts/environment.envbin");
 const server = await startPreviewServer(5196, true);
 let browser;
 try {
@@ -21,6 +43,9 @@ try {
       body: Buffer.from(bytes),
       contentType: "application/octet-stream",
     }),
+  );
+  await page.route("**/environment.envbin", (route) =>
+    route.fulfill({ body: archive, contentType: "application/octet-stream" }),
   );
   await page.goto("http://127.0.0.1:5196");
   await page.waitForFunction(() => window.rendererApp?.frames >= 3);
@@ -85,6 +110,15 @@ try {
       };
     };
     const sky = await draw();
+    const archiveStart = performance.now();
+    await app.loadEnvironment("/environment.envbin");
+    const archiveMs = performance.now() - archiveStart,
+      archiveImage = await draw();
+    const archiveDifference = sky.data.reduce(
+      (n, value, index) => n + Number(value !== archiveImage.data[index]),
+      0,
+    );
+
     r.environment.enabled = false;
     r.environment.intensity = 2;
     const independent = await draw();
@@ -127,6 +161,9 @@ try {
     const warm = { ...r.resources.stats },
       validationError = await app.gpu.device.popErrorScope();
     const data = {
+      archiveMs,
+      archiveDifference,
+      worker: { ...app.environments.preparation.metrics },
       coldMs,
       cachedMs,
       sky: sky.center,
@@ -169,6 +206,8 @@ try {
   assert.deepEqual(report.resources, report.warm);
   assert.equal(report.cache.bakes, 1);
   assert.equal(report.cache.hits, 1);
+  assert.equal(report.archiveDifference, 0);
+  assert.ok(report.worker.jobs >= 2);
   assert.equal(report.validationError, null);
   assert.deepEqual(report.gpuErrors, []);
   assert.deepEqual(errors, []);

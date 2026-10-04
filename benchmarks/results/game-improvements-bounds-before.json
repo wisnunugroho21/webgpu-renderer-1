@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/animated-bounds.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/animated-bounds.bench.ts > Phase 25 conservative animated bounds",
+          "benchmarks": [
+            {
+              "id": "54018586_0_0",
+              "name": "100 objects x 64 joint boxes; independent of vertex count",
+              "rank": 1,
+              "rme": 0.7116634439732411,
+              "samples": [],
+              "totalTime": 500.0538639999975,
+              "min": 0.125458999999978,
+              "max": 0.8922919999999976,
+              "hz": 7463.19600482083,
+              "period": 0.13399085316184284,
+              "mean": 0.13399085316184284,
+              "variance": 0.0008833424738653074,
+              "sd": 0.029721077939154687,
+              "sem": 0.00048651220419423425,
+              "df": 3731,
+              "critical": 1.96,
+              "moe": 0.0009535639202206992,
+              "p75": 0.13295800000003055,
+              "p99": 0.2292090000000826,
+              "p995": 0.3344170000000304,
+              "p999": 0.5860830000000306,
+              "sampleCount": 3732,
+              "median": 0.1293954999999869
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

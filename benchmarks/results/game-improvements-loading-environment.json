@@ -1,0 +1,53 @@
+{
+  "archiveMs": 2.800000011920929,
+  "archiveDifference": 0,
+  "worker": {
+    "jobs": 2,
+    "lastPrepareMs": 0.09999999403953552
+  },
+  "coldMs": 84,
+  "cachedMs": 2.5,
+  "sky": 188,
+  "independent": 213,
+  "ldr": 255,
+  "opaque": 0,
+  "opaqueCorner": 188,
+  "prepass": 0,
+  "disabledCorner": 35,
+  "resources": {
+    "pipelineCreations": 151,
+    "shaderModules": 15,
+    "bufferCreations": 41,
+    "textureCreations": 15,
+    "samplerCreations": 3,
+    "buffers": 39,
+    "textures": 9,
+    "bufferBytes": 61085408,
+    "cacheHits": 176,
+    "cacheMisses": 169
+  },
+  "warm": {
+    "pipelineCreations": 151,
+    "shaderModules": 15,
+    "bufferCreations": 41,
+    "textureCreations": 15,
+    "samplerCreations": 3,
+    "buffers": 39,
+    "textures": 9,
+    "bufferBytes": 61085408,
+    "cacheHits": 176,
+    "cacheMisses": 169
+  },
+  "completionMs": 0.7000000178813934,
+  "cache": {
+    "hits": 1,
+    "bakes": 1,
+    "decoded": 1,
+    "archives": 1,
+    "size": 2,
+    "bytes": 1280
+  },
+  "validationError": null,
+  "gpuErrors": [],
+  "recoveredSkybox": true
+}

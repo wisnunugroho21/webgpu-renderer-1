@@ -1,4 +1,5 @@
 import { JSONDocument } from "@gltf-transform/core";
+import { prepareMesh } from "../../rendering/geometry/prepareMesh";
 import { GLTFLoader } from "../gltf/GLTFLoader";
 import { transferableBuffers } from "./transfer";
 const loader = new GLTFLoader();
@@ -12,7 +13,14 @@ scope.onmessage = async (event) => {
     const start = performance.now(),
       asset = await loader.parseJSON(json),
       decodeMs = performance.now() - start;
-    scope.postMessage({ id, asset, decodeMs }, transferableBuffers(asset));
+    const prepareStart = performance.now();
+    for (const mesh of asset.meshes)
+      for (const primitive of mesh.primitives)
+        primitive.prepared = prepareMesh(primitive);
+    scope.postMessage(
+      { id, asset, decodeMs, prepareMs: performance.now() - prepareStart },
+      transferableBuffers(asset),
+    );
   } catch (error) {
     scope.postMessage({ id, error: String(error) });
   }

@@ -49,4 +49,19 @@ const meshes = new MeshManager(
 );
 bench("preprocess and pack 100000 mesh vertices (no GPU upload)", () => {
   meshes.upload(runtime.meshes[0]!.primitives[0]!);
+  // Fake GPU benchmark must not retain one 10 MiB recovery array per sample.
+  meshes.clearRecovery();
+  meshes.entries.length = 0;
 });
+
+const preparedPrimitive = runtime.meshes[0]!.primitives[0]!;
+const { prepareMesh } = await import("../src/rendering/geometry/prepareMesh");
+const prepared = prepareMesh(preparedPrimitive);
+bench(
+  "publish worker-prepared 100000 vertices (fake GPU, no CPU packing)",
+  () => {
+    meshes.upload({ ...preparedPrimitive, prepared });
+    meshes.clearRecovery();
+    meshes.entries.length = 0;
+  },
+);

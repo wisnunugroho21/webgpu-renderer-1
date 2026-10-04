@@ -88,7 +88,7 @@ export class ColorPass {
       timestampWrites: scene.gpuProfiler.writes(GPUPass.color),
       colorAttachments: [
         {
-          view: this.hdr.enabled ? this.hdr.view! : view,
+          view: this.hdr.sceneEnabled ? this.hdr.view! : view,
           clearValue: clearColor,
           loadOp: "clear",
           storeOp: "store",
@@ -104,10 +104,10 @@ export class ColorPass {
     this.skybox.encode(
       pass,
       this.environment.group,
-      this.hdr.enabled ? "rgba16float" : scene.gpu.renderFormat,
+      this.hdr.sceneEnabled ? "rgba16float" : scene.gpu.renderFormat,
     );
     const environment = this.environment.active;
-    const colors = this.hdr.enabled
+    const colors = this.hdr.sceneEnabled
       ? environment
         ? this.hdrEnvironmentColor!
         : this.hdrColor!

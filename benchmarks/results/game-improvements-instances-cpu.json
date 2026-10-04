@@ -1,0 +1,99 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/asset-instances.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/asset-instances.bench.ts",
+          "benchmarks": [
+            {
+              "id": "304768664_0",
+              "name": "register/dispose 1000 independent scene lifetimes with reused slots",
+              "rank": 1,
+              "rme": 13.27525283392953,
+              "samples": [],
+              "totalTime": 500.46996200000086,
+              "min": 1.4377090000000408,
+              "max": 24.464000000000055,
+              "hz": 429.5962122098341,
+              "period": 2.3277672651162833,
+              "mean": 2.3277672651162833,
+              "variance": 5.344302504353407,
+              "sd": 2.311774752079754,
+              "sem": 0.15766172950491494,
+              "df": 214,
+              "critical": 1.96,
+              "moe": 0.30901698982963327,
+              "p75": 1.7974170000001095,
+              "p99": 9.959084000000018,
+              "p995": 10.792916999999989,
+              "p999": 24.464000000000055,
+              "sampleCount": 215,
+              "median": 1.6748340000000326
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/asset-lifecycle.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/asset-lifecycle.bench.ts",
+          "benchmarks": [
+            {
+              "id": "-840644820_0",
+              "name": "load/unload 100 decoded assets with a 16-record LRU budget",
+              "rank": 1,
+              "rme": 0.8822581345870198,
+              "samples": [],
+              "totalTime": 500.06564199999735,
+              "min": 0.19054099999999607,
+              "max": 1.4403749999999604,
+              "hz": 4763.374645123115,
+              "period": 0.20993519815281164,
+              "mean": 0.20993519815281164,
+              "variance": 0.002127117476620841,
+              "sd": 0.04612068382646598,
+              "sem": 0.0009449848791145712,
+              "df": 2381,
+              "critical": 1.96,
+              "moe": 0.0018521703630645595,
+              "p75": 0.20566699999994853,
+              "p99": 0.4152080000000069,
+              "p995": 0.48391700000001947,
+              "p999": 0.5929999999999609,
+              "sampleCount": 2382,
+              "median": 0.19725000000002524
+            },
+            {
+              "id": "-840644820_1",
+              "name": "allocate/release 1000 fragmented shared arena ranges",
+              "rank": 2,
+              "rme": 2.1588290062232636,
+              "samples": [],
+              "totalTime": 500.4215009999996,
+              "min": 1.8464159999999765,
+              "max": 4.865499999999997,
+              "hz": 479.5956998658221,
+              "period": 2.0850895874999984,
+              "mean": 2.0850895874999984,
+              "variance": 0.12658581070100164,
+              "sd": 0.3557889974423066,
+              "sem": 0.022966081030964775,
+              "df": 239,
+              "critical": 1.96,
+              "moe": 0.04501351882069096,
+              "p75": 2.0882919999999103,
+              "p99": 3.8106659999998556,
+              "p995": 4.783958999999982,
+              "p999": 4.865499999999997,
+              "sampleCount": 240,
+              "median": 1.9723334999999906
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

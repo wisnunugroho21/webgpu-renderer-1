@@ -2655,3 +2655,18 @@ The central architectural rule is:
 > **ECS organizes simulation data. Render extraction creates renderer-specific data. Shared GPU buffers provide compact runtime state. Morphing happens before skinning. GPU visibility determines what should be rendered. Indirect rendering minimizes CPU submission overhead.**
 
 The renderer should first become a **fast, correct conventional renderer**, then evolve into a **GPU-driven WebGPU renderer** only after profiling shows the simpler architecture is stable and measurable.
+
+## User-requested game-development improvements — 2026-10-04
+
+Implement in the following dependency order, validating and benchmarking each before advancing. Existing architecture, performance rules and optional Phase 44 defaults continue to apply.
+
+1. Independent asset-instance disposal — implemented and validated.
+2. Animation scalability — implemented and validated.
+3. Render-resolution controls and anti-aliasing — implemented and validated.
+4. Gameplay animation events, root-motion extraction and state machine — implemented and validated.
+5. Picking and spatial queries — implemented and validated.
+6. Loading responsiveness — implemented and validated.
+7. HDR presentation improvements — implemented and validated.
+8. Broader input and camera controllers — implemented and validated.
+
+Gameplay subsystems such as general physics, audio, navigation, persistence and networking remain separate game-layer scope.

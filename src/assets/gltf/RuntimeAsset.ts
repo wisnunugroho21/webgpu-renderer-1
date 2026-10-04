@@ -1,5 +1,8 @@
+import type { PreparedMesh } from "../../rendering/geometry/prepareMesh";
 import { Material } from "../../rendering/materials/Material";
 export interface RuntimePrimitive {
+  /** Optional worker-prepared canonical data; no GPU handles. */
+  prepared?: PreparedMesh;
   attributes: Record<string, Float32Array>;
   indices: Uint32Array;
   mode: number;

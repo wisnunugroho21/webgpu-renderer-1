@@ -1,6 +1,4 @@
-import { withFlatNormals } from "./geometry/preparePrimitive";
-import { prepareIndices } from "./geometry/PrimitiveTopology";
-import { VERTEX_WORDS, VertexWord } from "./geometry/VertexLayout";
+import { prepareMesh, PreparedMesh } from "./geometry/prepareMesh";
 import { MorphDeltaBuffers } from "./MorphDeltaBuffers";
 import { MorphTargetData } from "../animation/MorphTargetData";
 import { SkinVertexData } from "../animation/skinning/SkinVertexData";
@@ -113,77 +111,81 @@ export class MeshManager {
     this.recovery.delete(id);
   }
   upload(primitive: RuntimePrimitive): number {
-    const positions = primitive.attributes.POSITION!;
-    if (!positions || positions.length % 3)
-      throw new Error("Invalid mesh positions");
-    const count = positions.length / 3,
-      colors = primitive.attributes.COLOR_0,
-      colorStride = colors ? colors.length / count : 0;
-    if (!primitive.attributes.NORMAL && primitive.mode >= 4)
-      return this.upload(withFlatNormals(primitive));
-    const morph = primitive.targets.length
-      ? new MorphTargetData(primitive.targets, count)
-      : undefined;
-    const skin = SkinVertexData.fromPrimitive(primitive);
+    return this.uploadPrepared(primitive.prepared ?? prepareMesh(primitive));
+  }
+  private uploadPrepared(prepared: PreparedMesh): number {
+    const transaction = this.beginUpload(prepared);
+    try {
+      this.queue.writeBuffer(transaction.vertex, 0, prepared.vertices);
+      this.queue.writeBuffer(transaction.index, 0, prepared.indices);
+      return transaction.publish();
+    } catch (error) {
+      transaction.rollback();
+      throw error;
+    }
+  }
+  /** Large prepared uploads yield between bounded writes and cancel transactionally. */
+  async uploadAsync(
+    primitive: RuntimePrimitive,
+    check: () => void,
+  ): Promise<number> {
+    const prepared = primitive.prepared ?? prepareMesh(primitive),
+      chunkBytes = 1024 * 1024;
+    check();
+    if (
+      prepared.vertices.byteLength + prepared.indices.byteLength <=
+      chunkBytes
+    )
+      return this.uploadPrepared(prepared);
+    const transaction = this.beginUpload(prepared);
+    try {
+      const write = async (
+        buffer: GPUBuffer,
+        data: Float32Array | Uint32Array,
+      ) => {
+        for (let start = 0; start < data.length; start += chunkBytes / 4) {
+          check();
+          this.queue.writeBuffer(
+            buffer,
+            start * 4,
+            data.subarray(start, Math.min(data.length, start + chunkBytes / 4)),
+          );
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        }
+      };
+      await write(transaction.vertex, prepared.vertices);
+      await write(transaction.index, prepared.indices);
+      check();
+      return transaction.publish();
+    } catch (error) {
+      transaction.rollback();
+      throw error;
+    }
+  }
+  /** One allocation/publication/rollback path for synchronous and scheduled uploads. */
+  private beginUpload(prepared: PreparedMesh) {
+    const {
+      vertices,
+      indices,
+      count,
+      topology,
+      skin,
+      morph,
+      clusters,
+      bounds,
+    } = prepared;
     if (skin?.secondary && !this.morphDeltas)
       throw new Error("Eight-weight skinning requires a deformation arena");
-    const vertices = new Float32Array(count * VERTEX_WORDS);
-    // Joint IDs share the interleaved storage but must be written as integer bits.
-    const bits = new Uint32Array(vertices.buffer);
-    const normals = primitive.attributes.NORMAL ?? new Float32Array(count * 3);
-    // Cache ABI offsets once; avoid repeated module/property lookups per vertex.
-    const {
-      color: colorWord,
-      normal: normalWord,
-      uv0: uv0Word,
-      uv1: uv1Word,
-      joints: jointsWord,
-      weights: weightsWord,
-      tangent: tangentWord,
-    } = VertexWord;
-    const vertexWords = VERTEX_WORDS;
-    for (let i = 0; i < count; i++) {
-      const o = i * vertexWords;
-      for (let axis = 0; axis < 3; axis++) {
-        vertices[o + axis] = positions[i * 3 + axis]!;
-        vertices[o + colorWord + axis] = colors
-          ? colors[i * colorStride + axis]!
-          : 1;
-        vertices[o + normalWord + axis] = normals[i * 3 + axis]!;
-      }
-      vertices[o + colorWord + 3] = colorStride === 4 ? colors![i * 4 + 3]! : 1;
-      for (let axis = 0; axis < 2; axis++) {
-        vertices[o + uv0Word + axis] =
-          primitive.attributes.TEXCOORD_0?.[i * 2 + axis] ?? 0;
-        vertices[o + uv1Word + axis] =
-          primitive.attributes.TEXCOORD_1?.[i * 2 + axis] ?? 0;
-      }
-      for (let k = 0; k < 4; k++) {
-        bits[o + jointsWord + k] = skin?.primary.joints[i * 4 + k] ?? 0;
-        vertices[o + weightsWord + k] =
-          skin?.primary.weights[i * 4 + k] ?? (k === 0 ? 1 : 0);
-      }
-      for (let axis = 0; axis < 4; axis++)
-        vertices[o + tangentWord + axis] =
-          primitive.attributes.TANGENT?.[i * 4 + axis] ?? 0;
-    }
-    const { topology, indices } = prepareIndices(primitive, count);
-    const min = new Float32Array(3).fill(Infinity),
-      max = new Float32Array(3).fill(-Infinity);
-    for (let i = 0; i < positions.length; i++) {
-      const axis = i % 3;
-      min[axis] = Math.min(min[axis]!, positions[i]!);
-      max[axis] = Math.max(max[axis]!, positions[i]!);
-    }
-    const clusters =
-      topology === 0 && !skin && !morph
-        ? new MeshClusters(positions, indices)
-        : undefined;
     const morphOffset =
       morph || skin?.secondary
         ? this.morphDeltas?.append(morph, skin?.secondary, count)
         : undefined;
     let vertex: GPUBuffer | undefined, index: GPUBuffer | undefined;
+    const rollback = () => {
+      if (vertex) this.resources.buffers.destroy(vertex);
+      if (index) this.resources.buffers.destroy(index);
+      if (morphOffset !== undefined) this.morphDeltas?.release(morphOffset);
+    };
     try {
       vertex = this.resources.buffers.create({
         label: "Asset vertices",
@@ -195,27 +197,30 @@ export class MeshManager {
         size: indices.byteLength,
         usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
       });
-      this.queue.writeBuffer(vertex, 0, vertices);
-      this.queue.writeBuffer(index, 0, indices);
-      const id = this.register({
-        clusters,
-        vertex,
-        index,
-        indexCount: indices.length,
-        topology,
-        skin,
-        morph,
-        morphOffset,
-        deformationVertexCount: morph || skin?.secondary ? count : undefined,
-        bounds: { min, max },
-      });
-      this.recovery.set(id, { vertices, indices });
-      return id;
     } catch (error) {
-      if (vertex) this.resources.buffers.destroy(vertex);
-      if (index) this.resources.buffers.destroy(index);
-      if (morphOffset !== undefined) this.morphDeltas?.release(morphOffset);
+      rollback();
       throw error;
     }
+    return {
+      vertex,
+      index,
+      rollback,
+      publish: () => {
+        const id = this.register({
+          clusters,
+          vertex: vertex!,
+          index: index!,
+          indexCount: indices.length,
+          topology,
+          skin,
+          morph,
+          morphOffset,
+          deformationVertexCount: morph || skin?.secondary ? count : undefined,
+          bounds,
+        });
+        this.recovery.set(id, { vertices, indices });
+        return id;
+      },
+    };
   }
 }

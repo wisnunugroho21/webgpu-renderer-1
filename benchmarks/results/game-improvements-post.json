@@ -1,0 +1,85 @@
+{
+  "filmic": 141,
+  "autoOne": 109,
+  "autoFour": 109,
+  "frozen": 58,
+  "compensation": 141,
+  "odd": 109,
+  "black": 0,
+  "halo": 34807,
+  "restored": 0,
+  "before": {
+    "pipelineCreations": 91,
+    "shaderModules": 17,
+    "bufferCreations": 39,
+    "textureCreations": 41,
+    "samplerCreations": 2,
+    "buffers": 39,
+    "textures": 18,
+    "bufferBytes": 61085376,
+    "cacheHits": 91,
+    "cacheMisses": 110
+  },
+  "after": {
+    "pipelineCreations": 91,
+    "shaderModules": 17,
+    "bufferCreations": 39,
+    "textureCreations": 41,
+    "samplerCreations": 2,
+    "buffers": 39,
+    "textures": 18,
+    "bufferBytes": 61085376,
+    "cacheHits": 91,
+    "cacheMisses": 110
+  },
+  "modes": [
+    {
+      "mode": "individual",
+      "difference": 0
+    },
+    {
+      "mode": "sorted",
+      "difference": 0
+    },
+    {
+      "mode": "instanced",
+      "difference": 0
+    },
+    {
+      "mode": "gpu-indirect",
+      "difference": 0
+    }
+  ],
+  "timing": [
+    {
+      "effects": false,
+      "completionMedianMs": 0.8999999761581421
+    },
+    {
+      "effects": true,
+      "completionMedianMs": 2.5999999940395355
+    }
+  ],
+  "invalid": [
+    "bloomStrength",
+    "bloomThreshold",
+    "exposureKey",
+    "adaptationSpeed",
+    "frameDeltaSeconds"
+  ],
+  "validation": null,
+  "recovery": {
+    "strength": 0.3,
+    "auto": true,
+    "curve": "reinhard"
+  },
+  "gpuErrors": [],
+  "oldLive": [
+    0,
+    0
+  ],
+  "finalLive": [
+    0,
+    0
+  ]
+}

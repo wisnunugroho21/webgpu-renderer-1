@@ -36,6 +36,7 @@ export async function rebuildDeviceResources(input: DeviceRebuildInput) {
     );
     if (input.isDisposing())
       throw new Error("Application disposed during recovery");
+    nextGPU.renderScale = input.gpu.renderScale;
     nextGPU.device.pushErrorScope("validation");
     next = new Renderer(
       nextGPU,

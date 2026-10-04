@@ -61,14 +61,19 @@ export class AnimatedBoundsSystem {
           const m = instance.matrixViews[joint]!;
           this.jointBoxes++;
           for (let r = 0; r < 3; r++) {
+            // Unroll the three affine axes. Sign selection preserves the original
+            // sum order and conservative extrema without six Math.min/max calls.
+            const a = m[r]!,
+              b = m[4 + r]!,
+              c = m[8 + r]!;
             let lo = m[12 + r]!,
               hi = lo;
-            for (let c = 0; c < 3; c++) {
-              const a = m[c * 4 + r]! * this.min[c]!,
-                b = m[c * 4 + r]! * this.max[c]!;
-              lo += Math.min(a, b);
-              hi += Math.max(a, b);
-            }
+            lo += a * (a >= 0 ? this.min[0]! : this.max[0]!);
+            hi += a * (a >= 0 ? this.max[0]! : this.min[0]!);
+            lo += b * (b >= 0 ? this.min[1]! : this.max[1]!);
+            hi += b * (b >= 0 ? this.max[1]! : this.min[1]!);
+            lo += c * (c >= 0 ? this.min[2]! : this.max[2]!);
+            hi += c * (c >= 0 ? this.max[2]! : this.min[2]!);
             this.unionMin[r] = Math.min(this.unionMin[r]!, lo);
             this.unionMax[r] = Math.max(this.unionMax[r]!, hi);
           }

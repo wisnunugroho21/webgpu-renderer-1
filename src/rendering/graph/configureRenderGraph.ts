@@ -7,6 +7,7 @@ interface RenderCallbacks {
   depth: Execute;
   geometryClusters: Execute;
   color: Execute;
+  postProcessing: Execute;
   toneMapping: Execute;
   hiz: Execute;
   hizDebug: Execute;
@@ -78,8 +79,14 @@ export function configureRenderGraph(
     execute: callbacks.color,
   });
   graph.add({
-    name: "tone-mapping",
+    name: "post-processing",
     reads: ["sceneColor"],
+    writes: ["processedSceneColor"],
+    execute: callbacks.postProcessing,
+  });
+  graph.add({
+    name: "tone-mapping",
+    reads: ["processedSceneColor"],
     writes: ["swapchain"],
     execute: callbacks.toneMapping,
   });

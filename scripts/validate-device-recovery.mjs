@@ -17,7 +17,10 @@ try {
     app.stop();
     app.autoRecoverDevice = false;
     await app.loadAssetHandles("/regression/pbr.glb");
-    const nodes = await app.loadAssetHandles("/regression/crowd-combined.glb");
+    const instance = await app.instantiateAsset(
+      "/regression/crowd-combined.glb",
+    );
+    const nodes = instance.nodes;
     const animator = app.animations.animators[0];
     animator.play();
     animator.currentTime = 0.7;
@@ -163,6 +166,9 @@ try {
     await new Promise((r) => setTimeout(r, 100));
     if (app.frames <= frames) throw new Error("Recovered loop did not resume");
     app.stop();
+    if (instance.disposed || instance.animator !== animator)
+      throw new Error("Recovery lost scene-instance ownership");
+    await instance.dispose();
     await app.unloadAsset("/regression/crowd-combined.glb");
     if (nodes.some((h) => app.world.resolve(h) !== null))
       throw new Error("Recovered asset did not unload");

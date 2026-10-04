@@ -11,6 +11,8 @@ const checks = [
   "validate:game",
   "validate:features",
   "validate:hdr",
+  "validate:quality",
+  "validate:post",
   "validate:recovery",
   "validate:environments",
   "validate:codecs",

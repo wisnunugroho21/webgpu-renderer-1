@@ -1,3 +1,8 @@
+import {
+  AnimationEvents,
+  AnimationMarker,
+  AnimationEventListener,
+} from "./AnimationEvents";
 import { World } from "../ecs/World";
 import { AnimationClip } from "./AnimationClip";
 import { AnimationChannel, AnimationPath } from "./AnimationChannel";
@@ -13,6 +18,7 @@ export interface MorphState {
   dirty: boolean;
 }
 interface Slot {
+  node: number;
   path: AnimationPath;
   entity: number;
   generation: number;
@@ -45,11 +51,54 @@ interface Fade {
 }
 /** Independent playback; persistent component poses form a seam for future layers. */
 export class Animator {
+  /** Manual mode lets authoritative fixed ticks advance this controller exactly once. */
+  updateMode: "automatic" | "manual" = "automatic";
   loop = true;
   speed = 1;
   playing = false;
   clipIndex = 0;
+  private events?: AnimationEvents;
+  private inPlaceNode: number | null = null;
   private time = 0;
+  private interval = 0;
+  private phase = 0;
+  private pendingEvaluation = 0;
+  /** Diagnostics count pose evaluations rather than clock advances. */
+  evaluations = 0;
+  /** Explicit quality control: zero evaluates every frame; clocks always advance. */
+  get evaluationInterval(): number {
+    return this.interval;
+  }
+  set evaluationInterval(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds < 0 || seconds > 1)
+      throw new RangeError(
+        "Animation evaluation interval must be between 0 and 1 second",
+      );
+    this.interval = seconds;
+    this.pendingEvaluation = this.phase * this.interval;
+  }
+  /** Stagger crowds across the sampling interval; fraction is in [0, 1). */
+  get evaluationPhase(): number {
+    return this.phase;
+  }
+  set evaluationPhase(value: number) {
+    if (!Number.isFinite(value) || value < 0 || value >= 1)
+      throw new RangeError("Animation evaluation phase must be in [0, 1)");
+    this.phase = value;
+    this.pendingEvaluation = value * this.interval;
+  }
+  private evaluateFrame(delta: number, force: boolean): void {
+    this.pendingEvaluation += delta;
+    if (
+      this.interval === 0 ||
+      force ||
+      this.pendingEvaluation + 1e-10 >= this.interval
+    ) {
+      this.pendingEvaluation =
+        this.interval > 0 ? this.pendingEvaluation % this.interval : 0;
+      this.apply();
+    }
+  }
   private layerStates: LayerState[] = [];
   private layerControls: readonly AnimationLayerPlayback[] = Object.freeze([]);
   private fade?: Fade;
@@ -79,6 +128,7 @@ export class Animator {
             new AnimationPose(channel.path, channel.sampler.size);
           slot = {
             entity,
+            node: channel.node,
             generation: world.generation[entity] ?? -1,
             morph,
             path: channel.path,
@@ -101,8 +151,23 @@ export class Animator {
       }),
     );
   }
+  /** Events belong to this controller; source clips in a crossfade do not emit duplicates. */
+  setEvents(clip: number, markers: readonly AnimationMarker[]): void {
+    (this.events ??= new AnimationEvents(this.clips)).set(clip, markers);
+  }
+  onEvent(listener: AnimationEventListener): () => void {
+    return (this.events ??= new AnimationEvents(this.clips)).on(listener);
+  }
+  /** Remove root translation/rotation from visual playback when gameplay extracts it separately. */
+  setInPlaceRoot(node: number | null): void {
+    if (node !== null && !this.slots.some((slot) => slot.node === node))
+      throw new Error("Unknown in-place animation root");
+    this.inPlaceNode = node;
+    this.apply();
+  }
   /** Sample current base/layer clocks without advancing, including while paused. */
   evaluate(): void {
+    this.pendingEvaluation = 0;
     this.apply();
   }
   get layers(): readonly AnimationLayerPlayback[] {
@@ -229,6 +294,8 @@ export class Animator {
     )
       throw new Error("Invalid animation delta/speed");
     if (!this.playing) return;
+    const previousTime = this.time,
+      eventClip = this.clipIndex;
     for (const layer of this.layerStates) layer.playback.advance(deltaSeconds);
     const duration = this.clips[this.clipIndex]!.duration;
     this.time = this.advance(this.time, duration, deltaSeconds);
@@ -248,15 +315,27 @@ export class Animator {
         this.fade.duration,
         this.fade.elapsed + deltaSeconds,
       );
-      this.apply();
+      if (this.interval === 0) this.apply();
+      else
+        this.evaluateFrame(
+          deltaSeconds,
+          ended || this.fade.elapsed === this.fade.duration,
+        );
       if (this.fade.elapsed === this.fade.duration) {
         this.fade = undefined;
         if (ended) this.playing = false;
       }
     } else {
       if (ended) this.playing = false;
-      this.apply();
+      if (this.interval === 0) this.apply();
+      else this.evaluateFrame(deltaSeconds, ended);
     }
+    this.events?.advance(
+      eventClip,
+      previousTime,
+      deltaSeconds * this.speed,
+      this.loop,
+    );
   }
   private advance(time: number, duration: number, delta: number): number {
     if (duration === 0) return 0;
@@ -297,6 +376,7 @@ export class Animator {
     }
   }
   private apply(restoreRest = false): void {
+    this.evaluations++;
     if (!this.fade && !this.layerStates.length && !restoreRest) {
       const bindings = this.bindings[this.clipIndex];
       if (!bindings) return;
@@ -363,6 +443,11 @@ export class Animator {
     else sampler.sample(time, binding.output);
   }
   private write(slot: Slot, v: Float32Array): void {
+    if (
+      slot.node === this.inPlaceNode &&
+      (slot.path === "translation" || slot.path === "rotation")
+    )
+      v = slot.base.values;
     const e = slot.entity,
       t = this.world.transforms;
     if (

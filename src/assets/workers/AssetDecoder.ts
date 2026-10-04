@@ -1,3 +1,4 @@
+import { restorePreparedMesh } from "../../rendering/geometry/prepareMesh";
 import { JSONDocument } from "@gltf-transform/core";
 import { GLTFLoader } from "../gltf/GLTFLoader";
 import { RuntimeAsset } from "../gltf/RuntimeAsset";
@@ -11,6 +12,8 @@ export class AssetDecoder {
     transferredInputBytes: 0,
     transferredOutputBytes: 0,
     lastWorkerDecodeMs: 0,
+    lastWorkerPrepareMs: 0,
+    preparedMeshes: 0,
   };
   private worker?: Worker;
   private nextId = 0;
@@ -48,6 +51,7 @@ export class AssetDecoder {
           asset?: RuntimeAsset;
           error?: string;
           decodeMs?: number;
+          prepareMs?: number;
         }>,
       ) => {
         const job = this.pending.get(event.data.id);
@@ -59,6 +63,13 @@ export class AssetDecoder {
             event.data.asset,
           ).reduce((sum, buffer) => sum + buffer.byteLength, 0);
           this.metrics.lastWorkerDecodeMs = event.data.decodeMs ?? 0;
+          this.metrics.lastWorkerPrepareMs = event.data.prepareMs ?? 0;
+          for (const mesh of event.data.asset.meshes)
+            for (const primitive of mesh.primitives)
+              if (primitive.prepared) {
+                restorePreparedMesh(primitive.prepared);
+                this.metrics.preparedMeshes++;
+              }
           job.resolve(event.data.asset);
         } else job.reject(new Error("Worker returned no asset"));
       };

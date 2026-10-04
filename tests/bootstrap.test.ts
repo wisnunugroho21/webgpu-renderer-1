@@ -12,3 +12,11 @@ describe("canvas sizing", () => {
     expect(canvasSize(10000, 5000, 2, 8192)).toEqual([8192, 4096]);
   });
 });
+
+it("supports bounded render scaling while retaining aspect and device limits", () => {
+  expect(canvasSize(800, 600, 2, 8192, 0.5)).toEqual([800, 600]);
+  expect(canvasSize(800, 600, 2, 8192, 2)).toEqual([3200, 2400]);
+  expect(canvasSize(10000, 5000, 2, 8192, 0.5)).toEqual([8192, 4096]);
+  for (const value of [0, 0.24, 2.1, NaN, Infinity])
+    expect(() => canvasSize(800, 600, 1, 8192, value)).toThrow();
+});

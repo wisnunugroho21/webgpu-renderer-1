@@ -1,5 +1,7 @@
+import { Ray } from "../spatial/Ray";
+import { RayHit, SpatialQueries } from "../spatial/SpatialQueries";
 import { rebuildDeviceResources } from "./rebuildDeviceResources";
-import { ApplicationAssets } from "./ApplicationAssets";
+import { ApplicationAssets, AssetInstance } from "./ApplicationAssets";
 import { EnvironmentLoader } from "../rendering/environment/EnvironmentLoader";
 import { EnvironmentBakeOptions } from "../rendering/environment/bakeEnvironment";
 import { EntityHandle } from "../ecs/Entity";
@@ -41,6 +43,9 @@ export class Application {
   readonly sceneEntity: number;
   readonly defaultLightEntity: number;
   readonly renderWorld: RenderWorld;
+  readonly spatial: SpatialQueries;
+  private readonly pickingRay = new Ray();
+  private readonly pickingHit = new RayHit();
   readonly extractor = new RenderExtractor();
   readonly materials = new MaterialManager();
   readonly profiler = new CPUProfiler();
@@ -72,6 +77,7 @@ export class Application {
     this.world = new World(entityCapacity);
     this.transformSystem = new TransformSystem(entityCapacity);
     this.renderWorld = new RenderWorld(renderCapacity);
+    this.spatial = new SpatialQueries(this.renderWorld);
     this.assets = new ApplicationAssets({
       world: this.world,
       animations: this.animations,
@@ -111,6 +117,40 @@ export class Application {
         : entity,
       this.world,
     );
+  }
+
+  /** Pointer-event picking against the latest extracted bounds; never waits for the GPU. */
+  pick(clientX: number, clientY: number): EntityHandle | null {
+    if (
+      !this.renderer ||
+      !Number.isFinite(clientX) ||
+      !Number.isFinite(clientY)
+    )
+      return null;
+    const rect = this.canvas.getBoundingClientRect();
+    if (
+      rect.width <= 0 ||
+      rect.height <= 0 ||
+      clientX < rect.left ||
+      clientY < rect.top ||
+      clientX > rect.right ||
+      clientY > rect.bottom
+    )
+      return null;
+    this.pickingRay.fromCamera(
+      this.renderer.camera,
+      (clientX - rect.left) / rect.width,
+      (clientY - rect.top) / rect.height,
+      this.canvas.width / this.canvas.height,
+    );
+    if (!this.spatial.raycast(this.pickingRay, this.pickingHit)) return null;
+    const hit = this.pickingHit;
+    if (
+      !this.world.alive[hit.entityId] ||
+      this.world.generation[hit.entityId] !== hit.generation
+    )
+      return null;
+    return this.world.handle(hit.entityId);
   }
 
   start(): Promise<void> {
@@ -272,6 +312,8 @@ export class Application {
       // Bounds and extraction must follow deformation and world-transform updates.
       this.profiler.start(CPUStage.animation);
       this.animations.update(delta);
+      if (this.renderer.hdr.autoExposure)
+        this.renderer.hdr.frameDeltaSeconds = delta;
       this.profiler.end(CPUStage.animation);
       this.profiler.start(CPUStage.transforms);
       this.transformSystem.update(this.world.transforms);
@@ -360,6 +402,11 @@ export class Application {
   /** Recyclable handles preserve identity across entity-slot reuse. */
   loadAssetHandles(url: string): Promise<readonly EntityHandle[]> {
     return this.assets.loadAssetHandles(url);
+  }
+
+  /** Despawn one scene while retaining shared GPU assets for surviving instances. */
+  instantiateAsset(url: string): Promise<AssetInstance> {
+    return this.assets.instantiateAsset(url);
   }
 
   async loadEnvironment(

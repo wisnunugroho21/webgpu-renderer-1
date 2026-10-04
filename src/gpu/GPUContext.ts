@@ -3,9 +3,12 @@ export function canvasSize(
   height: number,
   pixelRatio: number,
   limit: number,
+  renderScale = 1,
 ): [number, number] {
-  const w = Math.max(1, Math.round(width * pixelRatio));
-  const h = Math.max(1, Math.round(height * pixelRatio));
+  if (!Number.isFinite(renderScale) || renderScale < 0.25 || renderScale > 2)
+    throw new RangeError("Render scale must be between 0.25 and 2");
+  const w = Math.max(1, Math.round(width * pixelRatio * renderScale));
+  const h = Math.max(1, Math.round(height * pixelRatio * renderScale));
   const scale = Math.min(1, limit / Math.max(w, h));
   return [
     Math.max(1, Math.floor(w * scale)),
@@ -16,6 +19,19 @@ export function canvasSize(
 /** Owns the device and presentation surface. No synchronous GPU waits per frame. */
 export class GPUContext {
   readonly queue: GPUQueue;
+  private scale = 1;
+  get renderScale(): number {
+    return this.scale;
+  }
+  /** Cold quality change: resize presentation and dependent targets on the next frame. */
+  set renderScale(value: number) {
+    if (!Number.isFinite(value) || value < 0.25 || value > 2)
+      throw new RangeError("Render scale must be between 0.25 and 2");
+    if (this.disposed || this.lost) throw new Error("GPU device unavailable");
+    if (value === this.scale) return;
+    this.scale = value;
+    this.resize();
+  }
   get renderFormat(): GPUTextureFormat {
     return `${this.format}-srgb` as GPUTextureFormat;
   }
@@ -96,6 +112,7 @@ export class GPUContext {
       this.canvas.clientHeight,
       window.devicePixelRatio || 1,
       this.device.limits.maxTextureDimension2D,
+      this.scale,
     );
     const changed =
       this.canvas.width !== width || this.canvas.height !== height;

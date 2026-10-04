@@ -1,5 +1,10 @@
 import { Application } from "../app/Application";
 import { KeyboardInput } from "../input/KeyboardInput";
+import { PointerInput } from "../input/PointerInput";
+import { TouchJoystick } from "../input/TouchJoystick";
+import { GamepadInput } from "../input/GamepadInput";
+import { OrbitCameraController } from "../camera/OrbitCameraController";
+import { ThirdPersonCameraController } from "../camera/ThirdPersonCameraController";
 import { CollectGame } from "./CollectGame";
 /** A complete small example using shared cube geometry and material data, with no custom render pass. */
 export function createCollectExample(app: Application): {
@@ -59,7 +64,7 @@ export function createCollectExample(app: Application): {
   app.canvas.tabIndex = 0;
   app.canvas.setAttribute(
     "aria-label",
-    "Collect six golden cubes. Use WASD or arrow keys to move, R to restart, C to switch camera.",
+    "Collect six golden cubes. Use WASD, arrows, touch stick or gamepad to move. R restarts, C switches projection, F follows. Drag to orbit and wheel to zoom.",
   );
   const input = new KeyboardInput(app.canvas, [
     "KeyW",
@@ -72,7 +77,21 @@ export function createCollectExample(app: Application): {
     "ArrowRight",
     "KeyR",
     "KeyC",
+    "KeyF",
   ]);
+  const pointer = new PointerInput(app.canvas),
+    gamepad = new GamepadInput(app.canvas),
+    orbit = new OrbitCameraController(camera),
+    follow = new ThirdPersonCameraController(camera, { height: 0.5 }),
+    deltas = new Float32Array(3),
+    playerPosition = new Float32Array(3);
+  const touchTarget = app.canvas.ownerDocument.createElement("div");
+  touchTarget.className = "touch-stick";
+  touchTarget.textContent = "Drag to move";
+  touchTarget.setAttribute("aria-label", "Touch movement joystick");
+  app.canvas.ownerDocument.body.append(touchTarget);
+  const touch = new TouchJoystick(touchTarget);
+  let following = false;
   app.canvas.addEventListener("pointerdown", focus);
   function focus(): void {
     app.canvas.focus();
@@ -82,7 +101,8 @@ export function createCollectExample(app: Application): {
   const updateStatus = () => {
     if (shownScore === game.score) return;
     shownScore = game.score;
-    app.status.textContent = `Collected ${game.score}/${items.length}\nWASD / arrows: move · R: restart · C: camera\n${game.score === items.length ? "All collected! Press R to play again." : "Click the scene to focus the controls."}`;
+    app.status.textContent = `Collected ${game.score}/${items.length}\nWASD / stick: move · R / A: restart · C / Y: camera
+F / X: follow · Drag: orbit · Wheel: zoom\n${game.score === items.length ? "All collected! Press R to play again." : "Click the scene to focus the controls."}`;
   };
   const reset = () => {
     game.reset();
@@ -91,18 +111,28 @@ export function createCollectExample(app: Application): {
     updateStatus();
   };
   const offFixed = app.onFixedUpdate((dt) => {
-    if (input.consumePressed("KeyR")) reset();
-    if (input.consumePressed("KeyC")) {
+    gamepad.update();
+    if (input.consumePressed("KeyR") || gamepad.consumePressed(0)) reset();
+    if (input.consumePressed("KeyF") || gamepad.consumePressed(2)) {
+      following = !following;
+      if (following) follow.syncFromCamera();
+      else orbit.syncFromCamera();
+    }
+    if (input.consumePressed("KeyC") || gamepad.consumePressed(3)) {
       if (camera.projectionType === "orthographic")
         camera.setPerspective({ fovY: Math.PI / 3, near: 0.1, far: 60 });
       else camera.setOrthographic({ height: 18, near: 0.1, far: 60 });
     }
     const horizontal =
       Number(input.isDown("KeyD") || input.isDown("ArrowRight")) -
-      Number(input.isDown("KeyA") || input.isDown("ArrowLeft"));
+      Number(input.isDown("KeyA") || input.isDown("ArrowLeft")) +
+      touch.axes[0]! +
+      gamepad.axes[0]!;
     const vertical =
       Number(input.isDown("KeyS") || input.isDown("ArrowDown")) -
-      Number(input.isDown("KeyW") || input.isDown("ArrowUp"));
+      Number(input.isDown("KeyW") || input.isDown("ArrowUp")) +
+      touch.axes[1]! +
+      gamepad.axes[1]!;
     game.step(dt, horizontal, vertical);
     for (let i = 0; i < items.length; i++)
       if (game.collected[i]) w.meshes.remove(items[i]!);
@@ -117,6 +147,14 @@ export function createCollectExample(app: Application): {
       0.45,
       game.previousZ + (game.z - game.previousZ) * alpha,
     );
+    pointer.consume(deltas);
+    if (following) {
+      playerPosition[0] = game.previousX + (game.x - game.previousX) * alpha;
+      playerPosition[1] = 0;
+      playerPosition[2] = game.previousZ + (game.z - game.previousZ) * alpha;
+      follow.follow(dt, playerPosition, 0, deltas[0]!, deltas[1]!, deltas[2]!);
+    } else if (deltas[0] || deltas[1] || deltas[2])
+      orbit.update(deltas[0]!, deltas[1]!, deltas[2]!);
     const angle = elapsed * 0.7;
     for (let i = 0; i < items.length; i++)
       if (!game.collected[i]) {
@@ -143,6 +181,10 @@ export function createCollectExample(app: Application): {
       offFixed();
       offUpdate();
       input.dispose();
+      pointer.dispose();
+      touch.dispose();
+      touchTarget.remove();
+      gamepad.dispose();
       app.canvas.removeEventListener("pointerdown", focus);
       for (const e of items) w.destroy(e);
       w.destroy(floor);

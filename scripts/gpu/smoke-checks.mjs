@@ -159,7 +159,36 @@ export const measureWorkerChecks = async () => {
     samples.push(performance.now() - t);
   }
   samples.sort((a, b) => a - b);
+  const metrics = { ...app.assetDecoder.metrics },
+    beforeBuffers = app.renderer.resources.stats.buffers;
+  const sizes = [],
+    original = app.gpu.queue.writeBuffer.bind(app.gpu.queue);
+  app.gpu.queue.writeBuffer = (buffer, ...args) => {
+    if (buffer.label === "Asset vertices" || buffer.label === "Asset indices")
+      sizes.push(args[1].byteLength);
+    return original(buffer, ...args);
+  };
+  const uploadStart = performance.now(),
+    beforeUploadFrames = app.frames;
+  let instance;
+  try {
+    instance = await app.instantiateAsset(url);
+  } finally {
+    app.gpu.queue.writeBuffer = original;
+  }
+  const upload = {
+    totalMs: performance.now() - uploadStart,
+    framesDuring: app.frames - beforeUploadFrames,
+    chunks: sizes.length,
+    maxChunk: Math.max(...sizes),
+  };
+  await instance.dispose();
+  await app.unloadAsset(url);
+  upload.buffersRestored =
+    app.renderer.resources.stats.buffers === beforeBuffers;
   return {
+    upload,
+    prepared: Boolean(asset.meshes[0].primitives[0].prepared),
     mainDecodeMs,
     coldWorkerMs,
     warmWorkerMedianMs: samples[1],
@@ -168,7 +197,7 @@ export const measureWorkerChecks = async () => {
     mismatches,
     inputDetached: inputBuffers.every((b) => b.byteLength === 0),
     vertices: asset.meshes[0].primitives[0].attributes.POSITION.length / 3,
-    metrics: { ...app.assetDecoder.metrics },
+    metrics,
   };
 };
 

@@ -102,3 +102,13 @@ describe("Long clips with 1000 unique phases", () => {
     );
   }
 });
+
+const sampledCrowd = crowd(64, 1024, "LINEAR", false);
+for (let i = 0; i < sampledCrowd.animators.length; i++) {
+  const animator = sampledCrowd.animators[i]!;
+  animator.evaluationInterval = 1 / 15;
+  animator.evaluationPhase = i / sampledCrowd.animators.length;
+}
+bench("1000 x 64 joints, explicit staggered 15 Hz poses / 60 Hz clocks", () =>
+  sampledCrowd.update(1000),
+);

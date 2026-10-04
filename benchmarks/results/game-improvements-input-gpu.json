@@ -1,0 +1,128 @@
+{
+  "projectionChecks": [
+    {
+      "kind": "perspective",
+      "differentBytes": 0,
+      "near": 2,
+      "far": 200
+    },
+    {
+      "kind": "orthographic",
+      "differentBytes": 0,
+      "near": 0,
+      "far": 40
+    }
+  ],
+  "orthographicShadowPasses": 4,
+  "clippedShadowPasses": 0,
+  "cpuLevel": 0,
+  "indirectDifference": 0,
+  "fixed": 6,
+  "variable": 8,
+  "stillPaused": true,
+  "resumed": true,
+  "cameraEntity": 34,
+  "cameraPosition": [
+    0,
+    0,
+    12
+  ],
+  "before": {
+    "pipelineCreations": 52,
+    "shaderModules": 12,
+    "bufferCreations": 36,
+    "textureCreations": 5,
+    "samplerCreations": 2,
+    "buffers": 36,
+    "textures": 5,
+    "bufferBytes": 61085312,
+    "cacheHits": 49,
+    "cacheMisses": 66
+  },
+  "after": {
+    "pipelineCreations": 52,
+    "shaderModules": 12,
+    "bufferCreations": 36,
+    "textureCreations": 5,
+    "samplerCreations": 2,
+    "buffers": 36,
+    "textures": 5,
+    "bufferBytes": 61085312,
+    "cacheHits": 49,
+    "cacheMisses": 66
+  },
+  "errors": [],
+  "controllers": {
+    "cameraBefore": [
+      0,
+      14,
+      10
+    ],
+    "cameraDragged": [
+      -2.115891218185425,
+      14.92839241027832,
+      8.286500930786133
+    ],
+    "cameraZoomed": [
+      -2.3856606483459473,
+      16.831714630126953,
+      9.34300422668457
+    ],
+    "touchMoved": 2.5,
+    "touchStopped": 2.5,
+    "pads": {
+      "moved": 8.326672684688674e-17,
+      "stopped": 8.326672684688674e-17,
+      "restarted": 0,
+      "unfocused": 0
+    },
+    "followed": [
+      0,
+      0.49999696016311646,
+      0
+    ]
+  },
+  "example": {
+    "moved": {
+      "x": -4.999999999999999,
+      "score": 1,
+      "status": "Collected 1/6\nWASD / stick: move · R / A: restart · C / Y: camera\nF / X: follow · Drag: orbit · Wheel: zoom\nClick the scene to focus the controls."
+    },
+    "switched": "perspective",
+    "blurPosition": -4.999999999999999,
+    "restarted": {
+      "x": 0,
+      "score": 0
+    },
+    "exampleBefore": {
+      "pipelineCreations": 52,
+      "shaderModules": 12,
+      "bufferCreations": 36,
+      "textureCreations": 5,
+      "samplerCreations": 2,
+      "buffers": 36,
+      "textures": 5,
+      "bufferBytes": 61085312,
+      "cacheHits": 49,
+      "cacheMisses": 66
+    },
+    "exampleAfter": {
+      "pipelineCreations": 52,
+      "shaderModules": 12,
+      "bufferCreations": 36,
+      "textureCreations": 5,
+      "samplerCreations": 2,
+      "buffers": 36,
+      "textures": 5,
+      "bufferBytes": 61085312,
+      "cacheHits": 49,
+      "cacheMisses": 66
+    },
+    "errors": []
+  },
+  "environment": {
+    "mode": "production-preview",
+    "browser": "153.0.8010.53",
+    "timestamp": "2026-10-04T12:00:24.096Z"
+  }
+}

@@ -105,6 +105,13 @@ try {
       depthPasses: r.stats.depthPasses,
       shadowPasses: r.stats.shadowPasses,
     };
+    animator.evaluationInterval = 1 / 30;
+    animator.update(1 / 120);
+    layers.rateHeldDifference = difference(restored, await draw());
+    animator.update(1 / 40);
+    layers.rateEvaluatedDifference = difference(restored, await draw());
+    animator.evaluationInterval = 0;
+    animator.currentTime = 0.7;
     const cube = (size, color) => ({
       size,
       faces: Array.from({ length: 6 }, (_, face) => {
@@ -339,6 +346,8 @@ try {
       report.environment.overdrawResourcesBefore[key],
       report.environment.overdrawResourcesAfter[key],
     );
+  assert.equal(report.layers.rateHeldDifference, 0);
+  assert.ok(report.layers.rateEvaluatedDifference > 0);
   assert.equal(report.gpuError, null);
   assert.deepEqual(report.uncapturedErrors, []);
   assert.deepEqual(errors, []);

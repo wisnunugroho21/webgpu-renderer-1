@@ -61,7 +61,7 @@ export async function uploadAsset(
       for (const primitive of mesh.primitives) {
         await new Promise<void>((resolve) => setTimeout(resolve, 0));
         checkDevice();
-        ids.push(meshes.upload(primitive));
+        ids.push(await meshes.uploadAsync(primitive, checkDevice));
       }
     }
     checkDevice();

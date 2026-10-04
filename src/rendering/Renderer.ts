@@ -58,6 +58,12 @@ export class Renderer {
   readonly environment: EnvironmentLighting;
   readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
+  get antialiasing(): "none" | "fxaa" {
+    return this.hdr.antialiasing;
+  }
+  set antialiasing(value: "none" | "fxaa") {
+    this.hdr.antialiasing = value;
+  }
   private readonly colorPass: ColorPass;
   readonly geometryOptimization: GeometryOptimization;
   readonly camera: Camera;
@@ -328,6 +334,7 @@ export class Renderer {
           this.colorInstanceOffset,
           this.clearColor,
         ),
+      postProcessing: (encoder) => this.hdr.encodeEffects(encoder),
       toneMapping: (encoder, view) =>
         this.hdr.encode(encoder, view, this.gpuProfiler),
       hiz: (encoder) => {
@@ -400,6 +407,12 @@ export class Renderer {
     this.skybox.enabled = previous.skybox.enabled;
     this.hdr.exposure = previous.hdr.exposure;
     this.hdr.toneMapping = previous.hdr.toneMapping;
+    this.hdr.bloomThreshold = previous.hdr.bloomThreshold;
+    this.hdr.bloomStrength = previous.hdr.bloomStrength;
+    this.hdr.exposureKey = previous.hdr.exposureKey;
+    this.hdr.adaptationSpeed = previous.hdr.adaptationSpeed;
+    this.hdr.autoExposure = previous.hdr.autoExposure;
+    this.antialiasing = previous.antialiasing;
     this.hdr.enabled = previous.hdr.enabled;
   }
   restoreStreaming(

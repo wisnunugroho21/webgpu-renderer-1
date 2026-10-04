@@ -262,3 +262,78 @@ it("returns to manual camera mode when unloading the selected asset camera", asy
   expect(f.app.cameraSystem.activeEntity).toBeNull();
   await f.app.dispose();
 });
+
+it("disposes one animated instance while preserving shared assets and surviving bindings", async () => {
+  const f = fixture();
+  const first = await f.app.instantiateAsset("a");
+  const second = await f.app.instantiateAsset("a");
+  const buffers = f.resources.stats.buffers;
+  const surviving = second.animator!;
+  surviving.play();
+  surviving.currentTime = 0.4;
+  expect(f.app.assetLoader.get("a").references).toBe(2);
+  await first.dispose();
+  await first.dispose();
+  expect(first.disposed).toBe(true);
+  expect(second.disposed).toBe(false);
+  expect(first.nodes.every((node) => f.app.world.resolve(node) === null)).toBe(
+    true,
+  );
+  expect(second.nodes.every((node) => f.app.world.resolve(node) !== null)).toBe(
+    true,
+  );
+  expect(f.app.animations.animators).toEqual([surviving]);
+  expect(f.app.skeletons.instances).toHaveLength(1);
+  expect(f.app.animations.morphStates).toHaveLength(1);
+  expect(f.app.animations.morphPool.count).toBe(2); // surviving offset stays stable
+  expect(f.resources.stats.buffers).toBe(buffers);
+  expect(f.app.assetLoader.get("a").references).toBe(1);
+  f.app.animations.update(0.1);
+  expect(surviving.currentTime).toBeCloseTo(0.5);
+  const replacement = await f.app.instantiateAsset("a");
+  expect(f.app.world.nextEntity).toBe(8);
+  await second.dispose();
+  await replacement.dispose();
+  expect(f.app.world.count).toBe(2);
+  expect(f.app.assetLoader.get("a").references).toBe(0);
+  expect(f.app.skeletons.jointCount).toBe(0);
+  await f.app.unloadAsset("a");
+  await f.app.dispose();
+});
+
+it("vetoes foreign hierarchy and deformation consumers before instance detachment", async () => {
+  const f = fixture();
+  const instance = await f.app.instantiateAsset("a");
+  const child = f.app.world.createHandle();
+  const e = f.app.world.require(child);
+  f.app.world.transforms.add(e);
+  f.app.world.transforms.setParent(e, f.app.world.require(instance.nodes[0]!));
+  const count = f.app.world.count;
+  await expect(instance.dispose()).rejects.toThrow("external entity");
+  expect(instance.disposed).toBe(false);
+  expect(f.app.world.count).toBe(count);
+  expect(f.app.assetLoader.get("a").references).toBe(1);
+  f.app.world.transforms.setParent(e, -1);
+  f.app.world.animators.add(e);
+  f.app.world.animators.animatorId[e] = 0;
+  await expect(instance.dispose()).rejects.toThrow("external entity");
+  f.app.world.animators.remove(e);
+  await instance.dispose();
+  f.app.world.destroy(child);
+  await f.app.dispose();
+});
+
+it("invalidates owned instance lifetimes on URL unload and cache eviction", async () => {
+  const f = fixture();
+  const first = await f.app.instantiateAsset("a");
+  const second = await f.app.instantiateAsset("a");
+  await f.app.unloadAsset("a");
+  expect(first.disposed && second.disposed).toBe(true);
+  await first.dispose();
+  const third = await f.app.instantiateAsset("a");
+  await third.dispose();
+  await f.app.assetLoader.setCacheBudget({ maxRecords: 0, maxDecodedBytes: 0 });
+  expect(f.app.assetLoader.records.size).toBe(0);
+  expect(f.app.world.count).toBe(2);
+  await f.app.dispose();
+});

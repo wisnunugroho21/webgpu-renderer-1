@@ -92,6 +92,43 @@ try {
     };
     const baselineHash = await draw(),
       baseline = snapshot();
+    // Per-instance despawn keeps sibling playback, pixels and GPU ownership intact.
+    const instanceURL = "/regression/skinned.glb?individual";
+    const firstInstance = await app.instantiateAsset(instanceURL);
+    const secondInstance = await app.instantiateAsset(instanceURL);
+    firstInstance.animator.play();
+    secondInstance.animator.play();
+    firstInstance.animator.currentTime = 0.25;
+    secondInstance.animator.currentTime = 0.25;
+    const bothHash = await draw(),
+      bothResident = snapshot();
+    const disposedStart = performance.now();
+    await firstInstance.dispose();
+    const disposeMs = performance.now() - disposedStart;
+    const remainingHash = await draw(),
+      remainingResident = snapshot();
+    const highWater = app.world.nextEntity;
+    const despawnCycles = [];
+    for (let i = 0; i < 30; i++) {
+      const start = performance.now();
+      const instance = await app.instantiateAsset(instanceURL);
+      await instance.dispose();
+      despawnCycles.push(performance.now() - start);
+    }
+    const individual = {
+      disposeMs,
+      despawnCycles,
+      bothHash,
+      remainingHash,
+      sameBuffers: bothResident.buffers === remainingResident.buffers,
+      sameTextures: bothResident.textures === remainingResident.textures,
+      sameHighWater: app.world.nextEntity === highWater,
+      references: app.assetLoader.get(instanceURL).references,
+      survivor: !secondInstance.disposed && secondInstance.animator.playing,
+    };
+    await app.unloadAsset(instanceURL);
+    individual.invalidated = secondInstance.disposed;
+    await secondInstance.dispose();
     let failure;
     try {
       await app.loadAsset("/lifecycle-invalid.glb");
@@ -148,6 +185,7 @@ try {
     };
     await app.assetLoader.setCacheBudget({ maxRecords: 0, maxDecodedBytes: 0 });
     return {
+      individual,
       baseline,
       baselineHash,
       failure,
@@ -165,6 +203,13 @@ try {
       records: app.assetLoader.records.size,
     };
   });
+  assert.equal(report.individual.bothHash, report.individual.remainingHash);
+  assert.equal(report.individual.sameBuffers, true);
+  assert.equal(report.individual.sameTextures, true);
+  assert.equal(report.individual.sameHighWater, true);
+  assert.equal(report.individual.references, 1);
+  assert.equal(report.individual.survivor, true);
+  assert.equal(report.individual.invalidated, true);
   assert.match(report.failure, /More than eight/);
   assert.deepEqual(report.afterFailure, report.baseline);
   assert.equal(report.survivorIntact, true);

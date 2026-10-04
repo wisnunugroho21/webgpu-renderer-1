@@ -439,6 +439,7 @@ export function assertRegressionReport(
       "gpu-compaction",
       "gpu-indirect",
       "color",
+      "post-processing",
       "tone-mapping",
       "hiz-debug",
     ],
@@ -649,6 +650,11 @@ export function assertRegressionReport(
   assert.ok(workerChecks.framesDuringWorker >= 1);
   assert.equal(workerChecks.metrics.workerJobs, 4);
   assert.ok(workerChecks.metrics.transferredInputBytes >= 1000000);
+  assert.equal(workerChecks.prepared, true);
+  assert.ok(workerChecks.upload.chunks > 2);
+  assert.ok(workerChecks.upload.maxChunk <= 1024 * 1024);
+  assert.ok(workerChecks.upload.framesDuring >= 1);
+  assert.equal(workerChecks.upload.buffersRestored, true);
   assert.ok(workerChecks.metrics.transferredOutputBytes >= 1000000);
   assert.equal(report.streamingChecks.lod.indexCount, 3);
   assert.equal(report.streamingChecks.lod.references, 1);

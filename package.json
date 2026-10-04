@@ -21,7 +21,10 @@
     "validate:hdr": "node scripts/validate-hdr.mjs",
     "validate:features": "node scripts/validate-scene-features.mjs",
     "validate:codecs": "node scripts/validate-codecs.mjs",
-    "validate": "node scripts/validate-project.mjs"
+    "validate": "node scripts/validate-project.mjs",
+    "validate:quality": "node scripts/validate-quality.mjs",
+    "bake:environment": "node scripts/bake-environment.mjs",
+    "validate:post": "node scripts/validate-post.mjs"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",

@@ -6,7 +6,7 @@ import { AnimationSystem } from "../ecs/systems/AnimationSystem";
 import { SkeletonRegistry } from "../animation/skinning/SkeletonRegistry";
 import { Renderer } from "../rendering/Renderer";
 import { MaterialManager } from "../rendering/materials/MaterialManager";
-import { AssetInstances } from "../assets/AssetInstances";
+import { AssetInstances, InstanceLifetime } from "../assets/AssetInstances";
 import { AssetLoader } from "../assets/AssetLoader";
 import { GLTFLoader } from "../assets/gltf/GLTFLoader";
 import { RuntimeAsset } from "../assets/gltf/RuntimeAsset";
@@ -14,6 +14,15 @@ import { instantiate, UploadedAsset } from "../assets/gltf/instantiate";
 import { uploadAsset, releaseUploadedAsset } from "../assets/uploadAsset";
 import { AssetDecoder } from "../assets/workers/AssetDecoder";
 import { transferableBuffers } from "../assets/workers/transfer";
+
+/** Independently disposable scene; nodes exclude renderer-created primitive children. */
+export interface AssetInstance {
+  readonly url: string;
+  readonly nodes: readonly EntityHandle[];
+  readonly animator: InstanceLifetime["animator"];
+  readonly disposed: boolean;
+  dispose(): Promise<void>;
+}
 
 /** Cold asset operations access the current renderer so device recovery cannot leave stale owners. */
 interface ApplicationAssetContext {
@@ -124,10 +133,31 @@ export class ApplicationAssets {
   async loadAssetHandles(url: string): Promise<readonly EntityHandle[]> {
     return (await this.loadAssetInstance(url, true)).handles;
   }
+  async instantiateAsset(url: string): Promise<AssetInstance> {
+    const instance = await this.loadAssetInstance(url, true);
+    return Object.freeze({
+      url,
+      nodes: instance.handles,
+      animator: instance.lifetime.animator,
+      get disposed() {
+        return instance.lifetime.disposed;
+      },
+      dispose: async () => {
+        // CPU detachment performs no GPU wait or shared-buffer destruction.
+        if (instance.lifetime.disposed) return;
+        instance.lifetime.dispose();
+        this.context.refreshSnapshot();
+      },
+    });
+  }
   private async loadAssetInstance(
     url: string,
     recycle: boolean,
-  ): Promise<{ nodes: Uint32Array; handles: readonly EntityHandle[] }> {
+  ): Promise<{
+    nodes: Uint32Array;
+    handles: readonly EntityHandle[];
+    lifetime: InstanceLifetime;
+  }> {
     this.context.checkDevice();
     const release = this.loader.retain(url);
     try {
@@ -167,9 +197,15 @@ export class ApplicationAssets {
             },
           },
         );
-        this.instances.addEntities(url, allocated, release);
+        const lifetime = this.instances.addEntities(
+          url,
+          allocated,
+          release,
+          asset,
+        );
         return {
           nodes,
+          lifetime,
           handles: Object.freeze(
             Array.from(nodes, (index) => handles.get(index)!),
           ),

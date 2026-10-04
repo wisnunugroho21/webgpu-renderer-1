@@ -21,6 +21,7 @@ export function instantiate(
   animations?: AnimationSystem,
   skeletons?: SkeletonRegistry,
   uploaded?: UploadedAsset,
+  allocation?: { readonly available: number; create(): number },
 ): Uint32Array {
   const roots = asset.scenes[scene];
   if (!roots) throw new Error("Unknown glTF scene");
@@ -46,7 +47,10 @@ export function instantiate(
       sum + (asset.meshes[asset.nodes[node]!.mesh]?.primitives.length ?? 0),
     0,
   );
-  if (world.nextEntity + active.length + primitiveCount > world.capacity)
+  if (
+    active.length + primitiveCount >
+    (allocation?.available ?? world.capacity - world.nextEntity)
+  )
     throw new Error("World capacity exceeded by asset");
   if (!uploaded && materials.available < asset.materials.length + 1)
     throw new Error("Material capacity exceeded by asset");
@@ -62,7 +66,7 @@ export function instantiate(
         mesh.primitives.map((primitive) => meshes.upload(primitive)),
       );
   for (const node of active) {
-    const entity = world.create(),
+    const entity = allocation ? allocation.create() : world.create(),
       data = asset.nodes[node]!;
     entities[node] = entity;
     world.transforms.add(entity);
@@ -112,7 +116,7 @@ export function instantiate(
       mesh = asset.meshes[data.mesh];
     if (!mesh) continue;
     mesh.primitives.forEach((primitive, index) => {
-      const entity = world.create();
+      const entity = allocation ? allocation.create() : world.create();
       world.transforms.add(entity);
       world.transforms.setParent(entity, entities[node]!);
       world.meshes.set(

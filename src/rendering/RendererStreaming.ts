@@ -29,16 +29,16 @@ export class RendererStreaming {
     }
   >();
   constructor(
-    queue: GPUQueue,
-    private readonly meshes: MeshManager,
-    private readonly lods: LODGroups,
-    private readonly textures: MaterialTextures,
+    private queue: GPUQueue,
+    private meshes: MeshManager,
+    private lods: LODGroups,
+    private textures: MaterialTextures,
     private readonly materials: MaterialManager,
-    private readonly frame: () => number,
+    private frame: () => number,
     private readonly world: RenderWorld,
   ) {
     this.resources = new Streaming(
-      () => queue.onSubmittedWorkDone(),
+      () => this.queue.onSubmittedWorkDone(),
       (resident) => {
         if ("mesh" in resident) {
           for (let i = 0; i < this.world.count; i++)
@@ -53,6 +53,35 @@ export class RendererStreaming {
         return false;
       },
     );
+  }
+  async quiesce(): Promise<void> {
+    await Promise.allSettled(
+      Array.from(this.resources.records.values(), (r) => r.pending),
+    );
+  }
+  rebind(
+    queue: GPUQueue,
+    meshes: MeshManager,
+    lods: LODGroups,
+    textures: MaterialTextures,
+    remap: Map<GPUBindGroup[], GPUBindGroup[]>,
+    frame: () => number,
+  ): void {
+    const groups = new Map<GPUBindGroup, GPUBindGroup>([
+      [this.textures.fallback, textures.fallback],
+    ]);
+    for (const [old, next] of remap)
+      old.forEach((group, i) => groups.set(group, next[i]!));
+    for (const record of this.resources.records.values())
+      if (record.value && "groups" in record.value)
+        record.value.groups = remap.get(record.value.groups)!;
+    for (const slot of this.materialSlots.values())
+      slot.fallback = groups.get(slot.fallback)!;
+    this.queue = queue;
+    this.meshes = meshes;
+    this.lods = lods;
+    this.textures = textures;
+    this.frame = frame;
   }
   async bindLOD(
     group: number,

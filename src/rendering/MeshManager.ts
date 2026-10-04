@@ -16,11 +16,68 @@ export interface Mesh {
   skin?: SkinVertexData;
   morph?: MorphTargetData;
   morphOffset?: number;
+  deformationVertexCount?: number;
   bounds?: { min: Float32Array; max: Float32Array };
 }
 /** Shared asset meshes; entities refer to numeric mesh IDs and never own buffers. */
 export class MeshManager {
   readonly entries: Mesh[] = [];
+  private readonly recovery = new Map<
+    number,
+    { vertices: Float32Array; indices: Uint32Array }
+  >();
+  get recoveryBytes(): number {
+    let bytes = 0;
+    for (const data of this.recovery.values())
+      bytes += data.vertices.byteLength + data.indices.byteLength;
+    return bytes;
+  }
+  assertRecoverable(): void {
+    for (let id = 1; id < this.entries.length; id++)
+      if (this.entries[id] && !this.recovery.has(id))
+        throw new Error(
+          `Mesh ${id} has no CPU recovery data; register it with packed recovery arrays`,
+        );
+  }
+  rebuildInto(next: MeshManager): void {
+    this.assertRecoverable();
+    for (let id = 1; id < this.entries.length; id++) {
+      const mesh = this.entries[id];
+      if (!mesh) continue;
+      const data = this.recovery.get(id)!;
+      const vertex = next.resources.buffers.create({
+        label: "Restored vertices",
+        size: data.vertices.byteLength,
+        usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      });
+      const index = next.resources.buffers.create({
+        label: "Restored indices",
+        size: data.indices.byteLength,
+        usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+      });
+      next.queue.writeBuffer(vertex, 0, data.vertices);
+      next.queue.writeBuffer(index, 0, data.indices);
+      next.entries.length = id;
+      next.register({
+        ...mesh,
+        vertex,
+        index,
+        morphOffset:
+          mesh.morph || mesh.skin?.secondary
+            ? next.morphDeltas?.append(
+                mesh.morph,
+                mesh.skin?.secondary,
+                mesh.deformationVertexCount,
+              )
+            : undefined,
+      });
+      next.recovery.set(id, data);
+    }
+    next.entries.length = this.entries.length;
+  }
+  clearRecovery(): void {
+    this.recovery.clear();
+  }
   constructor(
     private readonly resources: Resources,
     private readonly queue: GPUQueue,
@@ -29,7 +86,15 @@ export class MeshManager {
   fence(): Promise<void> {
     return this.queue.onSubmittedWorkDone();
   }
-  register(mesh: Mesh): number {
+  register(
+    mesh: Mesh,
+    recovery?: { vertices: Float32Array; indices: Uint32Array },
+  ): number {
+    if (recovery)
+      this.recovery.set(this.entries.length, {
+        vertices: recovery.vertices.slice(),
+        indices: recovery.indices.slice(),
+      });
     this.entries.push(mesh);
     return this.entries.length - 1;
   }
@@ -45,6 +110,7 @@ export class MeshManager {
     if (mesh.morphOffset !== undefined)
       this.morphDeltas?.release(mesh.morphOffset);
     delete this.entries[id];
+    this.recovery.delete(id);
   }
   upload(primitive: RuntimePrimitive): number {
     const positions = primitive.attributes.POSITION!;
@@ -59,8 +125,8 @@ export class MeshManager {
       ? new MorphTargetData(primitive.targets, count)
       : undefined;
     const skin = SkinVertexData.fromPrimitive(primitive);
-    if (skin?.secondary)
-      throw new Error("Eight-weight GPU skinning is not supported yet");
+    if (skin?.secondary && !this.morphDeltas)
+      throw new Error("Eight-weight skinning requires a deformation arena");
     const vertices = new Float32Array(count * VERTEX_WORDS);
     // Joint IDs share the interleaved storage but must be written as integer bits.
     const bits = new Uint32Array(vertices.buffer);
@@ -113,7 +179,10 @@ export class MeshManager {
       topology === 0 && !skin && !morph
         ? new MeshClusters(positions, indices)
         : undefined;
-    const morphOffset = morph ? this.morphDeltas?.append(morph) : undefined;
+    const morphOffset =
+      morph || skin?.secondary
+        ? this.morphDeltas?.append(morph, skin?.secondary, count)
+        : undefined;
     let vertex: GPUBuffer | undefined, index: GPUBuffer | undefined;
     try {
       vertex = this.resources.buffers.create({
@@ -128,7 +197,7 @@ export class MeshManager {
       });
       this.queue.writeBuffer(vertex, 0, vertices);
       this.queue.writeBuffer(index, 0, indices);
-      return this.register({
+      const id = this.register({
         clusters,
         vertex,
         index,
@@ -137,8 +206,11 @@ export class MeshManager {
         skin,
         morph,
         morphOffset,
+        deformationVertexCount: morph || skin?.secondary ? count : undefined,
         bounds: { min, max },
       });
+      this.recovery.set(id, { vertices, indices });
+      return id;
     } catch (error) {
       if (vertex) this.resources.buffers.destroy(vertex);
       if (index) this.resources.buffers.destroy(index);

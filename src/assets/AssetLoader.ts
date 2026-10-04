@@ -283,6 +283,14 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     }
     return evicted;
   }
+  /** Recovery boundary: abort in-flight uploads and finish retirement before managers change. */
+  async quiesce(): Promise<void> {
+    for (const url of this.controllers.keys()) this.cancel(url);
+    await Promise.allSettled([
+      ...Array.from(this.records.values(), (r) => r.pending),
+      ...this.unloading.values(),
+    ]);
+  }
   async dispose(): Promise<void> {
     this.disposed = true;
     for (const url of this.controllers.keys()) this.cancel(url);

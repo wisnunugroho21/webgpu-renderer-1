@@ -3382,6 +3382,9 @@ export const runRegressionScene = async () => {
       p95: samples[Math.floor(samples.length * 0.95)],
     },
   };
+  // This harness includes custom GPU-only fixtures. Test the opt-out loss UI here;
+  // validate-device-recovery covers rehydration and automatic resume.
+  app.autoRecoverDevice = false;
   // Destroy simulates loss and verifies the application's lost-device callback.
   gpu.device.destroy();
   await gpu.device.lost;

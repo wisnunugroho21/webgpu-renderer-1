@@ -5,4 +5,8 @@ export class MorphStore extends ComponentStore {
     super(capacity);
     this.stateId = new Int32Array(capacity).fill(-1);
   }
+  override remove(entity: number): void {
+    super.remove(entity);
+    this.stateId[entity] = -1;
+  }
 }

@@ -66,7 +66,7 @@ export class SkeletonRegistry {
       const skeleton = skeletons[data.skin];
       if (!skeleton) throw new Error("Unknown skin");
 
-      const instance = new SkeletonInstance(skeleton, e, entities);
+      const instance = new SkeletonInstance(skeleton, e, entities, world);
       instance.jointOffset = this.arena.allocate(instance.jointCount);
       this.jointCount = this.arena.count;
       const id = this.instances.push(instance) - 1;

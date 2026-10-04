@@ -28,6 +28,7 @@ export class RenderWorld {
   readonly jointCounts: Uint32Array;
   staticRevision = 0;
   readonly entityId: Uint32Array;
+  readonly entityGeneration: Float64Array;
   readonly meshId: Uint32Array;
   readonly materialId: Uint32Array;
   readonly flags: Uint32Array;
@@ -63,6 +64,7 @@ export class RenderWorld {
     this.jointOffset = new Uint32Array(capacity);
     this.jointCounts = new Uint32Array(capacity);
     this.entityId = new Uint32Array(capacity);
+    this.entityGeneration = new Float64Array(capacity);
     this.meshId = new Uint32Array(capacity);
     this.materialId = new Uint32Array(capacity);
     this.flags = new Uint32Array(capacity);

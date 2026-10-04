@@ -69,6 +69,7 @@ export class LODGroups {
       if (
         mesh.topology !== base.topology ||
         !!mesh.skin !== !!base.skin ||
+        !!mesh.skin?.secondary !== !!base.skin?.secondary ||
         mesh.morph?.targetCount !== base.morph?.targetCount ||
         !mesh.bounds ||
         !base.bounds

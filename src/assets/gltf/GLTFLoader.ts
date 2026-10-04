@@ -1,3 +1,4 @@
+import dracoWasm from "draco3dgltf/draco_decoder_gltf.wasm?url";
 import {
   Accessor,
   Document,
@@ -16,14 +17,61 @@ export class GLTFLoader {
       : this.io.readAsJSON(url);
   }
   async load(url: string): Promise<RuntimeAsset> {
-    return this.convert(await this.io.read(url));
+    return this.parseJSON(await this.fetch(url));
   }
   async parseGLB(bytes: Uint8Array): Promise<RuntimeAsset> {
-    return this.convert(await this.io.readBinary(bytes));
+    return this.parseJSON(await this.io.binaryToJSON(bytes));
   }
   async parseJSON(json: JSONDocument): Promise<RuntimeAsset> {
+    await this.prepareCodecs(json);
     return this.convert(await this.io.readJSON(json));
   }
+  private async prepareCodecs(document: JSONDocument): Promise<void> {
+    const names = new Set(document.json.extensionsUsed ?? []);
+    if (
+      ![
+        "KHR_draco_mesh_compression",
+        "EXT_meshopt_compression",
+        "KHR_texture_basisu",
+        "KHR_mesh_quantization",
+      ].some((name) => names.has(name))
+    )
+      return;
+    const extensions = await import("@gltf-transform/extensions");
+    const registered = [];
+    if (names.has("KHR_mesh_quantization"))
+      registered.push(extensions.KHRMeshQuantization);
+    if (names.has("KHR_texture_basisu"))
+      registered.push(extensions.KHRTextureBasisu);
+    if (names.has("EXT_meshopt_compression")) {
+      const { MeshoptDecoder } = await import("meshoptimizer");
+      await MeshoptDecoder.ready;
+      this.io.registerDependencies({ "meshopt.decoder": MeshoptDecoder });
+      registered.push(extensions.EXTMeshoptCompression);
+    }
+    if (names.has("KHR_draco_mesh_compression")) {
+      this.draco ??= (async () => {
+        const { default: createDecoder } =
+          await import("draco3dgltf/draco_decoder_gltf_nodejs.js");
+        const options =
+          typeof location !== "undefined"
+            ? {
+                wasmBinary: new Uint8Array(
+                  await (await fetch(dracoWasm)).arrayBuffer(),
+                ),
+              }
+            : undefined;
+        return createDecoder(options);
+      })().catch((error) => {
+        this.draco = undefined;
+        throw error;
+      });
+      this.io.registerDependencies({ "draco3d.decoder": await this.draco });
+      registered.push(extensions.KHRDracoMeshCompression);
+    }
+    this.io.registerExtensions(registered);
+  }
+  private draco?: Promise<unknown>;
   private read(accessor: Accessor | null): Float32Array {
     if (!accessor) return new Float32Array(0);
     const size = accessor.getElementSize(),

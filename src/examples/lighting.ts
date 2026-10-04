@@ -43,6 +43,7 @@ export async function createLightingExample(
   });
   await app.renderer.setEnvironment(data);
   app.renderer.hdr.enabled = true;
+  app.renderer.skybox.enabled = true;
   const w = app.world,
     mesh = sphere(app),
     entities: number[] = [];
@@ -80,11 +81,12 @@ export async function createLightingExample(
   app.canvas.tabIndex = 0;
   app.canvas.setAttribute(
     "aria-label",
-    "Environment lighting: top dielectric, bottom metal; roughness increases left to right. E toggles lighting, H toggles HDR, minus/equal adjust exposure, arrows rotate lighting.",
+    "Environment lighting: top dielectric, bottom metal; roughness increases left to right. E toggles lighting, H toggles HDR, B toggles skybox, minus/equal adjust exposure, arrows rotate lighting.",
   );
   const input = new KeyboardInput(app.canvas, [
     "KeyE",
     "KeyH",
+    "KeyB",
     "Minus",
     "Equal",
     "ArrowLeft",
@@ -97,7 +99,7 @@ export async function createLightingExample(
     "position:fixed;left:16px;top:16px;max-width:calc(100vw - 32px);box-sizing:border-box;color:white;background:#152033dd;padding:12px;font:14px system-ui;pointer-events:none";
   document.body.append(hud);
   const describe = () => {
-    hud.textContent = `Top: dielectric · Bottom: metal · Roughness increases → | E: ${app.renderer.environment.enabled ? "IBL on" : "IBL off"} · H: ${app.renderer.hdr.enabled ? "HDR on" : "HDR off"} · −/+: ${app.renderer.hdr.exposure.toFixed(1)} stops · ←/→ rotate`;
+    hud.textContent = `Top: dielectric · Bottom: metal · Roughness increases → | E: ${app.renderer.environment.enabled ? "IBL on" : "IBL off"} · B: ${app.renderer.skybox.enabled ? "skybox on" : "skybox off"} · H: ${app.renderer.hdr.enabled ? "HDR on" : "HDR off"} · −/+: ${app.renderer.hdr.exposure.toFixed(1)} stops · ←/→ rotate`;
   };
   describe();
   const statusTop = app.status.style.top,
@@ -115,6 +117,10 @@ export async function createLightingExample(
     }
     if (input.consumePressed("KeyH")) {
       app.renderer.hdr.enabled = !app.renderer.hdr.enabled;
+      describe();
+    }
+    if (input.consumePressed("KeyB")) {
+      app.renderer.skybox.enabled = !app.renderer.skybox.enabled;
       describe();
     }
     const exposure =
@@ -135,6 +141,7 @@ export async function createLightingExample(
     dispose() {
       unsubscribe();
       app.renderer.hdr.enabled = false;
+      app.renderer.skybox.enabled = false;
       input.dispose();
       app.canvas.removeEventListener("pointerdown", focus);
       hud.remove();

@@ -4,9 +4,6 @@ import { Mat4 } from "../../math/Mat4";
 export class TransformSystem {
   updated = 0;
   private readonly local = Mat4.create();
-  private readonly position = new Float32Array(3);
-  private readonly rotation = new Float32Array(4);
-  private readonly scale = new Float32Array(3);
   private readonly stack: Uint32Array;
   constructor(capacity: number) {
     this.stack = new Uint32Array(capacity);
@@ -25,28 +22,23 @@ export class TransformSystem {
       }
       while (count) {
         const e = this.stack[--count]!;
-        this.position[0] = store.positionX[e]!;
-        this.position[1] = store.positionY[e]!;
-        this.position[2] = store.positionZ[e]!;
-        this.rotation[0] = store.rotationX[e]!;
-        this.rotation[1] = store.rotationY[e]!;
-        this.rotation[2] = store.rotationZ[e]!;
-        this.rotation[3] = store.rotationW[e]!;
-        this.scale[0] = store.scaleX[e]!;
-        this.scale[1] = store.scaleY[e]!;
-        this.scale[2] = store.scaleZ[e]!;
         const offset = e * 16,
           parent = store.parent[e]!;
-        if (parent === -1)
-          Mat4.fromTRS(
-            store.worldMatrices,
-            this.position,
-            this.rotation,
-            this.scale,
-            offset,
-          );
-        else {
-          Mat4.fromTRS(this.local, this.position, this.rotation, this.scale);
+        Mat4.fromTRSValues(
+          parent === -1 ? store.worldMatrices : this.local,
+          store.positionX[e]!,
+          store.positionY[e]!,
+          store.positionZ[e]!,
+          store.rotationX[e]!,
+          store.rotationY[e]!,
+          store.rotationZ[e]!,
+          store.rotationW[e]!,
+          store.scaleX[e]!,
+          store.scaleY[e]!,
+          store.scaleZ[e]!,
+          parent === -1 ? offset : 0,
+        );
+        if (parent !== -1) {
           // Reuse packed storage directly rather than creating two views per joint.
           Mat4.multiply(
             store.worldMatrices,

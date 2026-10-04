@@ -3,6 +3,7 @@ import { World } from "../World";
 /** Application-side camera selection; renderer reads only the camera and extracted scene. */
 export class CameraSystem {
   activeEntity: number | null = null;
+  private generation = -1;
   private readonly values = new Float64Array(6);
   private readonly previous = new Float64Array(6).fill(NaN);
   select(entity: number | null, world: World): void {
@@ -14,12 +15,18 @@ export class CameraSystem {
     )
       throw new Error("Unknown camera entity");
     this.activeEntity = entity;
+    this.generation = entity === null ? -1 : world.generation[entity]!;
     this.previous.fill(NaN);
   }
   update(world: World, camera: Camera): void {
     const e = this.activeEntity;
     if (e === null) return;
-    if (!world.alive[e] || !world.cameras.has[e] || !world.transforms.has[e]) {
+    if (
+      !world.alive[e] ||
+      world.generation[e] !== this.generation ||
+      !world.cameras.has[e] ||
+      !world.transforms.has[e]
+    ) {
       this.select(null, world);
       return;
     }

@@ -6,6 +6,7 @@ import {
   validateEnvironment,
 } from "./EnvironmentData";
 interface InstalledEnvironment {
+  data: EnvironmentData;
   textures: GPUTexture[];
   buffer: GPUBuffer;
   group: GPUBindGroup;
@@ -27,6 +28,9 @@ export class EnvironmentLighting {
     private readonly resources: Resources,
     private readonly preparePipelines: (layout: GPUBindGroupLayout) => void,
   ) {}
+  get data(): EnvironmentData | undefined {
+    return this.installed?.data;
+  }
   get active(): boolean {
     return this.enabledValue && !!this.installed;
   }
@@ -66,8 +70,8 @@ export class EnvironmentLighting {
     this.sequence = operation.catch(() => {});
     return operation;
   }
-  flush(): void {
-    if (this.dirty && this.active) {
+  flush(skybox = false): void {
+    if (this.dirty && this.installed && (this.active || skybox)) {
       this.device.queue.writeBuffer(this.installed!.buffer, 0, this.params);
       this.dirty = false;
     }
@@ -174,7 +178,7 @@ export class EnvironmentLighting {
           ],
         });
         this.preparePipelines(layout);
-        prepared = { textures, buffer, group };
+        prepared = { data, textures, buffer, group };
       } catch (error) {
         failure = error;
       }

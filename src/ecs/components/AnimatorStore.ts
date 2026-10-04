@@ -5,4 +5,8 @@ export class AnimatorStore extends ComponentStore {
     super(capacity);
     this.animatorId = new Int32Array(capacity).fill(-1);
   }
+  override remove(entity: number): void {
+    super.remove(entity);
+    this.animatorId[entity] = -1;
+  }
 }

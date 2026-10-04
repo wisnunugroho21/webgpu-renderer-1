@@ -13,8 +13,8 @@ const mesh = document.getRoot().listMeshes()[0],
 mesh.addPrimitive(
   primitive
     .clone()
-    .setAttribute("JOINTS_1", primitive.getAttribute("JOINTS_0"))
-    .setAttribute("WEIGHTS_1", primitive.getAttribute("WEIGHTS_0")),
+    .setAttribute("JOINTS_2", primitive.getAttribute("JOINTS_0"))
+    .setAttribute("WEIGHTS_2", primitive.getAttribute("WEIGHTS_0")),
 );
 const invalid = await io.writeBinary(document);
 const server = await startPreviewServer(5191, true);
@@ -165,7 +165,7 @@ try {
       records: app.assetLoader.records.size,
     };
   });
-  assert.match(report.failure, /Eight-weight/);
+  assert.match(report.failure, /More than eight/);
   assert.deepEqual(report.afterFailure, report.baseline);
   assert.equal(report.survivorIntact, true);
   assert.equal(report.afterA.textures, report.sharedTextures);
@@ -217,6 +217,55 @@ try {
   assert.equal(report.cancellation.records, 0);
   assert.equal(report.cancellation.entities, report.baseline.entities);
   assert.deepEqual(errors, []);
+  report.handles = await page.evaluate(async () => {
+    const app = window.rendererApp,
+      world = app.world,
+      cycles = [];
+    let stale, firstHighWater;
+    for (let i = 0; i < 30; i++) {
+      const start = performance.now(),
+        handles = await app.loadAssetHandles("/regression/crowd-combined.glb");
+      if (!stale) stale = handles[0];
+      if (firstHighWater === undefined) firstHighWater = world.nextEntity;
+      if (world.nextEntity !== firstHighWater)
+        throw new Error("Handle load exhausted fresh slots");
+      app.transformSystem.update(world.transforms);
+      app.skeletonSystem.update(world, app.skeletons);
+      app.extractor.extract(
+        world,
+        app.renderWorld,
+        app.skeletons,
+        app.animations.morphPool,
+      );
+      const encoder = app.gpu.device.createCommandEncoder();
+      app.renderer.encode(
+        encoder,
+        app.gpu.context
+          .getCurrentTexture()
+          .createView({ format: app.gpu.renderFormat }),
+      );
+      app.gpu.queue.submit([encoder.finish()]);
+      await app.gpu.queue.onSubmittedWorkDone();
+      if (i && world.resolve(stale) !== null)
+        throw new Error("Stale asset handle revived");
+      world.destroy(stale);
+      if (i && handles.some((h) => world.resolve(h) === null))
+        throw new Error("Stale destruction hit replacement");
+      await app.unloadAsset("/regression/crowd-combined.glb");
+      if (handles.some((h) => world.resolve(h) !== null))
+        throw new Error("Unloaded asset handle still alive");
+      cycles.push(performance.now() - start);
+    }
+    return {
+      cycles,
+      firstHighWater,
+      finalHighWater: world.nextEntity,
+      entities: world.count,
+      errors: app.gpu.errors,
+    };
+  });
+  assert.equal(report.handles.entities, report.baseline.entities);
+  assert.deepEqual(report.handles.errors, []);
   report.environment = {
     mode: "production-preview",
     browser: await browser.version(),

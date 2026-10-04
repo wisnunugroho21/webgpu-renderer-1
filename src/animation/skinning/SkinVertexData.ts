@@ -3,13 +3,19 @@ export interface Influences {
   readonly joints: Uint32Array;
   readonly weights: Float32Array;
 }
-/** Static influence streams; a second set is retained for a future eight-weight variant. */
+/** Static influence streams; both sets normalize jointly for the shared eight-weight GPU path. */
 export class SkinVertexData {
   private constructor(
     readonly primary: Influences,
     readonly secondary?: Influences,
   ) {}
   static fromPrimitive(p: RuntimePrimitive): SkinVertexData | undefined {
+    if (
+      Object.keys(p.attributes).some(
+        (key) => Number(/^(?:JOINTS|WEIGHTS)_(\d+)$/.exec(key)?.[1] ?? 0) > 1,
+      )
+    )
+      throw new Error("More than eight skin influences are unsupported");
     const count = p.attributes.POSITION!.length / 3;
     const read = (set: number): Influences | undefined => {
       const j = p.attributes[`JOINTS_${set}`],

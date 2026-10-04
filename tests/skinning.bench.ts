@@ -21,6 +21,16 @@ const primitive = {
   },
 };
 describe("Phase 17 static skin data", () => {
+  bench("validate/copy/normalize 10,000 eight-weight vertices", () => {
+    SkinVertexData.fromPrimitive({
+      ...primitive,
+      attributes: {
+        ...primitive.attributes,
+        JOINTS_1: joints,
+        WEIGHTS_1: weights,
+      },
+    })!.validateJointCount(64);
+  });
   bench("validate/copy/normalize 10,000 four-weight vertices", () => {
     SkinVertexData.fromPrimitive(primitive)!.validateJointCount(64);
   });

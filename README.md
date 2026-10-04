@@ -114,7 +114,7 @@ Phases 1–44 and the Definition of Done are validated. Phase 44 advanced geomet
 
 PBR shading uses shared material records and five glTF texture maps, with sRGB color attachments and linear blending. Textures decode asynchronously; full GPU mip chains, shared samplers and content-based deduplication are prepared during loading. Linear data and sRGB color uses receive separate cached textures.
 
-Animated GLBs register independent controllers in `rendererApp.animations.animators`. Call `play(clipIndex)`, `pause()`, `stop()`, or set `loop`, `speed` and `currentTime`. Morph and four-weight skin deformation run in shared WGSL helpers; frames upload changed palettes/weights and never rewrite vertex buffers. Optional eight-weight skinning currently fails explicitly on GPU upload. Bounds use conservative morph extrema and joint boxes before linear/BVH culling.
+Animated GLBs register independent controllers in `rendererApp.animations.animators`. Call `play(clipIndex)`, `pause()`, `stop()`, or set `loop`, `speed` and `currentTime`. Morph and four/eight-weight skin deformation run in shared WGSL helpers; frames upload changed palettes/weights and never rewrite vertex buffers. Both influence sets normalize jointly during loading and share the color/depth/shadow path. Bounds use conservative morph extrema and joint boxes before linear/BVH culling.
 
 Runtime layers are optional and ordered. For an asset with multiple clips:
 
@@ -146,7 +146,7 @@ Layers have independent `time`, `speed`, `loop` and `playing` controls while the
 
 ## Optional environment lighting
 
-Run the material-grid demo at `/?example=lighting`: click the canvas, press **E** to toggle IBL and use **left/right arrows** to rotate it. Top row is dielectric, bottom is metal; roughness increases left to right. All spheres share geometry.
+Run the material-grid demo at `/?example=lighting`: click the canvas, press **E** to toggle IBL, **B** to toggle the skybox, and use **left/right arrows** to rotate it. Top row is dielectric, bottom is metal; roughness increases left to right. All spheres share geometry.
 
 Create a procedural environment during loading, or supply externally precomputed data:
 
@@ -178,7 +178,7 @@ await app.renderer.setEnvironment(null); // retire textures/uniform buffer safel
 
 One environment is shared across materials. Installation is transactional and serial; failure preserves the previous environment. First installation creates bounded pipeline variants and three filterable rgba16float textures plus a 16-byte uniform. No environment GPU resources are created by default; toggles and parameter changes reuse installed resources. Clearing releases textures/buffer after a cold completion fence; shader/pipeline/sampler caches live until renderer disposal. Frame/deformation ABIs remain unchanged.
 
-HDR/EXR decoding, skyboxes and glTF environment extensions remain separate capabilities. This implementation supplies single-scattering diffuse/specular IBL; enable optional HDR rendering below to preserve bright highlights through tone mapping. Validation, measured overhead and limitations: [scene features report](benchmarks/SCENE_FEATURES_REPORT.md).
+HDR/EXR loading and skyboxes are available through the APIs below; glTF environment extensions remain a separate capability. This implementation supplies single-scattering diffuse/specular IBL; enable optional HDR rendering below to preserve bright highlights through tone mapping. Validation, measured overhead and limitations: [scene features report](benchmarks/SCENE_FEATURES_REPORT.md).
 
 Lights use ECS `world.lights.set(entity, properties)` with directional/point/spot types. Directional lights opt into shadows with `castShadow: true`. Configure `renderer.shadows.cascades` (1–4), `shadowDistance` (>0.1–100), `enabled`, or `cacheEnabled`. The shared array supports four shadow lights and rejects overflow. Clustered lighting defaults to automatic selection for many bounded lights; `renderer.clusters.mode` accepts `auto`, `off`, or `on`, with safe overflow fallback.
 
@@ -208,11 +208,11 @@ The default cache budget is 64 records and 128 MiB of decoded backing buffers, c
 
 `app.cancelAssetLoad(url)` cancels the shared in-flight operation for that URL; all callers receive an `AbortError`. Handle the loading promise's rejection. Fetches receive an abort signal, cancelled worker jobs ignore late replies, and upload cancellation rolls back after the current asynchronous boundary. Synchronous decoding/primitive packing cannot be interrupted midway. `await app.dispose()` cancels pending loads and completes cleanup before disposing the renderer/device.
 
-Scene entity IDs remain monotonic and consume the configured world capacity even after unloading. Animation/morph/skeleton registry IDs may be compacted during unloading; retrieve current IDs through ECS stores rather than retaining array indices. Surviving controller objects, morph views and palette offsets remain valid. Details and measurements: [asset lifecycle report](benchmarks/ASSET_LIFECYCLE_REPORT.md).
+Legacy scene entity IDs remain monotonic and consume the configured world capacity even after unloading; `loadAssetHandles` reuses retired handle slots. Animation/morph/skeleton registry IDs may be compacted during unloading; retrieve current IDs through ECS stores rather than retaining array indices. Surviving controller objects, morph views and palette offsets remain valid. Details and measurements: [asset lifecycle report](benchmarks/ASSET_LIFECYCLE_REPORT.md).
 
 `renderer.streaming.bindLOD(group, level, key, loadPrimitive)` and `bindMaterial(materialID, key, loadAsset)` retain resident fallbacks while loading. Streamed texture assets contain one material and replace its texture slots while preserving scalar factors. Call `releaseLOD`/`releaseMaterial` to restore fallbacks, then asynchronously `await renderer.streaming.evictUnused(minimumAge)` outside the frame loop. Eviction waits for submitted work and rechecks references; freed shared morph arena ranges become reusable without relocating live assets. Texture slot changes restore UV/normal metadata and invalidate shadow/temporal caches.
 
-Native KTX2 compressed textures support adapter-gated BC, ETC2/EAC and ASTC formats, role-correct linear/sRGB sampling and authored mip chains. Unsupported formats, malformed blocks, cubemaps/arrays, Basis Universal and supercompression fail explicitly. Ordinary decoded images still receive generated GPU mipmaps.
+Native KTX2 compressed textures support adapter-gated BC, ETC2/EAC and ASTC formats, role-correct linear/sRGB sampling and authored mip chains. Basis Universal ETC1S/UASTC KTX2 textures transcode in a lazily created worker to supported compressed formats, with RGBA fallback on devices without compression. Unsupported native formats/supercompression, malformed blocks and cubemaps/arrays fail explicitly. Ordinary decoded images still receive generated GPU mipmaps.
 
 `renderer.stats` exposes draw/state/visibility, uploads, deformation activity, FPS and frame durations. FPS measures RAF submission cadence; GPU timing requires the explicit profiler. `activeMorphTargets` counts nonzero signed weights, while `morphTargets` counts declared attached targets. The 1,000-character benchmark is CPU-animation-bound and exceeds a 60 FPS frame budget on the tested machine.
 
@@ -242,3 +242,48 @@ HDR is disabled by default and allocates no resources until enabled. It renders 
 Disabling HDR restores the original direct rendering path; resources remain cached for reuse. Resize replaces the target, and renderer disposal releases it. The target uses 8 bytes per pixel (about 15.8 MiB at 1920×1080), plus one 16-byte uniform and bounded color/presentation pipeline variants. Half-float scene values above 65504 saturate during presentation. Hi-Z debug runs after tone mapping. No ordinary-frame waits, readbacks or resource creation are added.
 
 The lighting demo enables HDR. Click the canvas, press **H** to toggle it and **−/+** to change exposure by half a stop. Run `npm run build && npm run validate:hdr` for analytic pixel references, transparency, submission modes, animation/IBL integration, resize, lifetime and overhead checks. See [HDR measurements](benchmarks/HDR_REPORT.md).
+
+## Recyclable entity handles
+
+Existing `world.create()` and `app.loadAsset(url)` keep monotonic numeric IDs. Opt into reuse with handles:
+
+```ts
+const entity = app.world.createHandle();
+const index = app.world.require(entity); // validate immediately before SoA access
+app.world.transforms.add(index);
+app.world.transforms.setPosition(index, 1, 2, 3);
+app.world.destroy(entity);
+app.world.resolve(entity); // null: the old identity stays invalid after reuse
+
+const nodes = await app.loadAssetHandles("/character.glb");
+// Nodes are immutable handles; all instance slots, including primitives, recycle.
+await app.unloadAsset("/character.glb");
+```
+
+A handle is scoped to its world and generation. `require` throws for stale/foreign handles; `resolve` returns null, and stale destruction is a no-op. Retain the handle, not its array index. Numeric indices obtained from handles are temporary SoA access addresses and must be resolved again after asynchronous work or destruction. Only slots originally allocated through the handle API recycle, so legacy IDs never alias replacements. Camera selection accepts either identity type. Animation/skeleton bindings and temporal/BVH snapshots validate recycled generations. Entity count remains capacity-bounded; generation exhaustion retires a slot rather than wrapping.
+
+## GPU device recovery
+
+Unexpected device loss automatically pauses the loop, drains pending asset work and recreates the device, renderer, shared meshes/textures, environment and GPU buffers. Entity handles, scene transforms, camera object, materials and animation playback survive. A running loop resumes with a fresh delta-time origin; a paused loop remains paused. Read `app.deviceState` for `ready/lost/recovering/failed/disposed`. Set `app.autoRecoverDevice = false` to opt out; `await app.recoverDevice()` manually rebuilds or retries a failure. Concurrent calls share one operation. Disposal suppresses recovery and waits for any operation already running.
+
+Uploaded meshes retain packed CPU vertices/indices for recovery (`renderer.meshes.recoveryBytes` reports their size). Uploaded texture leases retain source image data; environment data stays available on `renderer.environment.data` and should remain immutable. Custom GPU-only meshes must pass packed canonical-layout recovery arrays as the second argument to `meshes.register(mesh, {vertices, indices})`. Arbitrary manually assigned material bind groups have no CPU provenance and cause an explicit recoverable failure. Reacquire GPU renderer/resources through `app.renderer` after recovery; old GPU objects cannot be used on the replacement device. CPU camera and streaming lease objects remain stable. See [recovery validation](benchmarks/DEVICE_RECOVERY_REPORT.md).
+
+## Environment files, cached bakes and skyboxes
+
+```ts
+await app.loadEnvironment("/sky.exr", { specularSize: 32, samples: 128 });
+app.renderer.skybox.enabled = true;
+app.renderer.hdr.enabled = true;
+```
+
+Radiance HDR and OpenEXR decode to top-down linear RGB. The EXR decoder supports its documented compression formats; declared non-Rec.709 primaries are rejected rather than interpreted as sRGB. Negative radiance clamps to zero and values above 65504 saturate for the half-float lighting target. Three.js is used only for dynamically loaded file parsers, not scene or rendering ownership. Unknown/malformed formats reject. Files are limited to 64 MiB and panoramas to 16 million pixels.
+
+`app.environments` caches bakes by content hash and bake options, deduplicates pending work, and evicts LRU entries (default 8 entries/64 MiB). `clear()` prevents pending bakes from repopulating it. `loadEnvironment` accepts an optional AbortSignal after the bake options. Bakes run only during explicit loading, never in gameplay update hooks; choose resolution/sample count accordingly. Returned cached data is immutable by contract. The skybox reuses the environment's sharp specular level and intensity/yaw. It is independent of the lighting enable toggle, renders behind geometry with depth testing, works with perspective/orthographic cameras, and is tone-mapped with the scene. The lighting demo enables it; **B** toggles background visibility. Default renderer skybox stays off.
+
+## Compressed assets and eight-weight skinning
+
+`loadAsset` and `loadAssetHandles` automatically decode `KHR_draco_mesh_compression`, `EXT_meshopt_compression`, `KHR_mesh_quantization` and `KHR_texture_basisu` when declared by a GLB/glTF. Draco/Meshopt work in the existing main-thread or transferable-worker loading path; optional decoder code and WASM download only when needed. Draco may preserve authored quantization error; the renderer does not replace that geometry with a fallback.
+
+Basis ETC1S/UASTC textures retain authored mips and role-correct linear/sRGB sampling. Adapter support selects compressed output; absent compression support or non-block-aligned base dimensions select RGBA. Supported input is straight-alpha 2D, `rd` orientation, `rgba` swizzle, and Rec.709/unspecified primaries. Basis HDR output, cubemaps/arrays and alternative orientations/primaries reject explicitly. Workers belong to the texture manager and terminate during disposal/recovery.
+
+`JOINTS_1`/`WEIGHTS_1` automatically enable eight weights without a new vertex layout or storage binding. Static secondary influences share the existing deformation arena and are uploaded once; animated palettes remain shared. GPU LOD groups require matching four/eight-weight layouts. More than eight influences reject. See [codec and skinning validation](benchmarks/CODECS_REPORT.md).

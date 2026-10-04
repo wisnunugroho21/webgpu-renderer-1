@@ -1,3 +1,4 @@
+import { Influences } from "../animation/skinning/SkinVertexData";
 import { RangeAllocator } from "../assets/RangeAllocator";
 import { Resources } from "../gpu/Resources";
 import { MorphTargetData } from "../animation/MorphTargetData";
@@ -33,25 +34,48 @@ export class MorphDeltaBuffers {
     this.normal = create("Shared morph normal deltas");
     this.tangent = create("Shared morph tangent deltas");
   }
-  append(data: MorphTargetData): number {
-    const count = data.targetCount * data.vertexCount;
+  append(
+    data?: MorphTargetData,
+    secondary?: Influences,
+    vertexCount = data?.vertexCount ?? 0,
+  ): number {
+    const morphCount = data ? data.targetCount * data.vertexCount : 0,
+      count = morphCount + (secondary ? vertexCount * 2 : 0);
+    if (!count) throw new Error("Empty deformation stream");
     const offset = this.arena.allocate(count);
     try {
-      for (const [semantic, buffer] of [
-        ["POSITION", this.position],
-        ["NORMAL", this.normal],
-        ["TANGENT", this.tangent],
-      ] as const) {
-        const packed = new Float32Array(count * 4);
-        for (let t = 0; t < data.targetCount; t++) {
-          const stream = data.targets[t]![semantic];
-          if (!stream) continue;
-          for (let v = 0; v < data.vertexCount; v++)
-            for (let axis = 0; axis < 3; axis++)
-              packed[(t * data.vertexCount + v) * 4 + axis] =
-                stream[v * 3 + axis]!;
+      if (data)
+        for (const [semantic, buffer] of [
+          ["POSITION", this.position],
+          ["NORMAL", this.normal],
+          ["TANGENT", this.tangent],
+        ] as const) {
+          const packed = new Float32Array(count * 4);
+          for (let t = 0; t < data.targetCount; t++) {
+            const stream = data.targets[t]![semantic];
+            if (!stream) continue;
+            for (let v = 0; v < data.vertexCount; v++)
+              for (let axis = 0; axis < 3; axis++)
+                packed[(t * data.vertexCount + v) * 4 + axis] =
+                  stream[v * 3 + axis]!;
+          }
+          this.queue.writeBuffer(buffer, offset * 16, packed);
+          this.uploadBytes += packed.byteLength;
         }
-        this.queue.writeBuffer(buffer, offset * 16, packed);
+      if (secondary) {
+        // Two vec4 records per vertex: exactly representable numeric joint IDs, then weights.
+        // Sharing the existing tangent arena keeps vertex storage bindings within WebGPU limits.
+        const packed = new Float32Array(vertexCount * 8);
+        for (let v = 0; v < vertexCount; v++)
+          for (let k = 0; k < 4; k++) {
+            packed[v * 8 + k] = secondary.joints[v * 4 + k]!;
+            packed[v * 8 + 4 + k] = secondary.weights[v * 4 + k]!;
+          }
+        this.queue.writeBuffer(
+          this.tangent,
+          (offset + morphCount) * 16,
+          packed,
+        );
         this.uploadBytes += packed.byteLength;
       }
       return offset;

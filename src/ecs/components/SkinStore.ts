@@ -5,4 +5,8 @@ export class SkinStore extends ComponentStore {
     super(capacity);
     this.instanceId = new Int32Array(capacity).fill(-1);
   }
+  override remove(entity: number): void {
+    super.remove(entity);
+    this.instanceId[entity] = -1;
+  }
 }

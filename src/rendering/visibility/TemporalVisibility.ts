@@ -15,6 +15,7 @@ export class TemporalVisibility {
   private skipLOD = false;
   private readonly camera = new Float32Array(32);
   private readonly entities: Uint32Array;
+  private readonly generations: Float64Array;
   private readonly geometry: Float32Array;
   private readonly identities: Int32Array;
   private readonly joints: Float32Array;
@@ -23,6 +24,7 @@ export class TemporalVisibility {
   private weightCount = 0;
   constructor(world: RenderWorld) {
     this.entities = new Uint32Array(world.capacity).fill(0xffffffff);
+    this.generations = new Float64Array(world.capacity);
     this.geometry = new Float32Array(world.capacity * 20);
     this.identities = new Int32Array(world.capacity * 9);
     this.joints = new Float32Array(world.jointMatrices.length);
@@ -57,11 +59,16 @@ export class TemporalVisibility {
     }
     if (this.count !== world.count) reason = "membership";
     for (let i = 0; i < world.count; i++) {
-      if (!this.initialized || this.entities[i] !== world.entityId[i]) {
+      if (
+        !this.initialized ||
+        this.entities[i] !== world.entityId[i] ||
+        this.generations[i] !== world.entityGeneration[i]
+      ) {
         this.newObjects = true;
         reason = "membership";
       }
       this.entities[i] = world.entityId[i]!;
+      this.generations[i] = world.entityGeneration[i]!;
       for (let k = 0; k < 20; k++) {
         const value =
           k < 16 ? world.matrices[i * 16 + k]! : world.sphere[i * 4 + k - 16]!;

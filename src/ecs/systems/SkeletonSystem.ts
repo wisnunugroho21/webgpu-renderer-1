@@ -17,6 +17,8 @@ export class SkeletonSystem {
     for (const instance of registry.instances) {
       if (
         !world.alive[instance.meshEntity] ||
+        (instance.meshGeneration !== undefined &&
+          world.generation[instance.meshEntity] !== instance.meshGeneration) ||
         !transforms.has[instance.meshEntity]
       )
         continue;
@@ -30,7 +32,12 @@ export class SkeletonSystem {
       if (meshChanged) Mat4.invert(instance.inverseMesh, this.mesh);
       for (let j = 0; j < instance.jointCount; j++) {
         const entity = instance.jointEntities[j]!;
-        if (!world.alive[entity] || !transforms.has[entity])
+        if (
+          !world.alive[entity] ||
+          (instance.jointGenerations &&
+            world.generation[entity] !== instance.jointGenerations[j]) ||
+          !transforms.has[entity]
+        )
           throw new Error("Skeleton joint entity removed");
         const pose = instance.poseViews[j]!;
         let changed = meshChanged;

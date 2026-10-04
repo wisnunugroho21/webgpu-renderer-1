@@ -1,0 +1,46 @@
+{
+  "coldMs": 60.599999994039536,
+  "cachedMs": 3.1000000089406967,
+  "sky": 188,
+  "independent": 213,
+  "ldr": 255,
+  "opaque": 0,
+  "opaqueCorner": 188,
+  "prepass": 0,
+  "disabledCorner": 35,
+  "resources": {
+    "pipelineCreations": 151,
+    "shaderModules": 15,
+    "bufferCreations": 40,
+    "textureCreations": 12,
+    "samplerCreations": 3,
+    "buffers": 39,
+    "textures": 9,
+    "bufferBytes": 61085408,
+    "cacheHits": 175,
+    "cacheMisses": 169
+  },
+  "warm": {
+    "pipelineCreations": 151,
+    "shaderModules": 15,
+    "bufferCreations": 40,
+    "textureCreations": 12,
+    "samplerCreations": 3,
+    "buffers": 39,
+    "textures": 9,
+    "bufferBytes": 61085408,
+    "cacheHits": 175,
+    "cacheMisses": 169
+  },
+  "completionMs": 0.7999999970197678,
+  "cache": {
+    "hits": 1,
+    "bakes": 1,
+    "decoded": 1,
+    "size": 1,
+    "bytes": 640
+  },
+  "validationError": null,
+  "gpuErrors": [],
+  "recoveredSkybox": true
+}

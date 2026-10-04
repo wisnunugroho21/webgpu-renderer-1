@@ -43,6 +43,18 @@ export class Camera {
   get orthographicHeight(): number {
     return this.height;
   }
+  copyFrom(other: Camera): void {
+    this.position.set(other.position);
+    this.target.set(other.target);
+    this.up.set(other.up);
+    this.kind = other.kind;
+    this.fixedAspect = other.fixedAspect;
+    this.zNear = other.zNear;
+    this.zFar = other.zFar;
+    this.fieldOfView = other.fieldOfView;
+    this.height = other.height;
+    this.dirty = true;
+  }
   setPerspective(options: PerspectiveOptions = {}): void {
     const near = options.near ?? 0.1,
       far = options.far ?? 100,

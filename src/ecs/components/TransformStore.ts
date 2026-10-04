@@ -57,7 +57,7 @@ export class TransformStore extends ComponentStore {
         0;
     this.rotationW[entity] = 1;
     this.scaleX[entity] = this.scaleY[entity] = this.scaleZ[entity] = 1;
-    this.markDirty(entity);
+    this.propagateDirty(entity);
   }
   private require(entity: number): void {
     if (!this.has[entity]) throw new Error("Entity has no transform");
@@ -67,14 +67,14 @@ export class TransformStore extends ComponentStore {
     this.positionX[entity] = x;
     this.positionY[entity] = y;
     this.positionZ[entity] = z;
-    this.markDirty(entity);
+    this.propagateDirty(entity);
   }
   setScale(entity: number, x: number, y: number, z: number): void {
     this.require(entity);
     this.scaleX[entity] = x;
     this.scaleY[entity] = y;
     this.scaleZ[entity] = z;
-    this.markDirty(entity);
+    this.propagateDirty(entity);
   }
   setRotation(
     entity: number,
@@ -93,7 +93,7 @@ export class TransformStore extends ComponentStore {
     this.rotationY[entity] = this.quaternion[1]!;
     this.rotationZ[entity] = this.quaternion[2]!;
     this.rotationW[entity] = this.quaternion[3]!;
-    this.markDirty(entity);
+    this.propagateDirty(entity);
   }
   /** Trusted animation path: the sampler/pose blend already normalized these f32 values.
    * Keep setRotation for arbitrary gameplay inputs. Both setters propagate dirty state. */
@@ -109,7 +109,7 @@ export class TransformStore extends ComponentStore {
     this.rotationY[entity] = y;
     this.rotationZ[entity] = z;
     this.rotationW[entity] = w;
-    this.markDirty(entity);
+    this.propagateDirty(entity);
   }
   setParent(entity: number, parent: number): void {
     this.require(entity);
@@ -129,7 +129,7 @@ export class TransformStore extends ComponentStore {
       if (first !== -1) this.previousSibling[first] = entity;
       this.firstChild[parent] = entity;
     }
-    this.markDirty(entity);
+    this.propagateDirty(entity);
   }
   private unlink(entity: number): void {
     const parent = this.parent[entity]!,
@@ -143,6 +143,12 @@ export class TransformStore extends ComponentStore {
   }
   markDirty(entity: number): void {
     this.require(entity);
+    this.propagateDirty(entity);
+  }
+  private propagateDirty(entity: number): void {
+    // A dirty ancestor has already marked its descendants; subsequent channel
+    // writes need neither a second hierarchy traversal nor a scratch-stack push.
+    if (this.dirty[entity]) return;
     let count = 1;
     this.stack[0] = entity;
     while (count) {

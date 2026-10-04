@@ -1,15 +1,16 @@
+import { EntityHandle } from "../ecs/Entity";
 import { Animator, MorphState } from "../animation/Animator";
 import { World } from "../ecs/World";
 import { AnimationSystem } from "../ecs/systems/AnimationSystem";
 import { SkeletonRegistry } from "../animation/skinning/SkeletonRegistry";
 import { RuntimeAsset } from "./gltf/RuntimeAsset";
 import { UploadedAsset } from "./gltf/instantiate";
-/** Application-owned scene instances. Entity IDs remain monotonic to prevent stale-ID aliasing. */
+/** Application-owned scene instances. Retained identities validate generations before touching recycled slots. */
 export class AssetInstances {
   private readonly entries = new Map<
     string,
     {
-      entities: Set<number>;
+      entities: Map<number, EntityHandle>;
       leases: (() => void)[];
       animators: Set<Animator>;
       morphs: Set<MorphState>;
@@ -21,18 +22,32 @@ export class AssetInstances {
     private readonly skeletons: SkeletonRegistry,
   ) {}
   add(url: string, start: number, end: number, release: () => void): void {
+    this.addEntities(
+      url,
+      Array.from({ length: end - start }, (_, i) =>
+        this.world.handle(start + i),
+      ),
+      release,
+    );
+  }
+  addEntities(
+    url: string,
+    entities: readonly EntityHandle[],
+    release: () => void,
+  ): void {
     let entry = this.entries.get(url);
     if (!entry) {
       entry = {
-        entities: new Set(),
+        entities: new Map(),
         leases: [],
         animators: new Set(),
         morphs: new Set(),
       };
       this.entries.set(url, entry);
     }
-    for (let e = start; e < end; e++) {
-      entry.entities.add(e);
+    for (const handle of entities) {
+      const e = this.world.require(handle);
+      entry.entities.set(e, handle);
       if (this.world.animators.has[e])
         entry.animators.add(
           this.animations.animators[this.world.animators.animatorId[e]!]!,
@@ -46,8 +61,12 @@ export class AssetInstances {
   }
   /** Veto external consumers before changing anything; custom attachments require explicit detachment. */
   assertCanUnload(url: string, uploaded: UploadedAsset): void {
-    const own = this.entries.get(url)?.entities ?? new Set<number>(),
-      world = this.world;
+    const world = this.world,
+      own = new Set(
+        Array.from(this.entries.get(url)?.entities.values() ?? [])
+          .filter((handle) => world.resolve(handle) !== null)
+          .map((handle) => handle.index),
+      );
     const meshes = new Set(uploaded.meshIds.flat()),
       materials = new Set([...uploaded.materialIds, uploaded.defaultMaterial]);
     const skins = new Set<number>(),
@@ -92,7 +111,7 @@ export class AssetInstances {
   detach(url: string, asset: RuntimeAsset): void {
     const entry = this.entries.get(url);
     if (entry) {
-      for (const entity of entry.entities) this.world.destroy(entity);
+      for (const handle of entry.entities.values()) this.world.destroy(handle);
       for (const release of entry.leases) release();
       this.entries.delete(url);
     }
@@ -100,6 +119,14 @@ export class AssetInstances {
     this.skeletons.releaseUnused(this.world, asset);
   }
   /** Failed instantiation may have allocated entities/controllers before rejecting. */
+  rollbackEntities(
+    entities: readonly EntityHandle[],
+    asset: RuntimeAsset,
+  ): void {
+    for (const entity of entities) this.world.destroy(entity);
+    this.animations.releaseUnused(this.world);
+    this.skeletons.releaseUnused(this.world, asset);
+  }
   rollback(start: number, asset: RuntimeAsset): void {
     for (let e = start; e < this.world.nextEntity; e++) this.world.destroy(e);
     this.animations.releaseUnused(this.world);

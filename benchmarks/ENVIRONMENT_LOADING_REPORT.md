@@ -1,0 +1,13 @@
+# Environment loading, bake cache and skybox
+
+Radiance HDR and EXR are decoded only on explicit loading. Dynamically imported Three file parsers output float pixels; they do not own scene or rendering. The adapter corrects RGBE's 256-denominator radiance scale and EXR bottom-up rows into canonical top-down linear RGB. Declared EXR primaries outside linear Rec.709 reject. Physical lighting clamps negative/overflow radiance to 0..65504. Malformed/oversized files reject. EXR parser capabilities follow the [official EXRLoader documentation](https://threejs.org/docs/pages/EXRLoader.html).
+
+EnvironmentLoader provides content/options-addressed bake deduplication and bounded LRU CPU storage (8 entries/64 MiB default). Failed operations are not cached; clearing invalidates pending cache commits. Individual caller cancellation does not cancel a shared CPU bake belonging to another caller. Application prevents uploads if the device changes/disposes during file work. CPU baking remains cold loading work; it is not a steady-frame operation.
+
+Optional EnvironmentSkybox reuses sharp environment radiance and common yaw/intensity. Its bounded LDR/HDR pipelines, inverse-projection uniform and group are created cold. A fullscreen triangle at far depth draws behind geometry using less-equal without depth writes. Near/far unprojection removes camera translation and supports orthographic rays. Scene transparency and HDR presentation apply normally; disabling IBL can retain the background. Recovery restores skybox state. The lighting demo enables B toggle; ordinary renderer defaults remain off.
+
+Validation: 200 tests and strict production build pass. Independent RGBE values and EXRExporter scanlines verify radiance/orientation; tests cover cache deduplication/eviction, abort and malformed files. GPU constant radiance maps to 188 with HDR / 255 with direct LDR; intensity 2 maps to 213 even when lighting is disabled. Opaque geometry occludes the background both with and without prepass; disabling restores clear color. Warm resources stay fixed, recovered skybox state persists, and no GPU/page errors occur. Device recovery remains validated after adding the feature.
+
+Focused 640×480 cold load/bake/install measured 60.6 ms; cached content load/install 3.1 ms, with one CPU bake. Warm scene diagnostic completion median 0.8 ms. Tiny bake options are 2px specular/1px diffuse/2px LUT/8 samples; timings do not represent large production panoramas. Lazy decoder chunks add download/parse cost only when loading those files.
+
+Reproduce: `npm test`, `npm run build`, `npm run validate:environments`, `npm run validate:recovery`. Raw evidence: `results/environment-loading.json`. File validation uses preview port 5196.

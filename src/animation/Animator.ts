@@ -15,6 +15,7 @@ export interface MorphState {
 interface Slot {
   path: AnimationPath;
   entity: number;
+  generation: number;
   morph?: MorphState;
   base: AnimationPose;
   source: AnimationPose;
@@ -78,6 +79,7 @@ export class Animator {
             new AnimationPose(channel.path, channel.sampler.size);
           slot = {
             entity,
+            generation: world.generation[entity] ?? -1,
             morph,
             path: channel.path,
             base: pose(),
@@ -363,7 +365,13 @@ export class Animator {
   private write(slot: Slot, v: Float32Array): void {
     const e = slot.entity,
       t = this.world.transforms;
-    if (e < 0 || !this.world.alive[e] || !t.has[e]) return;
+    if (
+      e < 0 ||
+      !this.world.alive[e] ||
+      this.world.generation[e] !== slot.generation ||
+      !t.has[e]
+    )
+      return;
     switch (slot.path) {
       case "translation":
         if (

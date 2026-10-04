@@ -17,6 +17,7 @@ export class MeshRendererStore extends ComponentStore {
     this.lodGroup[entity] = group;
   }
   set(entity: number, meshId: number, materialId: number, flags = 0): void {
+    if (!this.has[entity]) this.lodGroup[entity] = -1;
     this.add(entity);
     this.meshId[entity] = meshId;
     this.materialId[entity] = materialId;

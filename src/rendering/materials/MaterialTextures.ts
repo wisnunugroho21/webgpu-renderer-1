@@ -1,4 +1,8 @@
 import {
+  BasisTranscoder,
+  isBasis,
+} from "../../assets/textures/BasisTranscoder";
+import {
   compressedTexture,
   uploadCompressed,
 } from "../../assets/textures/CompressedTexture";
@@ -45,10 +49,12 @@ export function samplerDescriptor(
 /** Cold-path material textures; all groups and sampler objects are reused by frames. */
 export class MaterialTextures {
   readonly layout: GPUBindGroupLayout;
+  private readonly basis: BasisTranscoder;
   readonly fallback: GPUBindGroup;
   readonly groups: GPUBindGroup[] = [];
   readonly mipmaps: MipGenerator;
   readonly cache = new Map<string, Promise<GPUTexture>>();
+  private readonly prepared = new Map<GPUBindGroup[], RuntimeAsset>();
   private readonly references = new Map<string, number>();
   private readonly ownership = new WeakMap<GPUBindGroup[], Set<string>>();
   readonly metrics = { hits: 0, misses: 0, decodes: 0, uploadBytes: 0 };
@@ -60,6 +66,7 @@ export class MaterialTextures {
     private readonly device: GPUDevice,
     private readonly resources: Resources,
   ) {
+    this.basis = new BasisTranscoder(device);
     this.mipmaps = new MipGenerator(device, resources);
     this.layout = device.createBindGroupLayout({
       entries: textureRoles.flatMap((_, i) => [
@@ -115,8 +122,10 @@ export class MaterialTextures {
   }
   dispose(): void {
     this.disposed = true;
+    this.basis.dispose();
     this.groups.length = 0;
     this.cache.clear();
+    this.prepared.clear();
   }
   async prepare(asset: RuntimeAsset): Promise<GPUBindGroup[]> {
     if (this.disposed) throw new Error("Texture manager disposed");
@@ -134,8 +143,9 @@ export class MaterialTextures {
       const hash = Array.from(new Uint8Array(digest), (b) =>
         b.toString(16).padStart(2, "0"),
       ).join("");
+      const basis = image.mimeType === "image/ktx2" && isBasis(image.image);
       const compressed =
-        image.mimeType === "image/ktx2"
+        image.mimeType === "image/ktx2" && !basis
           ? compressedTexture(
               image.image,
               role === "baseColor" || role === "emissive",
@@ -147,7 +157,7 @@ export class MaterialTextures {
           ? "rgba8unorm-srgb"
           : "rgba8unorm");
       if (this.disposed) throw new Error("Texture manager disposed");
-      const key = `${hash}:${format}`;
+      const key = `${hash}:${basis ? "basis:" + format : format}`;
       if (!owned.has(key)) {
         owned.add(key);
         this.references.set(key, (this.references.get(key) ?? 0) + 1);
@@ -157,6 +167,26 @@ export class MaterialTextures {
       else {
         this.metrics.misses++;
         cached = (async () => {
+          if (basis) {
+            const data = await this.basis.decode(
+              image.image,
+              role === "baseColor" || role === "emissive",
+            );
+            if (this.disposed)
+              throw new Error("Texture manager disposed during Basis decode");
+            const texture = uploadCompressed(
+              this.device,
+              this.resources,
+              data,
+              image.name,
+            );
+            this.metrics.decodes++;
+            this.metrics.uploadBytes += data.levels.reduce(
+              (n, l) => n + l.data.byteLength,
+              0,
+            );
+            return texture;
+          }
           if (compressed) {
             this.metrics.decodes++;
             const texture = uploadCompressed(
@@ -242,6 +272,7 @@ export class MaterialTextures {
         }),
       );
       this.ownership.set(groups, owned);
+      this.prepared.set(groups, asset);
       return groups;
     } catch (error) {
       await Promise.allSettled(pending);
@@ -261,11 +292,36 @@ export class MaterialTextures {
       }
     }
   }
+  /** Recreate texture leases and retain their identity mapping for asset/stream owners. */
+  async rebuildInto(
+    next: MaterialTextures,
+  ): Promise<Map<GPUBindGroup[], GPUBindGroup[]>> {
+    const arrays = new Map<GPUBindGroup[], GPUBindGroup[]>(),
+      groups = new Map<GPUBindGroup, GPUBindGroup>([
+        [this.fallback, next.fallback],
+      ]);
+    next.maxAnisotropy = this.maxAnisotropy;
+    for (const [old, asset] of this.prepared) {
+      const replacement = await next.prepare(asset);
+      arrays.set(old, replacement);
+      old.forEach((group, i) => groups.set(group, replacement[i]!));
+    }
+    this.groups.forEach((group, id) => {
+      const replacement = groups.get(group);
+      if (!replacement)
+        throw new Error(
+          `Material ${id} uses a custom GPU group without CPU recovery data`,
+        );
+      next.groups[id] = replacement;
+    });
+    return arrays;
+  }
   /** Caller must fence submitted GPU work and remove bound slots before releasing. */
   async release(groups: GPUBindGroup[]): Promise<void> {
     const owned = this.ownership.get(groups);
     if (!owned) return;
     this.ownership.delete(groups);
+    this.prepared.delete(groups);
     for (const key of owned) {
       const count = (this.references.get(key) ?? 1) - 1;
       this.references.set(key, count);

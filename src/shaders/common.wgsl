@@ -13,7 +13,7 @@ fn safeNormalize(v: vec3<f32>) -> vec3<f32> {
 // One entry point for every geometry pass: base -> morph -> skin -> model.
 fn deformVertex(base: LocalVertex, info: Instance, vertex: u32, jointIndices: vec4<u32>, weights: vec4<f32>, model: mat4x4<f32>) -> LocalVertex {
   let morphed = morphVertex(base, info, vertex);
-  let composite = model * skinningMatrix(info, jointIndices, weights);
+  let composite = model * skinningMatrix(info, jointIndices, weights, vertex);
   let a = composite[0].xyz;
   let b = composite[1].xyz;
   let c = composite[2].xyz;

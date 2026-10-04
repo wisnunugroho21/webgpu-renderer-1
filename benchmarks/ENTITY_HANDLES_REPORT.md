@@ -1,0 +1,11 @@
+# Opt-in generational entity handles
+
+The user chose an additive API preserving numeric IDs. `world.create()` and `app.loadAsset()` remain monotonic; only `createHandle()` and `loadAssetHandles()` allocate recyclable slots. World stores a fixed free-index stack and safe-integer Float64 generations. Authentic handles are immutable and world-scoped. `require` rejects stale/foreign identities, `resolve` returns null and stale destruction never targets a replacement. Generation exhaustion retires the slot. SoA indices remain temporary addresses: retain handles across async work, not resolved indices. Legacy numeric slots never enter the free stack.
+
+Handle-based asset instantiation collects exact identities for rollback and unload rather than assuming contiguous ranges. Retained controller, skeleton and camera bindings capture generation; CPU render snapshots and temporal/BVH membership carry generations. GPU ABIs are unchanged. Recycled slots detach children, preserve dirty-list bounds and clear old LOD/controller indices.
+
+Validation: 197 tests, production build and full production-preview GPU regression pass. Unit checks run 10,000 lifetimes in one reused slot, reject foreign/forged handles, prevent generation wrap, test hierarchy and dirty-queue cleanup, and verify stale camera/animation bindings. Thirty real animated/morphed asset load/render/unload cycles keep the high-water mark at 147 and restore entity/resource ownership. The existing transactional/cancellation/foreign-reference lifetime tests also pass.
+
+A synthetic 1,000 create/resolve/add-transform/destroy workload averages 0.3557 ms. Long animation before/after handle safety averages 12.0982/11.1397 ms for 1,000×64 joints; mixed LINEAR TRS/morph costs 0.2305/0.2510 ms and its fade 1.0619/1.2580 ms. These variable results do not imply a speedup: generation checks add work for safety, and independent runs vary. CPU-only snapshots add 8 bytes/entity in RenderWorld and TemporalVisibility; no GPU resources or normal-frame waits/readbacks are added.
+
+Reproduce with `npm test`, `npm run build`, `npm run validate:assets`, `RENDERER_PREVIEW=1 npm run validate:gpu` and `npm run benchmark -- tests/entity-handles.bench.ts tests/animation-long.bench.ts`. Raw evidence: `results/entity-handles-{cpu,gpu,regression}.json` and `results/remaining-animation-before-cpu.json`.

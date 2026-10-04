@@ -165,7 +165,8 @@ export class IndirectDraws {
         this.data[o + 2] = firstInstance;
         this.data[o + 3] = materials.alphaMode[material] === 2 ? 1 : 0;
         this.data[o + 4] = mesh.morphOffset ?? 0;
-        this.data[o + 5] = mesh.morph?.vertexCount ?? 0;
+        this.data[o + 5] =
+          mesh.deformationVertexCount ?? mesh.morph?.vertexCount ?? 0;
         this.data[o + 6] = meshId;
         this.data[o + 7] = 0;
         firstInstance += count;

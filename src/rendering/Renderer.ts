@@ -1,3 +1,4 @@
+import { EnvironmentSkybox } from "./environment/EnvironmentSkybox";
 import { HDRRendering } from "./post/HDRRendering";
 import { EnvironmentData } from "./environment/EnvironmentData";
 import { EnvironmentLighting } from "./environment/EnvironmentLighting";
@@ -57,6 +58,7 @@ import { MaterialTextures } from "./materials/MaterialTextures";
 
 export class Renderer {
   readonly environment: EnvironmentLighting;
+  readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
   private hdrColor?: ReturnType<typeof createColorResources>;
   private hdrEnvironmentColor?: ReturnType<typeof createColorResources>;
@@ -64,7 +66,7 @@ export class Renderer {
   private readonly colorInput: ColorResourcesInput;
   private environmentColor?: ReturnType<typeof createColorResources>;
   readonly geometryOptimization: GeometryOptimization;
-  readonly camera = new Camera();
+  readonly camera: Camera;
   readonly lodGroups = new LODGroups();
   readonly lodSelector: LODSelector;
   readonly queue: RenderQueue;
@@ -79,7 +81,7 @@ export class Renderer {
   readonly culler: FrustumCuller;
   readonly bvh: BVH;
   readonly meshes: MeshManager;
-  readonly streaming: RendererStreaming;
+  streaming: RendererStreaming;
   visibilityMode: "linear" | "bvh" = "linear";
   private bvhRevision = -1;
   readonly resources: Resources;
@@ -137,7 +139,9 @@ export class Renderer {
     readonly world: RenderWorld,
     readonly materials: MaterialManager,
     readonly profiler = new CPUProfiler(),
+    camera?: Camera,
   ) {
+    this.camera = camera ?? new Camera();
     const device = gpu.device;
     this.resources = new Resources(device);
     this.temporal = new TemporalVisibility(world);
@@ -283,11 +287,17 @@ export class Renderer {
       });
       this.prepareHDREnvironment();
     });
+    this.skybox = new EnvironmentSkybox(
+      gpu,
+      this.resources,
+      () => this.environmentLayout,
+    );
     this.environment = new EnvironmentLighting(
       device,
       this.resources,
       (environmentLayout) => {
         this.environmentLayout = environmentLayout;
+        if (this.skybox.enabled) this.skybox.prepare(environmentLayout);
         // Prepare retained HDR variants even when the feature is temporarily disabled.
         if (this.hdrColor) this.prepareHDREnvironment();
         this.environmentColor ??= createColorResources({
@@ -372,6 +382,52 @@ export class Renderer {
         this.gpuLOD.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
     });
     this.resize();
+  }
+
+  /** Cold device recovery: preserve CPU controls, never transfer old-device GPU objects. */
+  restoreSettings(previous: Renderer): void {
+    this.frameNumber = previous.frameNumber;
+    this.camera.copyFrom(previous.camera);
+    Object.assign(this.clearColor, previous.clearColor);
+    this.submissionMode = previous.submissionMode;
+    this.cullingEnabled = previous.cullingEnabled;
+    this.visibilityMode = previous.visibilityMode;
+    this.lodGroups.entries.push(...previous.lodGroups.entries);
+    this.clusters.mode = previous.clusters.mode;
+    this.shadows.enabled = previous.shadows.enabled;
+    this.shadows.cacheEnabled = previous.shadows.cacheEnabled;
+    this.shadows.cullingEnabled = previous.shadows.cullingEnabled;
+    this.shadows.cascades = previous.shadows.cascades;
+    this.shadows.shadowDistance = previous.shadows.shadowDistance;
+    this.depthPrepass.enabled = previous.depthPrepass.enabled;
+    this.hiz.enabled = previous.hiz.enabled;
+    this.hiz.debugEnabled = previous.hiz.debugEnabled;
+    this.hiz.debugMip = previous.hiz.debugMip;
+    this.gpuFrustum.enabled = previous.gpuFrustum.enabled;
+    this.gpuOcclusion.enabled = previous.gpuOcclusion.enabled;
+    this.gpuCompaction.enabled = previous.gpuCompaction.enabled;
+    this.gpuLOD.enabled = previous.gpuLOD.enabled;
+    this.temporal.enabled = previous.temporal.enabled;
+    this.geometryOptimization.enabled = previous.geometryOptimization.enabled;
+    this.gpuProfiler.enabled = previous.gpuProfiler.enabled;
+    this.skybox.enabled = previous.skybox.enabled;
+    this.hdr.exposure = previous.hdr.exposure;
+    this.hdr.toneMapping = previous.hdr.toneMapping;
+    this.hdr.enabled = previous.hdr.enabled;
+  }
+  restoreStreaming(
+    previous: Renderer,
+    remap: Map<GPUBindGroup[], GPUBindGroup[]>,
+  ): void {
+    previous.streaming.rebind(
+      this.gpu.queue,
+      this.meshes,
+      this.lodGroups,
+      this.textures,
+      remap,
+      () => this.frameNumber,
+    );
+    this.streaming = previous.streaming;
   }
 
   resize(): void {
@@ -545,7 +601,8 @@ export class Renderer {
   /** Reuse arena slots and persistent staging arrays. No GPU objects are created here. */
   private uploadFrameState(indirect: boolean): void {
     this.profiler.start(CPUStage.encoding);
-    this.environment.flush();
+    this.environment.flush(this.skybox.enabled);
+    this.skybox.update(this.camera);
     this.gpuProfiler.beginFrame(this.frameNumber);
     this.dynamic.beginFrame(this.frameNumber++);
     const clustered = this.clusters.choose(this.world);
@@ -684,6 +741,11 @@ export class Renderer {
         depthStoreOp: "store",
       },
     });
+    this.skybox.encode(
+      pass,
+      this.environment.group,
+      this.hdr.enabled ? "rgba16float" : this.gpu.renderFormat,
+    );
     const environment = this.environment.active;
     const colors = this.hdr.enabled
       ? environment
@@ -766,6 +828,7 @@ export class Renderer {
   }
 
   dispose(): void {
+    this.meshes.clearRecovery();
     this.environment.dispose();
     this.gpuProfiler.dispose();
     this.textures.dispose();

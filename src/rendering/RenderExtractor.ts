@@ -35,10 +35,12 @@ export class RenderExtractor {
         staticAffected &&
         (i >= previousCount ||
           out.entityId[i] !== e ||
+          out.entityGeneration[i] !== world.generation[e] ||
           out.flags[i] !== m.flags[e])
       )
         staticChanged = true;
       out.entityId[i] = e;
+      out.entityGeneration[i] = world.generation[e]!;
       out.meshId[i] = m.meshId[e]!;
       out.lodGroup[i] = m.lodGroup[e]!;
       out.materialId[i] = m.materialId[e]!;

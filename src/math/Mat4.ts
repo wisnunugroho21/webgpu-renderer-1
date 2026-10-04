@@ -191,11 +191,37 @@ export const Mat4 = {
     s: ArrayLike<number>,
     outOffset = 0,
   ): Mat4 {
-    const x = q[0]!,
-      y = q[1]!,
-      z = q[2]!,
-      w = q[3]!,
-      xx = x * x,
+    return Mat4.fromTRSValues(
+      out,
+      p[0]!,
+      p[1]!,
+      p[2]!,
+      q[0]!,
+      q[1]!,
+      q[2]!,
+      q[3]!,
+      s[0]!,
+      s[1]!,
+      s[2]!,
+      outOffset,
+    );
+  },
+  /** Scalar SoA path avoids copying every dirty entity through scratch vectors. */
+  fromTRSValues(
+    out: Mat4,
+    px: number,
+    py: number,
+    pz: number,
+    x: number,
+    y: number,
+    z: number,
+    w: number,
+    sx: number,
+    sy: number,
+    sz: number,
+    outOffset = 0,
+  ): Mat4 {
+    const xx = x * x,
       yy = y * y,
       zz = z * z,
       xy = x * y,
@@ -204,21 +230,21 @@ export const Mat4 = {
       wx = w * x,
       wy = w * y,
       wz = w * z;
-    out[outOffset + 0] = (1 - 2 * (yy + zz)) * s[0]!;
-    out[outOffset + 1] = 2 * (xy + wz) * s[0]!;
-    out[outOffset + 2] = 2 * (xz - wy) * s[0]!;
+    out[outOffset + 0] = (1 - 2 * (yy + zz)) * sx;
+    out[outOffset + 1] = 2 * (xy + wz) * sx;
+    out[outOffset + 2] = 2 * (xz - wy) * sx;
     out[outOffset + 3] = 0;
-    out[outOffset + 4] = 2 * (xy - wz) * s[1]!;
-    out[outOffset + 5] = (1 - 2 * (xx + zz)) * s[1]!;
-    out[outOffset + 6] = 2 * (yz + wx) * s[1]!;
+    out[outOffset + 4] = 2 * (xy - wz) * sy;
+    out[outOffset + 5] = (1 - 2 * (xx + zz)) * sy;
+    out[outOffset + 6] = 2 * (yz + wx) * sy;
     out[outOffset + 7] = 0;
-    out[outOffset + 8] = 2 * (xz + wy) * s[2]!;
-    out[outOffset + 9] = 2 * (yz - wx) * s[2]!;
-    out[outOffset + 10] = (1 - 2 * (xx + yy)) * s[2]!;
+    out[outOffset + 8] = 2 * (xz + wy) * sz;
+    out[outOffset + 9] = 2 * (yz - wx) * sz;
+    out[outOffset + 10] = (1 - 2 * (xx + yy)) * sz;
     out[outOffset + 11] = 0;
-    out[outOffset + 12] = p[0]!;
-    out[outOffset + 13] = p[1]!;
-    out[outOffset + 14] = p[2]!;
+    out[outOffset + 12] = px;
+    out[outOffset + 13] = py;
+    out[outOffset + 14] = pz;
     out[outOffset + 15] = 1;
     return out;
   },

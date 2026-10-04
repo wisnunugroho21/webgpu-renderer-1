@@ -42,6 +42,8 @@ export class InstanceManager {
         world.flags[object]! |
         (world.morphDense[object] ? RenderFlags.MORPH_DENSE : 0);
       const mesh = meshes?.get(world.meshId[object]!);
+      if (mesh?.skin?.secondary)
+        this.data[offset + flagsWord]! |= RenderFlags.SKIN_EIGHT;
       if (
         world.morphCounts[object] &&
         meshes &&
@@ -51,7 +53,8 @@ export class InstanceManager {
       )
         throw new Error("Morph GPU data mismatch");
       this.data[offset + morphDeltaOffsetWord] = mesh?.morphOffset ?? 0;
-      this.data[offset + morphVertexCountWord] = mesh?.morph?.vertexCount ?? 0;
+      this.data[offset + morphVertexCountWord] =
+        mesh?.deformationVertexCount ?? mesh?.morph?.vertexCount ?? 0;
       this.data[offset + meshIdWord] = world.meshId[object]!;
       this.data[offset + paddingWord] = 0;
     }

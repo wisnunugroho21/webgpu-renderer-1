@@ -149,10 +149,12 @@ export function compressedTexture(bytes: Uint8Array, srgb: boolean) {
 export function uploadCompressed(
   device: GPUDevice,
   resources: Resources,
-  data: ReturnType<typeof compressedTexture>,
+  data: Omit<ReturnType<typeof compressedTexture>, "feature"> & {
+    feature?: GPUFeatureName;
+  },
   label: string,
 ): GPUTexture {
-  if (!device.features.has(data.feature))
+  if (data.feature && !device.features.has(data.feature))
     throw new Error(`Device does not support ${data.feature}`);
   if (Math.max(data.width, data.height) > device.limits.maxTextureDimension2D)
     throw new Error("Compressed texture exceeds device limits");

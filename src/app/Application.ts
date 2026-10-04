@@ -1,3 +1,6 @@
+import { EnvironmentLoader } from "../rendering/environment/EnvironmentLoader";
+import { EnvironmentBakeOptions } from "../rendering/environment/bakeEnvironment";
+import { EntityHandle } from "../ecs/Entity";
 import { SimulationLoop, FixedUpdate, FrameUpdate } from "./SimulationLoop";
 import { CameraSystem } from "../ecs/systems/CameraSystem";
 import { AssetInstances } from "../assets/AssetInstances";
@@ -27,6 +30,7 @@ export class Application {
   gpu!: GPUContext;
   renderer!: Renderer;
   readonly world: World;
+  readonly environments = new EnvironmentLoader();
   readonly animations = new AnimationSystem();
   readonly skeletons = new SkeletonRegistry();
   readonly skeletonSystem = new SkeletonSystem();
@@ -34,6 +38,10 @@ export class Application {
   readonly simulation = new SimulationLoop();
   readonly cameraSystem = new CameraSystem();
   private starting?: Promise<void>;
+  private recovering?: Promise<void>;
+  autoRecoverDevice = true;
+  deviceState: "ready" | "lost" | "recovering" | "failed" | "disposed" =
+    "ready";
   private lastFrameTime = 0;
   readonly transformSystem: TransformSystem;
   readonly sceneEntity: number;
@@ -126,8 +134,13 @@ export class Application {
   onUpdate(callback: FrameUpdate): () => void {
     return this.simulation.onUpdate(callback);
   }
-  setActiveCamera(entity: number | null): void {
-    this.cameraSystem.select(entity, this.world);
+  setActiveCamera(entity: number | EntityHandle | null): void {
+    this.cameraSystem.select(
+      typeof entity === "object" && entity !== null
+        ? this.world.require(entity)
+        : entity,
+      this.world,
+    );
   }
 
   start(): Promise<void> {
@@ -151,8 +164,12 @@ export class Application {
     this.gpu = await GPUContext.create(
       this.canvas,
       (info) => {
+        const resume = !this.stopped;
         this.stop();
-        this.status.textContent = `GPU device lost (${info.reason}): ${info.message}. Reload to restart.`;
+        this.deviceState = "lost";
+        this.status.textContent = `GPU device lost (${info.reason}): ${info.message}`;
+        if (this.autoRecoverDevice && !this.disposing)
+          void this.recoverDevice(resume).catch(() => {});
       },
       (message) => {
         this.stop();
@@ -191,6 +208,98 @@ export class Application {
     this.observer.observe(this.canvas);
     this.status.textContent = "WebGPU ready • indexed cube";
     this.frameId = requestAnimationFrame(this.frame);
+  }
+
+  /** Single cold recovery operation. ECS identities, playback, materials and shared assets survive. */
+  recoverDevice(resumeAfter = !this.stopped): Promise<void> {
+    if (this.disposing)
+      return Promise.reject(new Error("Application disposed"));
+    if (this.recovering) return this.recovering;
+    this.stop();
+    this.deviceState = "recovering";
+    this.status.textContent = "Recovering GPU device…";
+    this.recovering = this.rebuildDevice(resumeAfter)
+      .catch((error) => {
+        this.deviceState = this.disposing ? "disposed" : "failed";
+        this.status.textContent = `GPU recovery failed: ${String(error)}. Call recoverDevice() to retry.`;
+        throw error;
+      })
+      .finally(() => {
+        this.recovering = undefined;
+      });
+    return this.recovering;
+  }
+  private async rebuildDevice(resumeAfter: boolean): Promise<void> {
+    const previous = this.renderer,
+      oldGPU = this.gpu;
+    if (!previous) throw new Error("Application is not initialized");
+    await this.assetLoader.quiesce();
+    await previous.streaming.quiesce();
+    previous.meshes.assertRecoverable();
+    oldGPU.dispose();
+    let nextGPU: GPUContext | undefined, next: Renderer | undefined;
+    try {
+      nextGPU = await GPUContext.create(
+        this.canvas,
+        () => {
+          if (this.gpu === nextGPU && !this.disposing) {
+            const resume = !this.stopped;
+            this.stop();
+            this.deviceState = "lost";
+            if (this.autoRecoverDevice)
+              void this.recoverDevice(resume).catch(() => {});
+          }
+        },
+        (message) => {
+          this.stop();
+          this.status.textContent = `WebGPU error: ${message}`;
+        },
+      );
+      if (this.disposing)
+        throw new Error("Application disposed during recovery");
+      nextGPU.device.pushErrorScope("validation");
+      next = new Renderer(
+        nextGPU,
+        this.renderWorld,
+        this.materials,
+        this.profiler,
+        previous.camera,
+      );
+      previous.meshes.rebuildInto(next.meshes);
+      const remap = await previous.textures.rebuildInto(next.textures);
+      next.restoreSettings(previous);
+      if (previous.environment.data)
+        await next.setEnvironment(previous.environment.data);
+      next.environment.enabled = previous.environment.enabled;
+      next.environment.intensity = previous.environment.intensity;
+      next.environment.rotationY = previous.environment.rotationY;
+      const validation = await nextGPU.device.popErrorScope();
+      if (validation) throw new Error(validation.message);
+      if (this.disposing || nextGPU.lost)
+        throw new Error("Device unavailable during recovery");
+      // Commit only after every GPU resource has rebuilt. Old CPU ownership remains on failures.
+      for (const record of this.assetLoader.records.values())
+        if (record.uploaded?.textureGroups)
+          record.uploaded.textureGroups = remap.get(
+            record.uploaded.textureGroups,
+          )!;
+      next.restoreStreaming(previous, remap);
+      this.gpu = nextGPU;
+      this.renderer = next;
+      this.renderWorld.jointDirty.fill(1);
+      this.renderWorld.morphDirty.fill(1);
+      this.renderWorld.lightDirty.fill(1);
+      previous.dispose();
+      this.deviceState = "ready";
+      this.status.textContent = "GPU recovered";
+      this.lastFrameTime = 0;
+      this.simulation.resetAccumulator();
+      if (resumeAfter) this.resume();
+    } catch (error) {
+      next?.dispose();
+      nextGPU?.dispose();
+      throw error;
+    }
   }
 
   private readonly frame = (timestamp: number): void => {
@@ -284,7 +393,13 @@ export class Application {
   }
 
   private checkLoadingDevice(): void {
-    if (this.disposing || !this.renderer || this.gpu.disposed || this.gpu.lost)
+    if (
+      this.disposing ||
+      this.deviceState === "recovering" ||
+      !this.renderer ||
+      this.gpu.disposed ||
+      this.gpu.lost
+    )
       throw new Error("Device unavailable during asset loading");
   }
   private async uploadAsset(
@@ -305,6 +420,16 @@ export class Application {
   }
   /** Each call creates a scene instance; cached GPU assets remain shared. */
   async loadAsset(url: string): Promise<Uint32Array> {
+    return (await this.loadAssetInstance(url, false)).nodes;
+  }
+  /** Opt-in recyclable entities. Retain handles; resolve indices only for immediate SoA access. */
+  async loadAssetHandles(url: string): Promise<readonly EntityHandle[]> {
+    return (await this.loadAssetInstance(url, true)).handles;
+  }
+  private async loadAssetInstance(
+    url: string,
+    recycle: boolean,
+  ): Promise<{ nodes: Uint32Array; handles: readonly EntityHandle[] }> {
     this.checkLoadingDevice();
     const release = this.assetLoader.retain(url);
     try {
@@ -318,7 +443,8 @@ export class Application {
       )
         throw new Error("Asset was unloaded before instantiation");
       const asset = record.decoded,
-        start = this.world.nextEntity;
+        allocated: EntityHandle[] = [],
+        handles = new Map<number, EntityHandle>();
       try {
         const nodes = instantiate(
           asset,
@@ -329,11 +455,29 @@ export class Application {
           this.animations,
           this.skeletons,
           uploaded,
+          {
+            available: recycle
+              ? this.world.availableHandleSlots
+              : this.world.capacity - this.world.nextEntity,
+            create: () => {
+              const handle = recycle
+                ? this.world.createHandle()
+                : this.world.handle(this.world.create());
+              allocated.push(handle);
+              handles.set(handle.index, handle);
+              return handle.index;
+            },
+          },
         );
-        this.assetInstances.add(url, start, this.world.nextEntity, release);
-        return nodes;
+        this.assetInstances.addEntities(url, allocated, release);
+        return {
+          nodes,
+          handles: Object.freeze(
+            Array.from(nodes, (index) => handles.get(index)!),
+          ),
+        };
       } catch (error) {
-        this.assetInstances.rollback(start, asset);
+        this.assetInstances.rollbackEntities(allocated, asset);
         throw error;
       }
     } catch (error) {
@@ -342,11 +486,28 @@ export class Application {
     }
   }
 
+  async loadEnvironment(
+    url: string,
+    options: EnvironmentBakeOptions = {},
+    signal?: AbortSignal,
+  ): Promise<void> {
+    this.checkLoadingDevice();
+    const renderer = this.renderer,
+      data = await this.environments.load(url, options, signal);
+    signal?.throwIfAborted();
+    this.checkLoadingDevice();
+    if (renderer !== this.renderer)
+      throw new Error("Device changed during environment loading");
+    await renderer.setEnvironment(data);
+  }
+
   cancelAssetLoad(url: string): boolean {
     return this.assetLoader.cancel(url);
   }
   /** Removes every instance loaded through this application, then releases its cached asset. */
   unloadAsset(url: string): Promise<void> {
+    if (this.recovering)
+      return this.recovering.then(() => this.assetLoader.unload(url));
     return this.assetLoader.unload(url);
   }
 
@@ -385,6 +546,9 @@ export class Application {
   async dispose(): Promise<void> {
     this.stop();
     this.disposing = true;
+    this.deviceState = "disposed";
+    await this.recovering?.catch(() => {});
+    this.environments.clear();
     this.simulation.clear();
     this.assetDecoder.dispose();
     try {

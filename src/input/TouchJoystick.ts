@@ -1,5 +1,7 @@
+import { InputScope } from "./InputScope";
 /** Virtual stick anchored where a touch starts; supports concurrent camera drag on another element. */
 export class TouchJoystick {
+  private readonly scope: InputScope;
   readonly axes = new Float32Array(2);
   private pointer = -1;
   private x = 0;
@@ -13,13 +15,12 @@ export class TouchJoystick {
       throw new Error("Invalid joystick radius");
     this.previousTouchAction = target.style.touchAction;
     target.style.touchAction = "none";
-    target.addEventListener("pointerdown", this.down);
-    target.addEventListener("pointermove", this.move);
-    target.addEventListener("pointerup", this.up);
-    target.addEventListener("pointercancel", this.up);
-    target.addEventListener("lostpointercapture", this.up);
-    target.ownerDocument.defaultView?.addEventListener("blur", this.clear);
-    target.ownerDocument.addEventListener("visibilitychange", this.visibility);
+    this.scope = new InputScope(target, this.clear, false);
+    this.scope.listen("pointerdown", this.down);
+    this.scope.listen("pointermove", this.move);
+    this.scope.listen("pointerup", this.up);
+    this.scope.listen("pointercancel", this.up);
+    this.scope.listen("lostpointercapture", this.up);
   }
   private readonly down = (event: PointerEvent): void => {
     if (event.pointerType !== "touch" || this.pointer !== -1) return;
@@ -42,9 +43,7 @@ export class TouchJoystick {
   private readonly up = (event: PointerEvent): void => {
     if (event.pointerId === this.pointer) this.clear();
   };
-  private readonly visibility = (): void => {
-    if (this.target.ownerDocument.visibilityState === "hidden") this.clear();
-  };
+
   readonly clear = (): void => {
     const id = this.pointer;
     this.pointer = -1;
@@ -54,19 +53,7 @@ export class TouchJoystick {
   };
   dispose(): void {
     this.clear();
-    this.target.removeEventListener("pointerdown", this.down);
-    this.target.removeEventListener("pointermove", this.move);
-    this.target.removeEventListener("pointerup", this.up);
-    this.target.removeEventListener("pointercancel", this.up);
-    this.target.removeEventListener("lostpointercapture", this.up);
-    this.target.ownerDocument.defaultView?.removeEventListener(
-      "blur",
-      this.clear,
-    );
-    this.target.ownerDocument.removeEventListener(
-      "visibilitychange",
-      this.visibility,
-    );
+    this.scope.dispose();
     this.target.style.touchAction = this.previousTouchAction;
   }
 }

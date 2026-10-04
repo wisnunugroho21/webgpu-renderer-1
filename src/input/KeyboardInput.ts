@@ -1,18 +1,15 @@
+import { InputScope } from "./InputScope";
 /** Focus-scoped keyboard state. Blur clears held keys; edges survive until a simulation tick consumes them. */
 export class KeyboardInput {
+  private readonly scope: InputScope;
   private readonly down = new Set<string>();
   private readonly pressed = new Set<string>();
   private readonly allowed: Set<string>;
-  constructor(
-    private readonly target: HTMLElement,
-    codes: readonly string[],
-  ) {
+  constructor(target: HTMLElement, codes: readonly string[]) {
     this.allowed = new Set(codes);
-    target.addEventListener("keydown", this.keydown);
-    target.addEventListener("keyup", this.keyup);
-    target.addEventListener("blur", this.clear);
-    target.ownerDocument?.defaultView?.addEventListener("blur", this.clear);
-    target.ownerDocument?.addEventListener("visibilitychange", this.visibility);
+    this.scope = new InputScope(target, this.clear);
+    this.scope.listen("keydown", this.keydown);
+    this.scope.listen("keyup", this.keyup);
   }
   private readonly keydown = (event: KeyboardEvent): void => {
     if (
@@ -31,9 +28,7 @@ export class KeyboardInput {
     event.preventDefault();
     this.down.delete(event.code);
   };
-  private readonly visibility = (): void => {
-    if (this.target.ownerDocument.visibilityState === "hidden") this.clear();
-  };
+
   isDown(code: string): boolean {
     return this.down.has(code);
   }
@@ -45,17 +40,7 @@ export class KeyboardInput {
     this.pressed.clear();
   };
   dispose(): void {
-    this.target.removeEventListener("keydown", this.keydown);
-    this.target.removeEventListener("keyup", this.keyup);
-    this.target.removeEventListener("blur", this.clear);
-    this.target.ownerDocument?.defaultView?.removeEventListener(
-      "blur",
-      this.clear,
-    );
-    this.target.ownerDocument?.removeEventListener(
-      "visibilitychange",
-      this.visibility,
-    );
+    this.scope.dispose();
     this.clear();
   }
 }

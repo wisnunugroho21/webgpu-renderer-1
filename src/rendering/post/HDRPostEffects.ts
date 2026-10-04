@@ -1,18 +1,16 @@
+import {
+  createPostReduction,
+  createExposureAdaptation,
+  type PostReduction,
+} from "./createPostPipelines";
 import { GPUContext } from "../../gpu/GPUContext";
 import { Resources } from "../../gpu/Resources";
-import reduceShader from "../../shaders/post-reduce.wgsl?raw";
-import exposureShader from "../../shaders/auto-exposure.wgsl?raw";
 interface Level {
   width: number;
   height: number;
   view: GPUTextureView;
   texture: GPUTexture;
   group: GPUBindGroup;
-}
-interface Reduction {
-  layout: GPUBindGroupLayout;
-  first: GPUComputePipeline;
-  reduce: GPUComputePipeline;
 }
 /** Optional bounded GPU-only radiance processing. Allocation and group construction are cold. */
 export class HDRPostEffects {
@@ -28,8 +26,8 @@ export class HDRPostEffects {
   private bloom?: GPUTexture;
   private readonly luminance: Level[] = [];
   private readonly bloomLevels: Level[] = [];
-  private bloomReduction?: Reduction;
-  private lumaReduction?: Reduction;
+  private bloomReduction?: PostReduction;
+  private lumaReduction?: PostReduction;
   private adaptPipeline?: GPUComputePipeline;
   private adaptLayout?: GPUBindGroupLayout;
   private adaptGroup?: GPUBindGroup;
@@ -47,62 +45,6 @@ export class HDRPostEffects {
   ) {}
   get bloomView(): GPUTextureView {
     return (this.bloom ?? this.fallback)!.createView();
-  }
-  private reduction(format: GPUTextureFormat, luma: boolean): Reduction {
-    const device = this.gpu.device;
-    const layout = device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.COMPUTE,
-          texture: { sampleType: "unfilterable-float" },
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.COMPUTE,
-          storageTexture: { access: "write-only", format },
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: "uniform", minBindingSize: 32 },
-        },
-      ],
-    });
-    const source = reduceShader
-      .replaceAll("OUTPUT_FORMAT", format)
-      .replace(
-        "// EXTRACT_VALUE",
-        luma
-          ? "let rgb=clamp(color.rgb,vec3<f32>(0.0),vec3<f32>(65504.0)); return vec4<f32>(log2(max(0.000001,dot(rgb,vec3<f32>(0.2126,0.7152,0.0722)))),1.0,0.0,0.0);"
-          : "return vec4<f32>(max(vec3<f32>(0.0),clamp(color.rgb,vec3<f32>(0.0),vec3<f32>(65504.0))-vec3<f32>(options.a.x)),1.0);",
-      )
-      .replace(
-        "// STORE_FIRST",
-        `textureStore(outputImage,vec2<i32>(id.xy),${luma ? "sum" : "sum/max(count,1.0)"});`,
-      )
-      .replace(
-        "// STORE_REDUCE",
-        `textureStore(outputImage,vec2<i32>(id.xy),${luma ? "sum" : "sum/max(count,1.0)"});`,
-      );
-    const module = this.resources.shaders.get(
-        source,
-        luma ? "Luminance reduction" : "Bloom reduction",
-      ),
-      pipelineLayout = device.createPipelineLayout({
-        bindGroupLayouts: [layout],
-      });
-    return {
-      layout,
-      first: this.resources.pipelines.getCompute({
-        layout: pipelineLayout,
-        compute: { module, entryPoint: "first" },
-      }),
-      reduce: this.resources.pipelines.getCompute({
-        layout: pipelineLayout,
-        compute: { module, entryPoint: "reduce" },
-      }),
-    };
   }
   /** Called from explicit feature setters/resize, never lazily from encode. */
   prepare(width: number, height: number, source: GPUTextureView): void {
@@ -138,43 +80,25 @@ export class HDRPostEffects {
       );
     }
     if (this.strength > 0 && !this.bloomReduction) {
-      this.bloomReduction = this.reduction("rgba16float", false);
+      this.bloomReduction = createPostReduction(
+        this.gpu,
+        this.resources,
+        "rgba16float",
+        false,
+      );
       changed = true;
     }
     if (this.automatic && !this.lumaReduction) {
-      this.lumaReduction = this.reduction("rgba32float", true);
+      this.lumaReduction = createPostReduction(
+        this.gpu,
+        this.resources,
+        "rgba32float",
+        true,
+      );
       changed = true;
-      this.adaptLayout = device.createBindGroupLayout({
-        entries: [
-          {
-            binding: 0,
-            visibility: GPUShaderStage.COMPUTE,
-            texture: { sampleType: "unfilterable-float" },
-          },
-          {
-            binding: 1,
-            visibility: GPUShaderStage.COMPUTE,
-            buffer: { type: "storage", minBindingSize: 16 },
-          },
-          {
-            binding: 2,
-            visibility: GPUShaderStage.COMPUTE,
-            buffer: { type: "uniform", minBindingSize: 32 },
-          },
-        ],
-      });
-      this.adaptPipeline = this.resources.pipelines.getCompute({
-        layout: device.createPipelineLayout({
-          bindGroupLayouts: [this.adaptLayout],
-        }),
-        compute: {
-          module: this.resources.shaders.get(
-            exposureShader,
-            "Exposure adaptation",
-          ),
-          entryPoint: "adapt",
-        },
-      });
+      const adaptation = createExposureAdaptation(device, this.resources);
+      this.adaptLayout = adaptation.layout;
+      this.adaptPipeline = adaptation.pipeline;
     }
     if (
       !changed &&
@@ -268,7 +192,7 @@ export class HDRPostEffects {
   }
   private encodeLevels(
     encoder: GPUCommandEncoder,
-    reduction: Reduction,
+    reduction: PostReduction,
     levels: readonly Level[],
     label: string,
   ): void {

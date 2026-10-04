@@ -2670,3 +2670,8 @@ Implement in the following dependency order, validating and benchmarking each be
 8. Broader input and camera controllers — implemented and validated.
 
 Gameplay subsystems such as general physics, audio, navigation, persistence and networking remain separate game-layer scope.
+
+
+## User-requested maintenance restructuring — 2026-10-04
+
+Separate cold renderer/post pipeline construction, animation layer bindings, worker protocols, application picking and input listener ownership from frame coordination. Preserve public APIs/import paths, resource identities, deformation order, profiled frame stages, existing feature defaults and Phase 44's optional status. Keep original animation binding construction and tight loops when extracting them adds performance uncertainty. Validate the complete production gate and compare long-animation reference images, work/resource snapshots and timings against the committed game-improvement baseline. Record evidence in `benchmarks/MAINTENANCE_REPORT.md`.

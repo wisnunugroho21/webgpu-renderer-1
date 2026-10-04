@@ -67,3 +67,48 @@ it("cancels one worker job without terminating other decodes or accepting a late
   decoder.dispose();
   vi.unstubAllGlobals();
 });
+it("rejects all failed worker owners, then retries with a fresh worker and ignores retired replies", async () => {
+  vi.stubGlobal("Worker", function () {});
+  const workers = Array.from({ length: 2 }, () => ({
+    postMessage: vi.fn(),
+    terminate: vi.fn(),
+    onmessage: undefined as ((event: MessageEvent) => void) | undefined,
+    onerror: undefined as ((event: ErrorEvent) => void) | undefined,
+  }));
+  let created = 0;
+  const decoder = new AssetDecoder(
+    {} as GLTFLoader,
+    () => workers[created++] as unknown as Worker,
+  );
+  decoder.thresholdBytes = 0;
+  const json = {
+    json: { asset: { version: "2.0" } },
+    resources: {},
+  } as JSONDocument;
+  try {
+    const a = decoder.decode(json),
+      b = decoder.decode(json);
+    const rejected = Promise.allSettled([a, b]);
+    workers[0]!.onerror!({ message: "decode crashed" } as ErrorEvent);
+    expect(
+      (await rejected).every(
+        (result) =>
+          result.status === "rejected" &&
+          result.reason.message === "decode crashed",
+      ),
+    ).toBe(true);
+    expect(workers[0]!.terminate).toHaveBeenCalledTimes(1);
+    const retry = decoder.decode(json);
+    workers[0]!.onmessage!({
+      data: { id: 0, asset: { meshes: [] } },
+    } as MessageEvent);
+    workers[1]!.onmessage!({
+      data: { id: 2, asset: { meshes: [] } },
+    } as MessageEvent);
+    expect(await retry).toEqual({ meshes: [] });
+    expect(created).toBe(2);
+  } finally {
+    decoder.dispose();
+    vi.unstubAllGlobals();
+  }
+});

@@ -1,12 +1,9 @@
-import { JSONDocument } from "@gltf-transform/core";
+import type { AssetWorkerScope } from "./AssetWorkerProtocol";
 import { prepareMesh } from "../../rendering/geometry/prepareMesh";
 import { GLTFLoader } from "../gltf/GLTFLoader";
 import { transferableBuffers } from "./transfer";
 const loader = new GLTFLoader();
-const scope = globalThis as unknown as {
-  onmessage: (event: MessageEvent<{ id: number; json: JSONDocument }>) => void;
-  postMessage: (value: unknown, transfer?: ArrayBuffer[]) => void;
-};
+const scope = globalThis as unknown as AssetWorkerScope;
 scope.onmessage = async (event) => {
   const { id, json } = event.data;
   try {

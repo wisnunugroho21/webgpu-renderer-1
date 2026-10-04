@@ -1,3 +1,4 @@
+import type { AssetDecodeReply } from "./AssetWorkerProtocol";
 import { restorePreparedMesh } from "../../rendering/geometry/prepareMesh";
 import { JSONDocument } from "@gltf-transform/core";
 import { GLTFLoader } from "../gltf/GLTFLoader";
@@ -43,44 +44,7 @@ export class AssetDecoder {
       signal?.throwIfAborted();
       return asset;
     }
-    if (!this.worker) {
-      this.worker = this.factory();
-      this.worker.onmessage = (
-        event: MessageEvent<{
-          id: number;
-          asset?: RuntimeAsset;
-          error?: string;
-          decodeMs?: number;
-          prepareMs?: number;
-        }>,
-      ) => {
-        const job = this.pending.get(event.data.id);
-        if (!job) return;
-        this.pending.delete(event.data.id);
-        if (event.data.error) job.reject(new Error(event.data.error));
-        else if (event.data.asset) {
-          this.metrics.transferredOutputBytes += transferableBuffers(
-            event.data.asset,
-          ).reduce((sum, buffer) => sum + buffer.byteLength, 0);
-          this.metrics.lastWorkerDecodeMs = event.data.decodeMs ?? 0;
-          this.metrics.lastWorkerPrepareMs = event.data.prepareMs ?? 0;
-          for (const mesh of event.data.asset.meshes)
-            for (const primitive of mesh.primitives)
-              if (primitive.prepared) {
-                restorePreparedMesh(primitive.prepared);
-                this.metrics.preparedMeshes++;
-              }
-          job.resolve(event.data.asset);
-        } else job.reject(new Error("Worker returned no asset"));
-      };
-      this.worker.onerror = (event) => {
-        const error = new Error(event.message || "Asset worker failed");
-        for (const job of this.pending.values()) job.reject(error);
-        this.pending.clear();
-        this.worker?.terminate();
-        this.worker = undefined;
-      };
-    }
+    this.ensureWorker();
     const id = this.nextId++;
     return new Promise<RuntimeAsset>((resolve, reject) => {
       const abort = () => {
@@ -109,6 +73,40 @@ export class AssetDecoder {
       }
     });
   }
+  /** Worker creation is lazy and retryable; cancelled IDs are ignored by the persistent reply handler. */
+  private ensureWorker(): void {
+    if (this.worker) return;
+    this.worker = this.factory();
+    this.worker.onmessage = this.receive;
+    this.worker.onerror = this.fail;
+  }
+  private readonly receive = (event: MessageEvent<AssetDecodeReply>): void => {
+    const job = this.pending.get(event.data.id);
+    if (!job) return;
+    this.pending.delete(event.data.id);
+    if (event.data.error) job.reject(new Error(event.data.error));
+    else if (event.data.asset) {
+      this.metrics.transferredOutputBytes += transferableBuffers(
+        event.data.asset,
+      ).reduce((sum, buffer) => sum + buffer.byteLength, 0);
+      this.metrics.lastWorkerDecodeMs = event.data.decodeMs ?? 0;
+      this.metrics.lastWorkerPrepareMs = event.data.prepareMs ?? 0;
+      for (const mesh of event.data.asset.meshes)
+        for (const primitive of mesh.primitives)
+          if (primitive.prepared) {
+            restorePreparedMesh(primitive.prepared);
+            this.metrics.preparedMeshes++;
+          }
+      job.resolve(event.data.asset);
+    } else job.reject(new Error("Worker returned no asset"));
+  };
+  private readonly fail = (event: ErrorEvent): void => {
+    const error = new Error(event.message || "Asset worker failed");
+    for (const job of this.pending.values()) job.reject(error);
+    this.pending.clear();
+    this.worker?.terminate();
+    this.worker = undefined;
+  };
   dispose(): void {
     this.disposed = true;
     this.worker?.terminate();

@@ -1,5 +1,5 @@
-import { Ray } from "../spatial/Ray";
-import { RayHit, SpatialQueries } from "../spatial/SpatialQueries";
+import { ApplicationPicking } from "./ApplicationPicking";
+import { SpatialQueries } from "../spatial/SpatialQueries";
 import { rebuildDeviceResources } from "./rebuildDeviceResources";
 import { ApplicationAssets, AssetInstance } from "./ApplicationAssets";
 import { EnvironmentLoader } from "../rendering/environment/EnvironmentLoader";
@@ -44,8 +44,7 @@ export class Application {
   readonly defaultLightEntity: number;
   readonly renderWorld: RenderWorld;
   readonly spatial: SpatialQueries;
-  private readonly pickingRay = new Ray();
-  private readonly pickingHit = new RayHit();
+  private readonly picking: ApplicationPicking;
   readonly extractor = new RenderExtractor();
   readonly materials = new MaterialManager();
   readonly profiler = new CPUProfiler();
@@ -78,6 +77,7 @@ export class Application {
     this.transformSystem = new TransformSystem(entityCapacity);
     this.renderWorld = new RenderWorld(renderCapacity);
     this.spatial = new SpatialQueries(this.renderWorld);
+    this.picking = new ApplicationPicking(canvas, this.world, this.spatial);
     this.assets = new ApplicationAssets({
       world: this.world,
       animations: this.animations,
@@ -121,36 +121,7 @@ export class Application {
 
   /** Pointer-event picking against the latest extracted bounds; never waits for the GPU. */
   pick(clientX: number, clientY: number): EntityHandle | null {
-    if (
-      !this.renderer ||
-      !Number.isFinite(clientX) ||
-      !Number.isFinite(clientY)
-    )
-      return null;
-    const rect = this.canvas.getBoundingClientRect();
-    if (
-      rect.width <= 0 ||
-      rect.height <= 0 ||
-      clientX < rect.left ||
-      clientY < rect.top ||
-      clientX > rect.right ||
-      clientY > rect.bottom
-    )
-      return null;
-    this.pickingRay.fromCamera(
-      this.renderer.camera,
-      (clientX - rect.left) / rect.width,
-      (clientY - rect.top) / rect.height,
-      this.canvas.width / this.canvas.height,
-    );
-    if (!this.spatial.raycast(this.pickingRay, this.pickingHit)) return null;
-    const hit = this.pickingHit;
-    if (
-      !this.world.alive[hit.entityId] ||
-      this.world.generation[hit.entityId] !== hit.generation
-    )
-      return null;
-    return this.world.handle(hit.entityId);
+    return this.picking.pick(this.renderer?.camera, clientX, clientY);
   }
 
   start(): Promise<void> {
@@ -293,6 +264,56 @@ export class Application {
     }
   }
 
+  /** Gameplay hooks have completed; deformation → transforms → palettes → bounds → extraction is fixed. */
+  private prepareScene(delta: number): void {
+    // Bounds and extraction must follow deformation and world-transform updates.
+    this.profiler.start(CPUStage.animation);
+    this.animations.update(delta);
+    if (this.renderer.hdr.autoExposure)
+      this.renderer.hdr.frameDeltaSeconds = delta;
+    this.profiler.end(CPUStage.animation);
+    this.profiler.start(CPUStage.transforms);
+    this.transformSystem.update(this.world.transforms);
+    this.profiler.end(CPUStage.transforms);
+    this.cameraSystem.update(this.world, this.renderer.camera);
+    this.profiler.start(CPUStage.skeletons);
+    this.skeletonSystem.update(this.world, this.skeletons);
+    this.profiler.end(CPUStage.skeletons);
+    this.profiler.start(CPUStage.animatedBounds);
+    if (this.renderer)
+      this.animatedBounds.update(
+        this.world,
+        this.renderer.meshes,
+        this.skeletons,
+        this.animations.morphPool,
+      );
+    this.profiler.end(CPUStage.animatedBounds);
+    this.profiler.start(CPUStage.extraction);
+    this.extractor.extract(
+      this.world,
+      this.renderWorld,
+      this.skeletons,
+      this.animations.morphPool,
+    );
+    this.profiler.end(CPUStage.extraction);
+    this.renderer.stats.activeAnimators = this.animations.activeAnimators;
+  }
+
+  /** One command buffer carries every graph pass. Completion waits belong only to diagnostics/lifecycle work. */
+  private submitFrame(): void {
+    const encoder = this.gpu.device.createCommandEncoder({
+      label: "Frame encoder",
+    });
+    this.renderer.encode(
+      encoder,
+      this.gpu.context
+        .getCurrentTexture()
+        .createView({ format: this.gpu.renderFormat }),
+    );
+    // Submit once after every graph pass has encoded into the same command buffer.
+    this.gpu.queue.submit([encoder.finish()]);
+  }
+
   private readonly frame = (timestamp: number): void => {
     if (this.stopped || this.gpu.lost) return;
     if (this.pixelRatio !== window.devicePixelRatio) {
@@ -309,48 +330,8 @@ export class Application {
       this.profiler.start(CPUStage.simulation);
       const delta = this.simulation.advance(rawDelta);
       this.profiler.end(CPUStage.simulation);
-      // Bounds and extraction must follow deformation and world-transform updates.
-      this.profiler.start(CPUStage.animation);
-      this.animations.update(delta);
-      if (this.renderer.hdr.autoExposure)
-        this.renderer.hdr.frameDeltaSeconds = delta;
-      this.profiler.end(CPUStage.animation);
-      this.profiler.start(CPUStage.transforms);
-      this.transformSystem.update(this.world.transforms);
-      this.profiler.end(CPUStage.transforms);
-      this.cameraSystem.update(this.world, this.renderer.camera);
-      this.profiler.start(CPUStage.skeletons);
-      this.skeletonSystem.update(this.world, this.skeletons);
-      this.profiler.end(CPUStage.skeletons);
-      this.profiler.start(CPUStage.animatedBounds);
-      if (this.renderer)
-        this.animatedBounds.update(
-          this.world,
-          this.renderer.meshes,
-          this.skeletons,
-          this.animations.morphPool,
-        );
-      this.profiler.end(CPUStage.animatedBounds);
-      this.profiler.start(CPUStage.extraction);
-      this.extractor.extract(
-        this.world,
-        this.renderWorld,
-        this.skeletons,
-        this.animations.morphPool,
-      );
-      this.profiler.end(CPUStage.extraction);
-      this.renderer.stats.activeAnimators = this.animations.activeAnimators;
-      const encoder = this.gpu.device.createCommandEncoder({
-        label: "Frame encoder",
-      });
-      this.renderer.encode(
-        encoder,
-        this.gpu.context
-          .getCurrentTexture()
-          .createView({ format: this.gpu.renderFormat }),
-      );
-      // Submit once after every graph pass has encoded into the same command buffer.
-      this.gpu.queue.submit([encoder.finish()]);
+      this.prepareScene(delta);
+      this.submitFrame();
       this.renderer.stats.frameTimeMs = rawDelta * 1000;
       this.renderer.stats.fps = rawDelta > 0 ? 1 / rawDelta : 0;
       this.renderer.stats.cpuFrameMs = performance.now() - start;

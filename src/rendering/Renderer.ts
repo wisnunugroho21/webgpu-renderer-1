@@ -1,3 +1,4 @@
+import { createRendererResources } from "./createRendererResources";
 import { ColorPass } from "./passes/ColorPass";
 import { EnvironmentSkybox } from "./environment/EnvironmentSkybox";
 import { HDRRendering } from "./post/HDRRendering";
@@ -11,8 +12,6 @@ import {
   INSTANCE_BYTES,
   INSTANCE_WORDS,
 } from "./layouts";
-import { createBootstrapMesh } from "./geometry/createBootstrapMesh";
-import { MESH_VERTEX_LAYOUT } from "./geometry/VertexLayout";
 import { configureRenderGraph } from "./graph/configureRenderGraph";
 import { GeometryOptimization } from "./geometry/GeometryOptimization";
 import { RendererStreaming } from "./RendererStreaming";
@@ -141,28 +140,37 @@ export class Renderer {
     camera?: Camera,
   ) {
     this.camera = camera ?? new Camera();
-    const device = gpu.device;
-    this.resources = new Resources(device);
-    this.temporal = new TemporalVisibility(world);
-    this.previousVisibility = this.resources.buffers.create({
-      label: "Previous visibility",
-      size: Math.max(4, world.capacity * 4),
-      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-    });
-    this.gpuProfiler = new GPUProfiler(device, this.resources);
-    this.hiz = new HiZPyramid(device, this.resources, gpu.renderFormat);
-    this.lights = new LightBuffer(this.resources.buffers, world.lightCapacity);
-    this.joints = new JointMatrixBuffer(
-      this.resources.buffers,
-      world.jointCapacity,
+    const shared = createRendererResources(
+      gpu,
+      world,
+      materials,
+      this.lodGroups,
     );
-    this.textures = new MaterialTextures(device, this.resources);
-    this.morphDeltas = new MorphDeltaBuffers(this.resources, gpu.queue);
-    this.morphWeights = new MorphWeightBuffer(
-      this.resources.buffers,
-      world.morphCapacity,
-    );
-    this.meshes = new MeshManager(this.resources, gpu.queue, this.morphDeltas);
+    this.resources = shared.resources;
+    this.temporal = shared.temporal;
+    this.previousVisibility = shared.previousVisibility;
+    this.gpuProfiler = shared.gpuProfiler;
+    this.hiz = shared.hiz;
+    this.lights = shared.lights;
+    this.joints = shared.joints;
+    this.textures = shared.textures;
+    this.morphDeltas = shared.morphDeltas;
+    this.morphWeights = shared.morphWeights;
+    this.meshes = shared.meshes;
+    this.vertexBuffer = shared.vertexBuffer;
+    this.indexBuffer = shared.indexBuffer;
+    this.dynamic = shared.dynamic;
+    this.frameBuffer = shared.frameBuffer;
+    this.gpuFrustum = shared.gpuFrustum;
+    this.gpuOcclusion = shared.gpuOcclusion;
+    this.gpuCompaction = shared.gpuCompaction;
+    this.gpuLOD = shared.gpuLOD;
+    this.gpuDraws = shared.gpuDraws;
+    this.clusters = shared.clusters;
+    this.materialBuffer = shared.materialBuffer;
+    this.shadows = shared.shadows;
+    this.depthPrepass = shared.depthPrepass;
+    this.geometryOptimization = shared.geometryOptimization;
     this.streaming = new RendererStreaming(
       gpu.queue,
       this.meshes,
@@ -178,91 +186,7 @@ export class Renderer {
     this.bvh = new BVH(world.capacity);
     this.instances = new InstanceManager(world.capacity);
     this.batches = new BatchBuilder(world.capacity);
-    const bootstrapMesh = createBootstrapMesh(this.meshes);
-    this.vertexBuffer = this.meshes.get(bootstrapMesh).vertex;
-    this.indexBuffer = this.meshes.get(bootstrapMesh).index;
-    this.dynamic = new DynamicBufferAllocator(
-      this.resources.buffers,
-      4 * 1024 * 1024,
-      device.limits.minUniformBufferOffsetAlignment,
-      GPUBufferUsage.UNIFORM | GPUBufferUsage.STORAGE,
-    );
-    this.frameBuffer = this.dynamic.buffers[0]!;
-    this.gpuFrustum = new GPUFrustumCuller(
-      device,
-      this.resources,
-      this.dynamic.buffers,
-      world.capacity,
-    );
-    this.gpuOcclusion = new GPUOcclusionCuller(
-      device,
-      this.resources,
-      this.dynamic.buffers,
-      this.gpuFrustum,
-    );
-    this.gpuCompaction = new VisibilityCompactor(
-      device,
-      this.resources,
-      this.gpuFrustum,
-    );
-    this.gpuLOD = new GPULODSelector(
-      device,
-      this.resources,
-      this.dynamic.buffers,
-      this.gpuFrustum,
-      this.lodGroups,
-    );
-    this.gpuDraws = new IndirectDraws(
-      device,
-      this.resources,
-      world.capacity,
-      this.gpuCompaction,
-      this.gpuLOD,
-    );
-    this.clusters = new ClusteredLighting(
-      device,
-      this.resources,
-      this.dynamic.buffers,
-      this.lights.buffer,
-      gpu.canvas.width,
-      gpu.canvas.height,
-    );
 
-    this.materialBuffer = materials.createBuffer(this.resources.buffers);
-    this.shadows = new ShadowManager(
-      device,
-      this.resources,
-      this.dynamic,
-      world,
-      [
-        this.frameBuffer,
-        this.frameBuffer,
-        this.materialBuffer,
-        this.frameBuffer,
-        this.joints.buffer,
-        this.morphWeights.buffer,
-        this.morphDeltas.position,
-        this.morphDeltas.normal,
-        this.morphDeltas.tangent,
-      ],
-      this.meshes,
-      materials,
-      this.textures,
-      MESH_VERTEX_LAYOUT,
-    );
-    this.depthPrepass = new DepthPrepass(
-      this.resources,
-      this.shadows,
-      this.meshes,
-      materials,
-      this.textures,
-    );
-    this.geometryOptimization = new GeometryOptimization(
-      device,
-      this.resources,
-      this.dynamic,
-      world.capacity,
-    );
     this.colorPass = new ColorPass({
       gpu,
       world,
@@ -645,6 +569,13 @@ export class Renderer {
     this.joints.upload(this.gpu.queue, this.world);
     this.morphWeights.upload(this.gpu.queue, this.world);
     this.lights.upload(this.gpu.queue, this.world);
+    this.prepareGPUPaths(indirect);
+    this.recordUploadStats(clustered);
+    this.colorInstanceOffset = instanceOffset;
+  }
+
+  /** Prepare optional compute inputs after all shared frame writes; the graph performs actual dispatches. */
+  private prepareGPUPaths(indirect: boolean): void {
     this.gpuFrustum.update(this.world, this.gpu.queue);
     const temporalEnabled = this.temporal.enabled;
     if (!this.gpuOcclusion.enabled) this.temporal.enabled = false;
@@ -676,6 +607,10 @@ export class Renderer {
       indirect,
       this.gpu.queue,
     );
+  }
+
+  /** Report bytes from their owners without changing dirty-range decisions or upload ordering. */
+  private recordUploadStats(clustered: boolean): void {
     this.stats.geometryClusterCandidates = this.geometryOptimization.count;
     this.stats.geometryFallbackBatches =
       this.geometryOptimization.fallbackBatches;
@@ -710,7 +645,6 @@ export class Renderer {
     this.stats.clusters = clustered
       ? this.clusters.tilesX * this.clusters.tilesY * this.clusters.slices
       : 0;
-    this.colorInstanceOffset = instanceOffset;
   }
 
   dispose(): void {

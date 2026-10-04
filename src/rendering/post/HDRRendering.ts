@@ -1,9 +1,8 @@
+import { createPresentationPipeline } from "./createPresentationPipeline";
 import { HDRPostEffects } from "./HDRPostEffects";
-import postShader from "../../shaders/post-present.wgsl?raw";
 import { GPUContext } from "../../gpu/GPUContext";
 import { Resources } from "../../gpu/Resources";
 import { GPUProfiler, GPUPass } from "../../profiling/GPUProfiler";
-import shader from "../../shaders/tone-mapping.wgsl?raw";
 
 export type Antialiasing = "none" | "fxaa";
 export type ToneMapping = "reinhard" | "clamp" | "filmic";
@@ -116,46 +115,18 @@ export class HDRRendering {
   private prepare(): void {
     if (this.sceneEnabled && !this.pipeline) {
       this.prepareColor();
-      const device = this.gpu.device;
       this.buffer = this.resources.buffers.create({
         label: "HDR exposure",
         size: 16,
         usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
       });
-      this.layout = device.createBindGroupLayout({
-        entries: [
-          {
-            binding: 0,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { sampleType: "unfilterable-float" },
-          },
-          {
-            binding: 1,
-            visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: "uniform", minBindingSize: 16 },
-          },
-        ],
-      });
-      const module = this.resources.shaders.get(
-        shader.replace(
-          "// POST_HELPERS",
-          "fn postExposure() -> f32 { return 1.0; } fn postRadiance(pixel: vec2<i32>) -> vec3<f32> { return vec3<f32>(0.0); }",
-        ),
-        "Tone mapping",
+      const presentation = createPresentationPipeline(
+        this.gpu,
+        this.resources,
+        false,
       );
-      this.pipeline = this.resources.pipelines.get({
-        label: "HDR presentation",
-        layout: device.createPipelineLayout({
-          bindGroupLayouts: [this.layout],
-        }),
-        vertex: { module, entryPoint: "vs" },
-        fragment: {
-          module,
-          entryPoint: "fs",
-          targets: [{ format: this.gpu.renderFormat }],
-        },
-        primitive: { topology: "triangle-list" },
-      });
+      this.layout = presentation.layout;
+      this.pipeline = presentation.pipeline;
     }
     if (this.sceneEnabled)
       this.resize(this.gpu.canvas.width, this.gpu.canvas.height);
@@ -216,51 +187,13 @@ export class HDRRendering {
     if (!this.postEnabled || !this.view) return;
     const device = this.gpu.device;
     if (!this.postPipeline) {
-      this.postLayout = device.createBindGroupLayout({
-        entries: [
-          {
-            binding: 0,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { sampleType: "unfilterable-float" },
-          },
-          {
-            binding: 1,
-            visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: "uniform", minBindingSize: 16 },
-          },
-          {
-            binding: 2,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { sampleType: "unfilterable-float" },
-          },
-          {
-            binding: 3,
-            visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: "read-only-storage", minBindingSize: 16 },
-          },
-          {
-            binding: 4,
-            visibility: GPUShaderStage.FRAGMENT,
-            buffer: { type: "uniform", minBindingSize: 32 },
-          },
-        ],
-      });
-      const module = this.resources.shaders.get(
-        shader.replace("// POST_HELPERS", postShader),
-        "Post presentation",
+      const presentation = createPresentationPipeline(
+        this.gpu,
+        this.resources,
+        true,
       );
-      this.postPipeline = this.resources.pipelines.get({
-        layout: device.createPipelineLayout({
-          bindGroupLayouts: [this.postLayout],
-        }),
-        vertex: { module, entryPoint: "vs" },
-        fragment: {
-          module,
-          entryPoint: "fs",
-          targets: [{ format: this.gpu.renderFormat }],
-        },
-        primitive: { topology: "triangle-list" },
-      });
+      this.postLayout = presentation.layout;
+      this.postPipeline = presentation.pipeline;
     }
     this.effects.prepare(this.width, this.height, this.view);
     if (this.postRevision === this.effects.revision) return;

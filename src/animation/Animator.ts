@@ -1,48 +1,23 @@
 import {
+  createAnimationLayer,
+  type MorphState,
+  type AnimationSlot,
+  type AnimationBinding,
+  type AnimationLayerState,
+} from "./AnimationBindings";
+export type { MorphState } from "./AnimationBindings";
+import {
   AnimationEvents,
   AnimationMarker,
   AnimationEventListener,
 } from "./AnimationEvents";
 import { World } from "../ecs/World";
+import { AnimationPose } from "./AnimationPose";
 import { AnimationClip } from "./AnimationClip";
-import { AnimationChannel, AnimationPath } from "./AnimationChannel";
 import {
   AnimationLayerOptions,
   AnimationLayerPlayback,
 } from "./AnimationLayerPlayback";
-import { AnimationPose } from "./AnimationPose";
-export interface MorphState {
-  readonly weightOffset: number;
-  readonly targetCount: number;
-  readonly weights: Float32Array;
-  dirty: boolean;
-}
-interface Slot {
-  node: number;
-  path: AnimationPath;
-  entity: number;
-  generation: number;
-  morph?: MorphState;
-  base: AnimationPose;
-  source: AnimationPose;
-  target: AnimationPose;
-  result: AnimationPose;
-  layered?: AnimationPose;
-}
-interface Binding {
-  channel: AnimationChannel;
-  output: Float32Array;
-  keyIndex: number;
-  slot: Slot;
-}
-interface LayerBinding extends Binding {
-  pose: AnimationPose;
-  reference: AnimationPose;
-}
-interface LayerState {
-  playback: AnimationLayerPlayback;
-  bindings: LayerBinding[];
-}
 interface Fade {
   from: number;
   time: number;
@@ -99,18 +74,19 @@ export class Animator {
       this.apply();
     }
   }
-  private layerStates: LayerState[] = [];
+  private layerStates: AnimationLayerState[] = [];
   private layerControls: readonly AnimationLayerPlayback[] = Object.freeze([]);
   private fade?: Fade;
-  private readonly bindings: Binding[][];
-  private readonly slots: Slot[] = [];
+  private readonly bindings: AnimationBinding[][];
+  // Preserve construction and stable arrays used by the sampling loop. Layer setup lives separately.
+  private readonly slots: AnimationSlot[] = [];
   constructor(
     readonly clips: readonly AnimationClip[],
     private readonly world: World,
     entities: Int32Array,
     morphs: Map<number, MorphState>,
   ) {
-    const slots = new Map<string, Slot>();
+    const slots = new Map<string, AnimationSlot>();
     this.bindings = clips.map((clip) =>
       clip.channels.map((channel) => {
         const entity = entities[channel.node] ?? -1,
@@ -175,34 +151,14 @@ export class Animator {
   }
   /** Cold setup: resolve node masks and allocate persistent poses once. */
   addLayer(options: AnimationLayerOptions): AnimationLayerPlayback {
-    const clip = this.clips[options.clip];
-    if (!clip) throw new Error("Unknown animation layer clip");
-    const playback = new AnimationLayerPlayback(options, clip.duration);
-    const nodes = playback.nodes ? new Set(playback.nodes) : undefined;
-    const bindings = this.bindings[playback.clip]!.filter(
-      (binding) => !nodes || nodes.has(binding.channel.node),
-    ).map((binding) => {
-      const pose = new AnimationPose(
-        binding.channel.path,
-        binding.output.length,
-      );
-      const reference = new AnimationPose(
-        binding.channel.path,
-        binding.output.length,
-      );
-      binding.channel.sampler.sample(playback.referenceTime, reference.values);
-      return {
-        channel: binding.channel,
-        slot: binding.slot,
-        output: pose.values,
-        keyIndex: 0,
-        pose,
-        reference,
-      };
-    });
-    for (const slot of this.slots)
-      slot.layered ??= new AnimationPose(slot.path, slot.base.values.length);
-    this.layerStates.push({ playback, bindings });
+    const state = createAnimationLayer(
+      options,
+      this.clips,
+      this.bindings,
+      this.slots,
+    );
+    const { playback } = state;
+    this.layerStates.push(state);
     this.layerControls = Object.freeze(
       this.layerStates.map((state) => state.playback),
     );
@@ -344,7 +300,7 @@ export class Animator {
       ? ((next % duration) + duration) % duration
       : Math.max(0, Math.min(duration, next));
   }
-  private readRest(slot: Slot, out: Float32Array): void {
+  private readRest(slot: AnimationSlot, out: Float32Array): void {
     const e = slot.entity,
       t = this.world.transforms;
     if (slot.path === "weights") {
@@ -435,14 +391,14 @@ export class Animator {
     }
     for (const slot of this.slots) this.write(slot, slot.layered!.values);
   }
-  private sample(binding: Binding, time: number): void {
+  private sample(binding: AnimationBinding, time: number): void {
     const sampler = binding.channel.sampler;
     // Avoid cursor reads/writes for the common two-key fixture and constant clips.
     if (sampler.input.length > 2)
       binding.keyIndex = sampler.sample(time, binding.output, binding.keyIndex);
     else sampler.sample(time, binding.output);
   }
-  private write(slot: Slot, v: Float32Array): void {
+  private write(slot: AnimationSlot, v: Float32Array): void {
     if (
       slot.node === this.inPlaceNode &&
       (slot.path === "translation" || slot.path === "rotation")

@@ -1,7 +1,9 @@
-import { EnvironmentData } from "./EnvironmentData";
+import type {
+  PreparedEnvironment,
+  EnvironmentPrepareReply,
+} from "./EnvironmentWorkerProtocol";
 import { EnvironmentBakeOptions } from "./bakeEnvironment";
 import { prepareEnvironment } from "./prepareEnvironment";
-type Prepared = { data: EnvironmentData; precomputed: boolean };
 /** Lazy reusable worker. Clear terminates CPU jobs and rejects their owners before retirement. */
 export class EnvironmentWorker {
   enabled = true;
@@ -10,7 +12,10 @@ export class EnvironmentWorker {
   private nextId = 0;
   private readonly pending = new Map<
     number,
-    { resolve: (data: Prepared) => void; reject: (error: Error) => void }
+    {
+      resolve: (data: PreparedEnvironment) => void;
+      reject: (error: Error) => void;
+    }
   >();
   constructor(
     private readonly factory = () =>
@@ -21,20 +26,18 @@ export class EnvironmentWorker {
   prepare(
     bytes: Uint8Array,
     options: EnvironmentBakeOptions,
-  ): Promise<Prepared> {
+  ): Promise<PreparedEnvironment> {
     if (!this.enabled || typeof Worker === "undefined")
       return prepareEnvironment(bytes, options);
     if (!this.worker) {
       this.worker = this.factory();
       this.worker.onmessage = (
-        event: MessageEvent<
-          Prepared & { id: number; error?: string; prepareMs: number }
-        >,
+        event: MessageEvent<EnvironmentPrepareReply>,
       ) => {
         const pending = this.pending.get(event.data.id);
         if (!pending) return;
         this.pending.delete(event.data.id);
-        if (event.data.error) pending.reject(new Error(event.data.error));
+        if ("error" in event.data) pending.reject(new Error(event.data.error));
         else {
           this.metrics.lastPrepareMs = event.data.prepareMs;
           pending.resolve(event.data);

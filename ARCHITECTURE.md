@@ -5,9 +5,9 @@
 ## Start reading here
 
 1. `src/main.ts` creates the browser application.
-2. `src/app/Application.ts` owns browser lifecycle, frame order, and recovery publication; `ApplicationAssets.ts` owns scene/asset transactions.
+2. `src/app/Application.ts` owns browser lifecycle, frame order, and recovery publication; `ApplicationAssets.ts` owns scene/asset transactions; `ApplicationPicking.ts` owns CSS picking and live identity checks.
 3. `src/rendering/RenderExtractor.ts` copies ECS state into the persistent `RenderWorld` snapshot.
-4. `src/rendering/Renderer.ts` prepares visibility, sorts batches, uploads shared frame state, and executes the render graph. `passes/ColorPass.ts` owns color variants, HDR/IBL inputs, and batch drawing.
+4. `src/rendering/Renderer.ts` prepares visibility, sorts batches, uploads shared frame state, and executes the render graph. `createRendererResources.ts` builds shared GPU owners in dependency order; `passes/ColorPass.ts` owns color variants, HDR/IBL inputs, and batch drawing.
 5. `src/rendering/graph/configureRenderGraph.ts` declares pass dependencies. Individual pass classes encode the GPU work.
 
 ## Module ownership
@@ -16,7 +16,7 @@
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | `src/app`                                  | Browser lifecycle and frame orchestration                                                                      |
 | `src/ecs`                                  | Gameplay entities, component arrays, transform/animation/skeleton/bounds systems                               |
-| `src/input`                                | Focus-scoped keyboard state and input listener lifecycle                                                       |
+| `src/input`                                | Keyboard/pointer/touch/gamepad state; InputScope owns DOM listener cleanup                                     |
 | `src/examples`                             | Collection game model and application hooks demonstrating renderer use                                         |
 | `src/animation`                            | Clip sampling, poses, morph pools, skeleton assets and per-character palettes                                  |
 | `src/assets`                               | Fetch/decode/cache states, worker transfers, GPU upload preparation, scene instantiation and streaming records |
@@ -55,7 +55,7 @@ Optional animation layers own playback clocks and persistent binding/reference p
 5. `uploadFrameState()` fills persistent staging arrays, advances the arena slot, uploads dirty shared records, and prepares optional GPU paths.
 6. The compiled graph encodes all enabled work; the application submits one command buffer.
 
-The compiled graph order is GPU frustum → shadows → light clusters → depth → geometry clusters → Hi-Z → GPU occlusion → GPU LOD → compaction → indirect arguments → color → tone mapping → Hi-Z debug. Optional pass callbacks may do no work. Resource names describe explicit versions/dependencies, not a transient resource allocator.
+The compiled graph order is GPU frustum → shadows → light clusters → depth → geometry clusters → Hi-Z → GPU occlusion → GPU LOD → compaction → indirect arguments → color → post-processing → tone mapping → Hi-Z debug. Optional pass callbacks may do no work. Resource names describe explicit versions/dependencies, not a transient resource allocator.
 
 Color, camera depth and shadow shaders share `deformVertex`: base attributes → additive morph deltas → joint blending → model transform. Normal cofactors and determinant signs preserve nonuniform scale, shear and reflection. CPU bounds must conservatively cover the same deformation before visibility tests.
 
@@ -73,7 +73,7 @@ Color, camera depth and shadow shaders share `deformVertex`: base attributes →
 | Light                  |    64 | Four `vec4<f32>` records                                                             |
 | Shadow                 |    80 | View-projection matrix and cascade settings                                          |
 
-Initialization prepares caches, shared buffers, binding groups and bounded color variants. Asset upload prepares textures, list topology, missing flat normals, vertex packing, morph deltas and eligible static mesh clusters. `assets/uploadAsset.ts` yields between primitive uploads and rechecks the device after asynchronous boundaries; individual primitive packing remains synchronous. Upload ownership stays local until all primitives succeed; failures release buffers, material slots, texture leases and shared delta ranges.
+Initialization prepares caches, shared buffers, binding groups and bounded color variants. Asset upload prepares textures, list topology, missing flat normals, vertex packing, morph deltas and eligible static mesh clusters. `assets/uploadAsset.ts` yields between primitive uploads and rechecks the device after asynchronous boundaries; large worker jobs transfer prepacked meshes and large vertex/index uploads yield in bounded chunks; small/main-path packing and deformation-arena append remain synchronous. Upload ownership stays local until all primitives succeed; failures release buffers, material slots, texture leases and shared delta ranges.
 
 Ordinary frames reuse GPU resources and persistent typed arrays. The dynamic arena rotates three preallocated slots, with aligned offsets and one flush. Queue ordering protects writes/submissions; ordinary frames do not map buffers or wait for completion. Dirty joint, morph, material and light ranges avoid unchanged uploads. Resolve named ABI offsets outside tight vertex/instance loops; repeated module/property lookups can undermine otherwise equivalent refactors. Mesh/material IDs identify shared assets; entities never own separate mesh buffers.
 
@@ -139,7 +139,7 @@ For a complete integration gate, run `npm run validate`. It runs formatting, uni
 
 ## Game integration owners
 
-`AssetInstances` owns one record and lease per independent spawned asset. `ApplicationAssets.instantiate` exposes an immutable lifetime facade; asynchronous instance disposal performs CPU detachment without destroying shared cached GPU data. URL unload and recovery remain manager-level operations.
+`AssetInstances` owns one record and lease per independent spawned asset. `ApplicationAssets.instantiateAsset` exposes an immutable lifetime facade; asynchronous instance disposal performs CPU detachment without destroying shared cached GPU data. URL unload and recovery remain manager-level operations.
 
 Animation marker crossing and named state transitions belong to controllers. `RootMotionSampler` returns rigid local-space deltas into caller storage; gameplay applies those to an actor. Explicit manual update mode separates fixed simulation clocks from pose preparation. Optional reduced-rate evaluation advances clocks every tick while all render passes use the same held deformation pose.
 
@@ -150,3 +150,17 @@ Animation marker crossing and named state transitions belong to controllers. `Ro
 `HDRRendering` owns optional linear scene presentation. `HDRPostEffects` owns bounded bloom/luminance pyramids, persistent exposure state and compute pipelines. The graph orders color → post-processing → tone mapping. Ordinary effects frames update existing parameter buffers and encode GPU work without allocation, waits or readbacks; configuration/resize prepares resources. FXAA filters mapped linear output before the final sRGB attachment encoding. All new effects default off.
 
 Input helpers own DOM capture/poll state and are disposed by gameplay. Camera controllers receive gameplay positions/deltas and call the existing Camera setters. They never query ECS from render passes, allocate GPU resources, or alter geometry/deformation layouts. The collect example demonstrates their subscription/teardown boundaries.
+
+## Maintenance seams after game integration
+
+Keep setup and lifetime decisions separate from frame arithmetic. `AnimationBindings` defines controller-owned pose/binding records and resolves layer masks/reference poses; `Animator` retains original binding construction, rest capture, playback, sampling cursors, crossfades and tight composition/write loops. `MorphState` remains exported from Animator for existing callers. Shared clips never own per-controller cursor state.
+
+`createRendererResources` builds shared buffers and pass owners in their original GPU construction order. Renderer exposes the same object identities and owns disposal. Its frame methods separate shared writes, optional GPU-path preparation and upload statistics; they create no contexts or arrays per frame. Application similarly names `prepareScene` and `submitFrame`, keeping profiler spans, fixed simulation dispatch and one submission intact. Picking scratch lives in `ApplicationPicking`, which wraps renderer snapshot queries with application-side identity validation.
+
+`createPostPipelines` owns reduction/adaptation shader variants; `createPresentationPipeline` owns the two fullscreen binding/pipeline variants. HDRRendering/HDRPostEffects retain targets, parameters, exposure state, bind groups and encoding. Factories run on cold configuration boundaries; resizing replaces targets without rebuilding pipelines. Generated reduction arithmetic is unchanged, with named WGSL intermediates for clarity.
+
+AssetWorkerProtocol and EnvironmentWorkerProtocol define both ends of their transfer contracts. AssetDecoder separates worker startup, reply restoration and failure handling from request dispatch/cancellation. IDs remain monotonically allocated, cancelled/retired replies are ignored, and a failed worker can be recreated. There is no generic job scheduler or new worker lifecycle policy.
+
+InputScope records only listener registrations during setup, handles focus/visibility clearing and removes exactly its subscriptions during teardown. Gesture owners retain pointer capture, touch styles and accumulated state. Disposal preserves unrelated listeners and each input's existing focus behavior.
+
+Small math, ECS stores, sampling kernels, visibility structures, mesh preparation, GPU caches and WGSL pass modules retain their focused responsibilities. Extend these seams when adding features; avoid moving hot arithmetic behind generic callback/context abstractions. `benchmarks/MAINTENANCE_REPORT.md` records validation and comparison with the committed game-improvement baseline.

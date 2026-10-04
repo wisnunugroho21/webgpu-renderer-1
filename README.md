@@ -11,7 +11,7 @@ Open the displayed localhost URL in a WebGPU-capable browser. The initial scene 
 
 ## Code organization
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, asset upload, shader code, and GPU validation have separate responsibilities with comments around their invariants.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the module map, frame sequence, shared GPU layouts, resource ownership, optional feature constraints, and maintenance workflow. Renderer initialization, frame preparation, animation binding setup, worker protocols, input cleanup, post-processing pipelines, asset upload, and GPU validation have separate responsibilities with comments around their invariants. Public application, renderer and animation APIs retain their existing import paths.
 
 ```sh
 npm run format

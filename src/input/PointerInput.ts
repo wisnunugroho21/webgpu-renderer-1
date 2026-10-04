@@ -1,5 +1,7 @@
+import { InputScope } from "./InputScope";
 /** Single captured mouse/pen/touch drag. Consume deltas once per update, not once per render pass. */
 export class PointerInput {
+  private readonly scope: InputScope;
   private pointer = -1;
   private x = 0;
   private y = 0;
@@ -10,15 +12,13 @@ export class PointerInput {
   constructor(private readonly target: HTMLElement) {
     this.previousTouchAction = target.style.touchAction;
     target.style.touchAction = "none";
-    target.addEventListener("pointerdown", this.down);
-    target.addEventListener("pointermove", this.move);
-    target.addEventListener("pointerup", this.up);
-    target.addEventListener("pointercancel", this.up);
-    target.addEventListener("lostpointercapture", this.up);
-    target.addEventListener("wheel", this.scroll, { passive: false });
-    target.addEventListener("blur", this.clear);
-    target.ownerDocument.defaultView?.addEventListener("blur", this.clear);
-    target.ownerDocument.addEventListener("visibilitychange", this.visibility);
+    this.scope = new InputScope(target, this.clear);
+    this.scope.listen("pointerdown", this.down);
+    this.scope.listen("pointermove", this.move);
+    this.scope.listen("pointerup", this.up);
+    this.scope.listen("pointercancel", this.up);
+    this.scope.listen("lostpointercapture", this.up);
+    this.scope.listen("wheel", this.scroll, { passive: false });
   }
   get dragging(): boolean {
     return this.pointer !== -1;
@@ -62,9 +62,7 @@ export class PointerInput {
     this.wheel += Math.max(-1000, Math.min(1000, event.deltaY * units));
     event.preventDefault();
   };
-  private readonly visibility = (): void => {
-    if (this.target.ownerDocument.visibilityState === "hidden") this.clear();
-  };
+
   /** out[0..2] = horizontal drag, vertical drag, wheel in CSS pixels. Caller owns storage. */
   consume(out: Float32Array): void {
     if (out.length < 3) throw new Error("Pointer output needs three floats");
@@ -79,21 +77,7 @@ export class PointerInput {
   };
   dispose(): void {
     this.clear();
-    this.target.removeEventListener("pointerdown", this.down);
-    this.target.removeEventListener("pointermove", this.move);
-    this.target.removeEventListener("pointerup", this.up);
-    this.target.removeEventListener("pointercancel", this.up);
-    this.target.removeEventListener("lostpointercapture", this.up);
-    this.target.removeEventListener("wheel", this.scroll);
-    this.target.removeEventListener("blur", this.clear);
-    this.target.ownerDocument.defaultView?.removeEventListener(
-      "blur",
-      this.clear,
-    );
-    this.target.ownerDocument.removeEventListener(
-      "visibilitychange",
-      this.visibility,
-    );
+    this.scope.dispose();
     this.target.style.touchAction = this.previousTouchAction;
   }
 }

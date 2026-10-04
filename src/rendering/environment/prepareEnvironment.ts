@@ -1,3 +1,4 @@
+import type { PreparedEnvironment } from "./EnvironmentWorkerProtocol";
 import {
   decodeEnvironmentArchive,
   isEnvironmentArchive,
@@ -12,7 +13,7 @@ import { decodeEnvironmentPanorama } from "./decodeEnvironmentPanorama";
 export async function prepareEnvironment(
   bytes: Uint8Array,
   options: EnvironmentBakeOptions = {},
-) {
+): Promise<PreparedEnvironment> {
   if (isEnvironmentArchive(bytes))
     return { data: decodeEnvironmentArchive(bytes), precomputed: true };
   const panorama = await decodeEnvironmentPanorama(bytes);

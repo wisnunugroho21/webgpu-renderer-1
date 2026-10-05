@@ -3,11 +3,21 @@ import type { GPUContext } from "../../gpu/GPUContext";
 import type { Resources } from "../../gpu/Resources";
 import type { Camera } from "../Camera";
 import type { ParticleSystem } from "../../particles/ParticleSystem";
-import {
+import * as particleLayout from "../../particles/ParticleLayout";
+import { createParticleResources } from "./createParticleResources";
+
+// Capture immutable ABI constants once, keeping imported-value access outside tight loops.
+const {
   PARTICLE_WORDS,
   PARTICLE_BYTES,
-} from "../../particles/ParticleOptions";
-import shader from "../../shaders/particles.wgsl?raw";
+  PARTICLE_BIRTH,
+  PARTICLE_DRAG,
+  PARTICLE_VELOCITY,
+  PARTICLE_GRAVITY,
+  PARTICLE_BLEND,
+  PARTICLE_FRAME_WORDS,
+  PARTICLE_FRAME_BYTES,
+} = particleLayout;
 
 /** GPU owner for a persistent particle snapshot; four retained pipelines cover alpha/additive and direct/HDR targets. */
 export class ParticleRenderer {
@@ -20,7 +30,7 @@ export class ParticleRenderer {
   private group?: GPUBindGroup;
   private direct: GPURenderPipeline[] = [];
   private hdr: GPURenderPipeline[] = [];
-  private readonly frame = new Float32Array(28);
+  private readonly frame = new Float32Array(PARTICLE_FRAME_WORDS);
   private readonly order: Uint32Array;
   private readonly previousOrder: Uint32Array;
   private readonly depths: Float32Array;
@@ -45,99 +55,25 @@ export class ParticleRenderer {
   /** Prepare shared storage, immutable bindings and all bounded variants once on this device. */
   private prepare(): void {
     if (this.buffer || this.gpu.lost || this.gpu.disposed) return;
-    const { device } = this.gpu;
-    const module = this.resources.shaders.get(shader, "Analytic particles");
-    const layout = device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "read-only-storage", minBindingSize: PARTICLE_BYTES },
-        },
-        {
-          binding: 1,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "read-only-storage", minBindingSize: 4 },
-        },
-        {
-          binding: 2,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: { type: "uniform", minBindingSize: 112 },
-        },
-      ],
-    });
-    const pipelineLayout = device.createPipelineLayout({
-      bindGroupLayouts: [layout],
-    });
-    for (const format of [this.gpu.renderFormat, "rgba16float"] as const) {
-      const pipelines =
-        format === this.gpu.renderFormat ? this.direct : this.hdr;
-      for (let additive = 0; additive < 2; additive++)
-        pipelines.push(
-          this.resources.pipelines.get({
-            label: "Particle billboards",
-            layout: pipelineLayout,
-            vertex: { module, entryPoint: "vs" },
-            fragment: {
-              module,
-              entryPoint: "fs",
-              targets: [
-                {
-                  format,
-                  blend: {
-                    color: {
-                      srcFactor: "one",
-                      dstFactor: additive ? "one" : "one-minus-src-alpha",
-                      operation: "add",
-                    },
-                    alpha: {
-                      srcFactor: additive ? "zero" : "one",
-                      dstFactor: additive ? "one" : "one-minus-src-alpha",
-                      operation: "add",
-                    },
-                  },
-                },
-              ],
-            },
-            primitive: { topology: "triangle-list", cullMode: "none" },
-            depthStencil: {
-              format: "depth24plus",
-              depthWriteEnabled: false,
-              depthCompare: "less-equal",
-            },
-          }),
-        );
-    }
-    this.buffer = this.resources.buffers.create({
-      label: "Shared particle records",
-      size: this.system.records.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
-    this.orderBuffer = this.resources.buffers.create({
-      label: "Shared particle order",
-      size: this.order.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
-    this.frameBuffer = this.resources.buffers.create({
-      label: "Particle camera and clock",
-      size: 112,
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.group = device.createBindGroup({
-      layout,
-      entries: [
-        { binding: 0, resource: { buffer: this.buffer } },
-        { binding: 1, resource: { buffer: this.orderBuffer } },
-        { binding: 2, resource: { buffer: this.frameBuffer } },
-      ],
-    });
+    const prepared = createParticleResources(
+      this.gpu,
+      this.resources,
+      this.system.records.byteLength,
+      this.order.byteLength,
+    );
+    this.buffer = prepared.buffer;
+    this.orderBuffer = prepared.orderBuffer;
+    this.frameBuffer = prepared.frameBuffer;
+    this.group = prepared.group;
+    this.direct = prepared.direct;
+    this.hdr = prepared.hdr;
   }
   /** Compute the same ballistic/drag center as WGSL to sort alpha billboards, without simulating vertex data. */
   private depth(index: number, view: Float32Array): number {
     const r = this.system.records,
       o = index * PARTICLE_WORDS;
-    const age = Math.max(0, this.system.time - r[o + 3]!);
-    const drag = r[o + 11]!;
+    const age = Math.max(0, this.system.time - r[o + PARTICLE_BIRTH]!);
+    const drag = r[o + PARTICLE_DRAG]!;
     const integral = drag > 0.0001 ? (1 - Math.exp(-drag * age)) / drag : age;
     const acceleration =
       drag > 0.0001 ? (age - integral) / drag : 0.5 * age * age;
@@ -146,8 +82,8 @@ export class ParticleRenderer {
       z +=
         view[axis * 4 + 2]! *
         (r[o + axis]! +
-          r[o + 4 + axis]! * integral +
-          r[o + 8 + axis]! * acceleration);
+          r[o + PARTICLE_VELOCITY + axis]! * integral +
+          r[o + PARTICLE_GRAVITY + axis]! * acceleration);
     return -z;
   }
   /** Reuse spawn records, upload changed ordering and draw at most two instanced billboard groups. */
@@ -181,18 +117,19 @@ export class ParticleRenderer {
     }
     let alphaCount = 0;
     for (let i = 0; i < system.count; i++)
-      if (system.records[i * PARTICLE_WORDS + 25] === 0) {
+      if (system.records[i * PARTICLE_WORDS + PARTICLE_BLEND] === 0) {
         this.depths[i] = this.depth(i, camera.view);
         this.order[alphaCount++] = i;
       }
     this.depthSorter.sort(this.order, alphaCount);
     let end = alphaCount;
     for (let i = 0; i < system.count; i++)
-      if (system.records[i * PARTICLE_WORDS + 25] === 1) this.order[end++] = i;
+      if (system.records[i * PARTICLE_WORDS + PARTICLE_BLEND] === 1)
+        this.order[end++] = i;
     let changed = this.previousCount !== end;
     for (let i = 0; i < end && !changed; i++)
       changed = this.order[i] !== this.previousOrder[i];
-    this.uploadBytes = this.recordUploadBytes + 112;
+    this.uploadBytes = this.recordUploadBytes + PARTICLE_FRAME_BYTES;
     if (changed) {
       this.gpu.queue.writeBuffer(
         this.orderBuffer!,

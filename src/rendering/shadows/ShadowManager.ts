@@ -1,3 +1,4 @@
+import { createShadowResources } from "./createShadowResources";
 import { GPUProfiler, GPUPass } from "../../profiling/GPUProfiler";
 import { ShadowSceneCache } from "./ShadowSceneCache";
 import { cascadeSplit } from "./CascadeSplits";
@@ -15,12 +16,6 @@ import { RenderQueue } from "../RenderQueue";
 import { RenderSorter } from "../RenderSorter";
 import { InstanceManager } from "../InstanceManager";
 import { ShadowCamera } from "./ShadowCamera";
-import frame from "../../shaders/frame.wgsl?raw";
-import geometry from "../../shaders/geometry.wgsl?raw";
-import common from "../../shaders/common.wgsl?raw";
-import morph from "../../shaders/morphing.wgsl?raw";
-import skin from "../../shaders/skinning.wgsl?raw";
-import shader from "../../shaders/shadow-pass.wgsl?raw";
 /** Cold fixed resources, compact numeric shadow metadata, shared caster instance pool. */
 export class ShadowManager {
   readonly resolution = 1024;
@@ -92,155 +87,27 @@ export class ShadowManager {
     this.visible = new Uint8Array(world.capacity);
     this.queue = new RenderQueue(world.capacity);
     this.instances = new InstanceManager(world.capacity);
-    this.texture = resources.textures.create({
-      label: "Directional shadow array",
-      size: [this.resolution, this.resolution, this.capacity],
-      format: "depth32float",
-      usage:
-        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+    const prepared = createShadowResources({
+      device,
+      resources,
+      dynamic,
+      world,
+      bindings,
+      textures,
+      vertexBuffers,
+      resolution: this.resolution,
+      capacity: this.capacity,
+      dataBytes: this.data.byteLength,
     });
-    this.view = this.texture.createView({ dimension: "2d-array" });
-    this.views = Array.from({ length: this.capacity }, (_, layer) =>
-      /** Delegates this operation to this.texture.createView. */ this.texture.createView(
-        {
-          dimension: "2d",
-          baseArrayLayer: layer,
-          arrayLayerCount: 1,
-        },
-      ),
-    );
-    this.sampler = resources.samplers.get({
-      compare: "less-equal",
-      magFilter: "linear",
-      minFilter: "linear",
-    });
-    this.buffer = resources.buffers.create({
-      label: "Shared shadow matrices",
-      size: this.data.byteLength,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
-    // Exclude the sampled shadow texture from depth-pass groups to avoid feedback hazards.
-    const layout = device.createBindGroupLayout({
-      entries: Array.from(
-        { length: 9 },
-        (
-          _,
-          binding,
-        ) => /** Builds a record containing binding, visibility, buffer. */ ({
-          binding,
-          visibility:
-            binding === 2 ? GPUShaderStage.FRAGMENT : GPUShaderStage.VERTEX,
-          buffer: {
-            type:
-              binding === 0
-                ? ("uniform" as const)
-                : ("read-only-storage" as const),
-            minBindingSize:
-              binding === 0
-                ? 192
-                : binding === 2
-                  ? 80
-                  : binding === 3
-                    ? 48
-                    : binding === 5
-                      ? 4
-                      : binding >= 6
-                        ? 16
-                        : 64,
-            hasDynamicOffset: binding === 3,
-          },
-        }),
-      ),
-    });
-    this.groups = dynamic.buffers.map((buffer) =>
-      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
-        {
-          layout,
-          entries: Array.from(
-            { length: 9 },
-            (
-              _,
-              binding,
-            ) => /** Builds a record containing binding, resource. */ ({
-              binding,
-              resource:
-                binding === 0
-                  ? { buffer, offset: 0, size: 192 }
-                  : binding === 1
-                    ? {
-                        buffer,
-                        offset: dynamic.alignment,
-                        size: world.capacity * 64,
-                      }
-                    : binding === 3
-                      ? { buffer, offset: 0, size: world.capacity * 48 }
-                      : { buffer: bindings[binding]! },
-            }),
-          ),
-        },
-      ),
-    );
-    const passLayout = device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.VERTEX,
-          buffer: {
-            type: "uniform",
-            hasDynamicOffset: true,
-            minBindingSize: 64,
-          },
-        },
-      ],
-    });
-    this.passGroups = dynamic.buffers.map((buffer) =>
-      /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
-        {
-          layout: passLayout,
-          entries: [{ binding: 0, resource: { buffer, size: 64 } }],
-        },
-      ),
-    );
-    const module = resources.shaders.get(
-      [frame, geometry, common, morph, skin, shader].join("\n"),
-      "Shared deformed shadow shader",
-    );
-    const pipelineLayout = device.createPipelineLayout({
-      bindGroupLayouts: [layout, textures.layout, passLayout],
-    });
-    this.descriptors = Array.from(
-      { length: 6 },
-      (
-        _,
-        index,
-      ) => /** Builds a record containing label, layout, vertex, fragment, primitive, depth stencil. */ ({
-        label: "Shadow depth",
-        layout: pipelineLayout,
-        vertex: { module, entryPoint: "shadowVS", buffers: vertexBuffers },
-        fragment: { module, entryPoint: "shadowFS", targets: [] },
-        primitive: {
-          topology:
-            index % 3 === 0
-              ? "triangle-list"
-              : index % 3 === 1
-                ? "line-list"
-                : "point-list",
-          cullMode: index % 3 !== 0 || index >= 3 ? "none" : "back",
-        },
-        depthStencil: {
-          format: "depth32float",
-          depthCompare: "less",
-          depthWriteEnabled: true,
-          depthBias: index % 3 === 0 ? 2 : 0,
-          depthBiasSlopeScale: index % 3 === 0 ? 2 : 0,
-        },
-      }),
-    );
-    this.pipelines = this.descriptors.map((descriptor) =>
-      /** Returns the keyed entry from resources pipelines. */ resources.pipelines.get(
-        descriptor,
-      ),
-    );
+    this.texture = prepared.texture;
+    this.view = prepared.view;
+    this.views = prepared.views;
+    this.sampler = prepared.sampler;
+    this.buffer = prepared.buffer;
+    this.groups = prepared.groups;
+    this.passGroups = prepared.passGroups;
+    this.descriptors = prepared.descriptors;
+    this.pipelines = prepared.pipelines;
   }
   /** Selects directional cascades/casters, compares cached scene state and packs changed shadow parameters. */
   prepare(

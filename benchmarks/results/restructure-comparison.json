@@ -1,0 +1,13 @@
+{
+  "baselineCommit": "70453f2",
+  "comparedLeafValues": 2743,
+  "comparedSnapshots": 86,
+  "distinctSnapshotFields": 75,
+  "excludedFields": [
+    "assetPreparationMs",
+    "cpuMedianMs",
+    "environment",
+    "gpuPassMedianMs"
+  ],
+  "differences": []
+}

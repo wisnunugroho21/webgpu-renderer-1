@@ -113,3 +113,9 @@ pnpm run validate
 ```
 
 The browser gate checks procedural coverage, linear colors, alpha ordering/camera movement, additive blending, depth, GPU motion/fades, disabled resource behavior, HDR/bloom/FXAA, resize, device recovery, demo controls, warm resource reuse and teardown. Diagnostic image readbacks/completion waits are outside ordinary rendering. See [benchmarks/PARTICLES_REPORT.md](benchmarks/PARTICLES_REPORT.md) for measured workloads and limits.
+
+## Maintaining the implementation
+
+`src/particles/ParticleLayout.ts` names every spawn-field word offset and the padded frame-uniform size. Its seven vec4 rows match `src/shaders/particles.wgsl`. The spawn writer and alpha-depth calculation capture these immutable scalar constants once at module initialization so hot loops avoid repeated imported-value access. Existing size exports through ParticleOptions remain compatible.
+
+`src/rendering/particles/createParticleResources.ts` owns cold GPU construction at enable/recovery boundaries. ParticleRenderer keeps lifetime-owner attachment, analytic ordering, dirty uploads, draw grouping and counters. Resources retains destruction ownership. See [architecture](ARCHITECTURE.md) and [restructuring evidence](benchmarks/RESTRUCTURE_REPORT.md) for the maintenance boundaries.

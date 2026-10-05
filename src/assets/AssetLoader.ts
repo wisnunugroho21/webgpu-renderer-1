@@ -1,37 +1,17 @@
-export type AssetState =
-  | "Unloaded"
-  | "Loading"
-  | "Decoded"
-  | "Uploading"
-  | "Ready"
-  | "Failed"
-  | "Cancelled"
-  | "Unloading";
-export interface AssetRecord<Decoded, Uploaded> {
-  readonly url: string;
-  state: AssetState;
-  readonly history: AssetState[];
-  decoded?: Decoded;
-  uploaded?: Uploaded;
-  error?: unknown;
-  pending?: Promise<Uploaded>;
-  readonly timings: { networkMs: number; decodeMs: number; uploadMs: number };
-  references: number;
-  decodedBytes: number;
-  lastUsed: number;
-}
-export interface AssetCacheBudget {
-  maxRecords: number;
-  maxDecodedBytes: number;
-}
-export interface AssetLoaderOptions<Decoded, Uploaded> {
-  budget?: Partial<AssetCacheBudget>;
-  decodedBytes?: (value: Decoded) => number;
-  /** Detach consumers synchronously before the release callback fences GPU work. */
-  beforeUnload?: (uploaded: Uploaded, decoded: Decoded, url: string) => void;
-  release?: (uploaded: Uploaded) => Promise<void>;
-  canEvict?: (record: AssetRecord<Decoded, Uploaded>) => boolean;
-}
+import type {
+  AssetState,
+  AssetRecord,
+  AssetCacheBudget,
+  AssetLoaderOptions,
+} from "./AssetLoaderTypes";
+// Preserve existing type imports through the public loader entry point.
+export type {
+  AssetState,
+  AssetRecord,
+  AssetCacheBudget,
+  AssetLoaderOptions,
+} from "./AssetLoaderTypes";
+
 /** Cold asset work only. Cancellation applies to the deduplicated URL operation.
  * Budgets evict least-recently-used unretained records; live/pending assets may exceed them. */
 export class AssetLoader<Network, Decoded, Uploaded> {
@@ -79,7 +59,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     )
       throw new Error("Invalid asset cache budget");
   }
-  /** Applies record.history.shift, record.history.push to set. */
+  /** Publish a transaction stage and retain the most recent 64 transitions for diagnostics. */
   private set(record: AssetRecord<Decoded, Uploaded>, state: AssetState): void {
     record.state = state;
     if (record.history.length === 64) record.history.shift();
@@ -112,7 +92,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     record.references++;
     let released = false;
     return () => {
-      // Updates record references, released for this callback.
+      // Release this consumer once; repeated cleanup must not decrement other leases.
 
       if (!released) {
         record.references = Math.max(0, record.references - 1);
@@ -231,7 +211,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
         // Waits for pending load settlement, releases uploaded ownership and removes the cache record.
 
         await record.pending?.catch(() => {
-          // Intentionally performs no work at this optional callback boundary.
+          // Unload still releases ownership after a failed or cancelled load settles.
         });
         if (record.uploaded !== undefined)
           await this.options.release?.(record.uploaded);
@@ -254,8 +234,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     if (this.records.size <= this.budget.maxRecords) return;
     const candidates = Array.from(this.records.values()).sort(
       (a, b) =>
-        /** Computes the a.lastUsed - b.lastUsed result. */ a.lastUsed -
-        b.lastUsed,
+        /** Visit least-recently-used records first. */ a.lastUsed - b.lastUsed,
     );
     for (const record of candidates) {
       if (this.records.size <= this.budget.maxRecords) break;
@@ -288,8 +267,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     let evicted = 0;
     const candidates = Array.from(this.records.values()).sort(
       (a, b) =>
-        /** Computes the a.lastUsed - b.lastUsed result. */ a.lastUsed -
-        b.lastUsed,
+        /** Visit least-recently-used records first. */ a.lastUsed - b.lastUsed,
     );
     for (const record of candidates) {
       if (

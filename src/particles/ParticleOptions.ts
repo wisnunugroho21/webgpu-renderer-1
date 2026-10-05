@@ -24,9 +24,8 @@ export interface ParticleEmitterOptions {
   rate?: number;
   seed?: number;
 }
-/** Seven vec4 records match particles.wgsl exactly; sizes are billboard diameters in world units. */
-export const PARTICLE_WORDS = 28;
-export const PARTICLE_BYTES = PARTICLE_WORDS * 4;
+// Compatibility exports; record consumers import the ABI directly from ParticleLayout.
+export { PARTICLE_WORDS, PARTICLE_BYTES } from "./ParticleLayout";
 export interface ParticleSettings {
   position: number[];
   positionSpread: number[];

@@ -1,12 +1,33 @@
+import * as particleLayout from "./ParticleLayout";
 import { ParticleEmitter } from "./ParticleEmitter";
 import {
-  PARTICLE_WORDS,
   particleSettings,
   type ParticleEmitterOptions,
   type ParticleSettings,
   type ParticleVector,
 } from "./ParticleOptions";
 import { particleEffectOptions, type ParticleEffect } from "./ParticleEffects";
+// Capture immutable ABI constants once, keeping imported-value access outside tight loops.
+const {
+  PARTICLE_WORDS,
+  PARTICLE_ORIGIN,
+  PARTICLE_BIRTH,
+  PARTICLE_VELOCITY,
+  PARTICLE_LIFETIME,
+  PARTICLE_GRAVITY,
+  PARTICLE_DRAG,
+  PARTICLE_START_COLOR,
+  PARTICLE_END_COLOR,
+  PARTICLE_START_SIZE,
+  PARTICLE_END_SIZE,
+  PARTICLE_ROTATION,
+  PARTICLE_SPIN,
+  PARTICLE_SHAPE,
+  PARTICLE_BLEND,
+  PARTICLE_FADE_IN,
+  PARTICLE_FADE_OUT,
+} = particleLayout;
+
 /** Fixed-capacity CPU provenance for GPU analytic billboards. No ECS traversal, per-particle objects or readback. */
 export class ParticleSystem {
   readonly records: Float32Array;
@@ -112,29 +133,29 @@ export class ParticleSystem {
     for (let i = 0; i < accepted; i++) {
       const o = this.liveCount++ * PARTICLE_WORDS;
       for (let axis = 0; axis < 3; axis++) {
-        this.records[o + axis] =
+        this.records[o + PARTICLE_ORIGIN + axis] =
           settings.position[axis]! +
           (this.random(settings) * 2 - 1) * settings.positionSpread[axis]!;
-        this.records[o + 4 + axis] =
+        this.records[o + PARTICLE_VELOCITY + axis] =
           settings.velocity[axis]! +
           (this.random(settings) * 2 - 1) * settings.velocitySpread[axis]!;
-        this.records[o + 8 + axis] = settings.gravity[axis]!;
+        this.records[o + PARTICLE_GRAVITY + axis] = settings.gravity[axis]!;
       }
-      this.records[o + 3] = this.time;
-      this.records[o + 7] =
+      this.records[o + PARTICLE_BIRTH] = this.time;
+      this.records[o + PARTICLE_LIFETIME] =
         settings.lifetime[0]! +
         this.random(settings) * (settings.lifetime[1]! - settings.lifetime[0]!);
-      this.records[o + 11] = settings.drag;
-      this.records.set(settings.startColor, o + 12);
-      this.records.set(settings.endColor, o + 16);
-      this.records[o + 20] = settings.startSize;
-      this.records[o + 21] = settings.endSize;
-      this.records[o + 22] = settings.rotation;
-      this.records[o + 23] = settings.angularVelocity;
-      this.records[o + 24] = settings.shape;
-      this.records[o + 25] = settings.blend;
-      this.records[o + 26] = settings.fadeIn;
-      this.records[o + 27] = settings.fadeOut;
+      this.records[o + PARTICLE_DRAG] = settings.drag;
+      this.records.set(settings.startColor, o + PARTICLE_START_COLOR);
+      this.records.set(settings.endColor, o + PARTICLE_END_COLOR);
+      this.records[o + PARTICLE_START_SIZE] = settings.startSize;
+      this.records[o + PARTICLE_END_SIZE] = settings.endSize;
+      this.records[o + PARTICLE_ROTATION] = settings.rotation;
+      this.records[o + PARTICLE_SPIN] = settings.angularVelocity;
+      this.records[o + PARTICLE_SHAPE] = settings.shape;
+      this.records[o + PARTICLE_BLEND] = settings.blend;
+      this.records[o + PARTICLE_FADE_IN] = settings.fadeIn;
+      this.records[o + PARTICLE_FADE_OUT] = settings.fadeOut;
     }
     if (accepted) this.markDirty(start, this.count);
     return accepted;
@@ -153,7 +174,10 @@ export class ParticleSystem {
     this.clock += delta;
     for (let i = 0; i < this.count;) {
       const o = i * PARTICLE_WORDS;
-      if (this.time - this.records[o + 3]! >= this.records[o + 7]!) {
+      if (
+        this.time - this.records[o + PARTICLE_BIRTH]! >=
+        this.records[o + PARTICLE_LIFETIME]!
+      ) {
         const last = --this.liveCount * PARTICLE_WORDS;
         if (o !== last) {
           this.records.copyWithin(o, last, last + PARTICLE_WORDS);

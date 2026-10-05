@@ -1,3 +1,4 @@
+import { copyRendererSettings } from "./copyRendererSettings";
 import { ParticleSystem } from "../particles/ParticleSystem";
 import { ParticleRenderer } from "./particles/ParticleRenderer";
 import { createRendererResources } from "./createRendererResources";
@@ -343,39 +344,7 @@ export class Renderer {
   /** Cold device recovery: preserve CPU controls, never transfer old-device GPU objects. */
   restoreSettings(previous: Renderer): void {
     this.frameNumber = previous.frameNumber;
-    this.camera.copyFrom(previous.camera);
-    Object.assign(this.clearColor, previous.clearColor);
-    this.submissionMode = previous.submissionMode;
-    this.cullingEnabled = previous.cullingEnabled;
-    this.visibilityMode = previous.visibilityMode;
-    this.lodGroups.entries.push(...previous.lodGroups.entries);
-    this.clusters.mode = previous.clusters.mode;
-    this.shadows.enabled = previous.shadows.enabled;
-    this.shadows.cacheEnabled = previous.shadows.cacheEnabled;
-    this.shadows.cullingEnabled = previous.shadows.cullingEnabled;
-    this.shadows.cascades = previous.shadows.cascades;
-    this.shadows.shadowDistance = previous.shadows.shadowDistance;
-    this.depthPrepass.enabled = previous.depthPrepass.enabled;
-    this.hiz.enabled = previous.hiz.enabled;
-    this.hiz.debugEnabled = previous.hiz.debugEnabled;
-    this.hiz.debugMip = previous.hiz.debugMip;
-    this.gpuFrustum.enabled = previous.gpuFrustum.enabled;
-    this.gpuOcclusion.enabled = previous.gpuOcclusion.enabled;
-    this.gpuCompaction.enabled = previous.gpuCompaction.enabled;
-    this.gpuLOD.enabled = previous.gpuLOD.enabled;
-    this.temporal.enabled = previous.temporal.enabled;
-    this.geometryOptimization.enabled = previous.geometryOptimization.enabled;
-    this.gpuProfiler.enabled = previous.gpuProfiler.enabled;
-    this.skybox.enabled = previous.skybox.enabled;
-    this.hdr.exposure = previous.hdr.exposure;
-    this.hdr.toneMapping = previous.hdr.toneMapping;
-    this.hdr.bloomThreshold = previous.hdr.bloomThreshold;
-    this.hdr.bloomStrength = previous.hdr.bloomStrength;
-    this.hdr.exposureKey = previous.hdr.exposureKey;
-    this.hdr.adaptationSpeed = previous.hdr.adaptationSpeed;
-    this.hdr.autoExposure = previous.hdr.autoExposure;
-    this.antialiasing = previous.antialiasing;
-    this.hdr.enabled = previous.hdr.enabled;
+    copyRendererSettings(this, previous);
   }
   /** Rebinds resident streaming ownership to recovered GPU owners while retaining its CPU records. */
   restoreStreaming(
@@ -426,6 +395,14 @@ export class Renderer {
     this.uploadFrameState(indirect);
     this.streaming.touch(this.frameNumber);
     this.graph.execute(encoder, view);
+    this.recordParticleStats();
+    this.gpuProfiler.resolveFrame(encoder);
+    this.profiler.end(CPUStage.encoding);
+    this.markGPUCountsUnavailable(indirect);
+  }
+
+  /** Combine particle owner counters with mesh totals after graph execution. */
+  private recordParticleStats(): void {
     this.stats.particleCount = this.particles.enabled
       ? this.particles.count
       : 0;
@@ -438,8 +415,10 @@ export class Renderer {
     this.stats.drawCalls += this.particleRenderer.drawCalls;
     this.stats.pipelineSwitches += this.particleRenderer.drawCalls;
     this.stats.triangles += this.stats.particleCount * 2;
-    this.gpuProfiler.resolveFrame(encoder);
-    this.profiler.end(CPUStage.encoding);
+  }
+
+  /** GPU-selected instance/triangle counts are unknown without a diagnostic readback. */
+  private markGPUCountsUnavailable(indirect: boolean): void {
     if (this.geometryOptimization.count)
       this.stats.triangles = this.stats.instances = -1;
     if (indirect) {

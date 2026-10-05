@@ -16,6 +16,8 @@ Intervals refer to the **compiled schedule**, rather than pass registration orde
 
 The renderer graph's existing buffers, cached shadow maps, depth/Hi-Z, swapchain and scene-color versions remain explicitly owned by their established managers. Lifetime diagnostics include their logical versions, but these resources are not automatically reassigned. Cached maps, temporal history, external outputs needed across frames and persistent exposure state must stay externally owned/imported. Only textures explicitly declared transient participate in graph allocation. Existing bloom mip chains and differently sized/formatted luminance levels are not assumed to be mutually aliasable.
 
+The legacy `particles` stage now performs unified mesh/billboard/ribbon alpha composition after `color` establishes opaque depth. Its declared inputs include shared geometry, material, deformation, lighting and indirect draw resources. The output remains `particleSceneColor`, consumed by post-processing. All transparency uses one read-only-depth pass; the existing persistent depth target is not pooled or version-aliased.
+
 ## Declare and prepare graph targets
 
 Use a separate graph for custom passes, before compilation:

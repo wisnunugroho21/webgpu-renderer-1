@@ -14,6 +14,7 @@ const checks = [
   "validate:materials",
   "validate:authored",
   "validate:particles",
+  "validate:transparency",
   "validate:memory",
   "validate:hdr",
   "validate:quality",

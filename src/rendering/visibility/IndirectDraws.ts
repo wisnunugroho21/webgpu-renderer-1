@@ -164,6 +164,7 @@ export class IndirectDraws {
           mesh = meshes.get(meshId),
           o = batch * 8;
         this.batches.firstInstance[batch] = firstInstance;
+        this.batches.queueFirst[batch] = first;
         this.batches.instanceCount[batch] = count;
         this.batches.mesh[batch] = meshId;
         this.batches.material[batch] = material;

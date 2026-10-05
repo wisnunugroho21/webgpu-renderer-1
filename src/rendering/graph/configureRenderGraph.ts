@@ -81,7 +81,21 @@ export function configureRenderGraph(
   });
   graph.add({
     name: "particles",
-    reads: ["sceneColor", "mainDepth", "frame"],
+    // Legacy stage name is retained; this stage now draws transparent meshes and effects together.
+    reads: [
+      "sceneColor",
+      "mainDepth",
+      "frame",
+      "geometry",
+      "materials",
+      "instances",
+      "deformation",
+      "lights",
+      "drawArguments",
+      "shadowDepth",
+      "clusterMetadata",
+      "clusterIndices",
+    ],
     writes: ["particleSceneColor"],
     execute:
       callbacks.particles ??

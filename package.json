@@ -31,6 +31,7 @@
     "validate:particles": "node scripts/validate-particles.mjs",
     "validate:memory": "node scripts/validate-memory.mjs",
     "validate:authored": "node scripts/validate-authored-rendering.mjs",
+    "validate:transparency": "node scripts/validate-transparency.mjs",
     "validate:graph": "node scripts/validate-render-graph.mjs"
   },
   "devDependencies": {

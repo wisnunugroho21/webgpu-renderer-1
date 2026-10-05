@@ -1,3 +1,6 @@
+import { UnifiedTransparency } from "../UnifiedTransparency";
+import { RenderQueue } from "../RenderQueue";
+import { BatchBuilder } from "../BatchBuilder";
 import { PARTICLE_CURVE_WORDS } from "../../particles/ParticleCurves";
 import { ParticleDepthSorter } from "./ParticleDepthSorter";
 import type { GPUContext } from "../../gpu/GPUContext";
@@ -25,6 +28,9 @@ const {
 
 /** GPU owner for a persistent particle snapshot; bounded retained billboard/ribbon pipelines cover alpha/additive and direct/HDR targets. */
 export class ParticleRenderer {
+  readonly transparency: UnifiedTransparency;
+  private readonly emptyQueue = new RenderQueue(0);
+  private readonly emptyBatches = new BatchBuilder(0);
   drawCalls = 0;
   uploadBytes = 0;
   recordUploadBytes = 0;
@@ -33,13 +39,16 @@ export class ParticleRenderer {
   private trailOrderBuffer?: GPUBuffer;
   private trailGroup?: GPUBindGroup;
   private trailPipelines?: ReturnType<typeof createParticlePipelines>;
-  private readonly trailOrder: Uint32Array;
+  readonly trailOrder: Uint32Array;
   private readonly previousTrailOrder: Uint32Array;
-  private readonly trailDepths: Float32Array;
+  readonly trailDepths: Float32Array;
   private readonly trailSorter: ParticleDepthSorter;
   private uploadedTrails = -1;
   private previousTrailCount = -1;
-  private trailAlphaCount = 0;
+  trailAlphaCount = 0;
+  alphaCount = 0;
+  billboardCount = 0;
+  ribbonCount = 0;
   private buffer?: GPUBuffer;
   private orderBuffer?: GPUBuffer;
   private frameBuffer?: GPUBuffer;
@@ -52,9 +61,9 @@ export class ParticleRenderer {
   private direct: GPURenderPipeline[] = [];
   private hdr: GPURenderPipeline[] = [];
   private readonly frame = new Float32Array(PARTICLE_FRAME_WORDS);
-  private readonly order: Uint32Array;
+  readonly order: Uint32Array;
   private readonly previousOrder: Uint32Array;
-  private readonly depths: Float32Array;
+  readonly depths: Float32Array;
   private readonly depthSorter: ParticleDepthSorter;
   private previousCount = -1;
   private uploaded = -1;
@@ -64,7 +73,11 @@ export class ParticleRenderer {
     private readonly gpu: GPUContext,
     private readonly resources: Resources,
     readonly system: ParticleSystem,
+    meshCapacity = 0,
   ) {
+    this.transparency = new UnifiedTransparency(
+      meshCapacity * 8 + system.capacity + system.trails.segmentCapacity,
+    );
     this.order = new Uint32Array(system.capacity);
     this.previousOrder = new Uint32Array(system.capacity);
     this.depths = new Float32Array(system.capacity);
@@ -197,20 +210,17 @@ export class ParticleRenderer {
           r[o + PARTICLE_GRAVITY + axis]! * acceleration);
     return -z;
   }
-  /** Encode onto already-rendered scene color with read-only depth; no submission or completion wait.
-   * Refresh dirty records, sort the alpha prefix, append additive indices and draw at most two billboard plus two ribbon groups.
-   * hdr selects the half-float scene target, including FXAA-only presentation. Empty/disabled pools reset counters and skip work. */
-  encode(
-    encoder: GPUCommandEncoder,
-    target: GPUTextureView,
-    depth: GPUTextureView,
-    camera: Camera,
-    hdr: boolean,
-  ): void {
+  /** Refresh shared records and sorted streams once before unified transparency submission. */
+  prepareFrame(camera: Camera): void {
     this.drawCalls =
       this.uploadBytes =
       this.recordUploadBytes =
       this.trailUploadBytes =
+        0;
+    this.alphaCount =
+      this.trailAlphaCount =
+      this.billboardCount =
+      this.ribbonCount =
         0;
     const system = this.system;
     if (!system.enabled || !this.buffer) return;
@@ -294,45 +304,81 @@ export class ParticleRenderer {
     this.frame[35] = atlas?.height ?? 1;
     this.gpu.queue.writeBuffer(this.frameBuffer!, 0, this.frame);
     this.uploadTrails(camera);
+    this.alphaCount = alphaCount;
+    this.billboardCount = end;
+    this.ribbonCount = system.trails.count;
+  }
+
+  /** Preserve standalone effect composition using the same merged alpha schedule as the renderer. */
+  encode(
+    encoder: GPUCommandEncoder,
+    target: GPUTextureView,
+    depth: GPUTextureView,
+    camera: Camera,
+    hdr: boolean,
+  ): void {
+    this.prepareFrame(camera);
+    if (!this.billboardCount && !this.ribbonCount) return;
+    this.transparency.build(this.emptyQueue, this.emptyBatches, this);
     const pass = encoder.beginRenderPass({
-      label: "Particles",
+      label: "Unified particle transparency",
       colorAttachments: [{ view: target, loadOp: "load", storeOp: "store" }],
       depthStencilAttachment: { view: depth, depthReadOnly: true },
     });
-    const pipelines = hdr ? this.hdr : this.direct;
-    pass.setBindGroup(0, this.group!);
-    if (alphaCount) {
-      pass.setPipeline(pipelines[0]!);
-      pass.draw(6, alphaCount);
-      this.drawCalls++;
+    for (let run = 0; run < this.transparency.count; run++) {
+      this.drawRange(
+        pass,
+        hdr,
+        this.transparency.kind[run] === 2,
+        this.transparency.first[run]!,
+        this.transparency.length[run]!,
+      );
     }
-    if (end > alphaCount) {
-      pass.setPipeline(pipelines[1]!);
-      pass.draw(6, end - alphaCount, 0, alphaCount);
-      this.drawCalls++;
-    }
-    if (system.trails.count && this.trailPipelines) {
-      const pipelines = hdr
-        ? this.trailPipelines.hdr
-        : this.trailPipelines.direct;
-      pass.setBindGroup(0, this.trailGroup!);
-      if (this.trailAlphaCount) {
-        pass.setPipeline(pipelines[0]!);
-        pass.draw(6, this.trailAlphaCount);
-        this.drawCalls++;
-      }
-      if (system.trails.count > this.trailAlphaCount) {
-        pass.setPipeline(pipelines[1]!);
-        pass.draw(
-          6,
-          system.trails.count - this.trailAlphaCount,
-          0,
-          this.trailAlphaCount,
-        );
-        this.drawCalls++;
-      }
-    }
+    this.drawAdditive(pass, hdr);
     pass.end();
+  }
+
+  /** Submit a contiguous sorted billboard/ribbon range using retained pipelines and bindings. */
+  drawRange(
+    pass: GPURenderPassEncoder,
+    hdr: boolean,
+    ribbon: boolean,
+    first: number,
+    count: number,
+    additive = false,
+  ): void {
+    if (!count) return;
+    const pipelines = ribbon
+      ? hdr
+        ? this.trailPipelines!.hdr
+        : this.trailPipelines!.direct
+      : hdr
+        ? this.hdr
+        : this.direct;
+    pass.setPipeline(pipelines[additive ? 1 : 0]!);
+    pass.setBindGroup(0, ribbon ? this.trailGroup! : this.group!);
+    pass.draw(6, count, 0, first);
+    this.drawCalls++;
+  }
+
+  /** Additive effects follow every alpha layer; their mutual order does not affect composition. */
+  drawAdditive(pass: GPURenderPassEncoder, hdr: boolean): void {
+    this.drawRange(
+      pass,
+      hdr,
+      false,
+      this.alphaCount,
+      this.billboardCount - this.alphaCount,
+      true,
+    );
+    this.drawRange(
+      pass,
+      hdr,
+      true,
+      this.trailAlphaCount,
+      this.ribbonCount - this.trailAlphaCount,
+      true,
+    );
   }
   /** Refresh only changed ribbon rows/order; point-age shading uses the already uploaded shared clock. */
   private uploadTrails(camera: Camera): void {

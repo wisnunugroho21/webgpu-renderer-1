@@ -7,6 +7,7 @@ import { RenderWorld } from "./RenderWorld";
 export class BatchBuilder {
   count = 0;
   readonly firstInstance: Uint32Array;
+  readonly queueFirst: Uint32Array;
   readonly lodGroup: Int32Array;
   readonly instanceCount: Uint32Array;
   readonly pipeline: Uint16Array;
@@ -16,6 +17,7 @@ export class BatchBuilder {
   constructor(capacity: number) {
     this.lodGroup = new Int32Array(capacity).fill(-1);
     this.firstInstance = new Uint32Array(capacity);
+    this.queueFirst = new Uint32Array(capacity);
     this.instanceCount = new Uint32Array(capacity);
     this.pipeline = new Uint16Array(capacity);
     this.material = new Uint32Array(capacity);
@@ -52,6 +54,7 @@ export class BatchBuilder {
         throw new Error("Batch capacity exceeded");
       const batch = this.count++;
       this.firstInstance[batch] = i;
+      this.queueFirst[batch] = i;
       this.instanceCount[batch] = 1;
       this.pipeline[batch] = pipeline;
       this.material[batch] = material;

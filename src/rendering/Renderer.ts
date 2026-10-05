@@ -1,3 +1,4 @@
+import type { UnifiedTransparency } from "./UnifiedTransparency";
 import { retainedMemory } from "../assets/retainedMemory";
 import { copyRendererSettings } from "./copyRendererSettings";
 import { ParticleSystem } from "../particles/ParticleSystem";
@@ -59,6 +60,7 @@ import { MaterialTextures } from "./materials/MaterialTextures";
 /** Snapshot-only frame coordinator. Pass owners prepare resources; encode reuses shared frame state. */
 export class Renderer {
   readonly particleRenderer: ParticleRenderer;
+  readonly transparency: UnifiedTransparency;
   readonly environment: EnvironmentLighting;
   readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
@@ -262,7 +264,9 @@ export class Renderer {
       gpu,
       this.resources,
       particles,
+      world.capacity,
     );
+    this.transparency = this.particleRenderer.transparency;
     this.configurePasses();
     this.resize();
   }
@@ -311,15 +315,30 @@ export class Renderer {
           this.colorInstanceOffset,
           this.clearColor,
         ),
-      /** Composite particles into linear scene color after geometry and before HDR effects. */
-      particles: (encoder, view) =>
-        this.particleRenderer.encode(
+      /** Merge all alpha streams after opaque depth is final, then composite additive effects. */
+      particles: (encoder, view) => {
+        this.particleRenderer.prepareFrame(this.camera);
+        this.transparency.build(
+          this.queue,
+          this.gpuDraws.enabled ? this.gpuDraws.batches : this.batches,
+          this.particleRenderer,
+        );
+        if (
+          !this.transparency.count &&
+          !this.particleRenderer.billboardCount &&
+          !this.particleRenderer.ribbonCount
+        )
+          return;
+        this.colorPass.encode(
           encoder,
-          this.hdr.sceneEnabled ? this.hdr.view! : view,
+          view,
           this.depthView!,
-          this.camera,
-          this.hdr.sceneEnabled,
-        ),
+          this.colorInstanceOffset,
+          this.clearColor,
+          this.transparency,
+          this.particleRenderer,
+        );
+      },
       /** Apply bloom/exposure to scene color after particle composition. */
       postProcessing: (encoder) => this.hdr.encodeEffects(encoder),
       /** Map/filter linear scene color into the final presentation attachment. */

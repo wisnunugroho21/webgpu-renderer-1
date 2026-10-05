@@ -1,3 +1,5 @@
+import type { UnifiedTransparency } from "../UnifiedTransparency";
+import type { ParticleRenderer } from "../particles/ParticleRenderer";
 import type { ColorResources } from "../pipelines/ColorResources";
 import type { MaterialManager } from "../materials/MaterialManager";
 import type { MaterialShaderDefinition } from "../materials/MaterialShaderRegistry";
@@ -5,6 +7,7 @@ import { CustomMaterialShaders } from "../materials/CustomMaterialShaders";
 import { MeshManager } from "../MeshManager";
 import {
   MATERIAL_PIPELINE_VARIANTS,
+  BLEND_PIPELINE_OFFSET,
   DEPTH_READ_ONLY_OFFSET,
   INDIRECT_VERTEX_OFFSET,
 } from "../pipelines/ColorPipelineLayout";
@@ -99,38 +102,45 @@ export class ColorPass {
       });
   }
 
-  /** Draws skybox and ordered batches into the direct/HDR target while caching pipeline, material and mesh bindings. */
+  /** Draw opaque/masked batches, or a shared alpha schedule with read-only depth and restored mesh state. */
   encode(
     encoder: GPUCommandEncoder,
     view: GPUTextureView,
     depthView: GPUTextureView,
     instanceOffset: number,
     clearColor: GPUColor,
+    schedule?: UnifiedTransparency,
+    particles?: ParticleRenderer,
   ): void {
     const scene = this.scene;
     const pass = encoder.beginRenderPass({
-      label: "Opaque cube",
-      timestampWrites: scene.gpuProfiler.writes(GPUPass.color),
+      label: schedule ? "Unified transparency" : "Opaque cube",
+      timestampWrites: scene.gpuProfiler.writes(
+        schedule ? GPUPass.transparency : GPUPass.color,
+      ),
       colorAttachments: [
         {
           view: this.hdr.sceneEnabled ? this.hdr.view! : view,
           clearValue: clearColor,
-          loadOp: "clear",
+          loadOp: schedule ? "load" : "clear",
           storeOp: "store",
         },
       ],
-      depthStencilAttachment: {
-        view: depthView,
-        depthClearValue: 1,
-        depthLoadOp: scene.depthPrepass.enabled ? "load" : "clear",
-        depthStoreOp: "store",
-      },
+      depthStencilAttachment: schedule
+        ? { view: depthView, depthReadOnly: true }
+        : {
+            view: depthView,
+            depthClearValue: 1,
+            depthLoadOp: scene.depthPrepass.enabled ? "load" : "clear",
+            depthStoreOp: "store",
+          },
     });
-    this.skybox.encode(
-      pass,
-      this.environment.group,
-      this.hdr.sceneEnabled ? "rgba16float" : scene.gpu.renderFormat,
-    );
+    if (!schedule)
+      this.skybox.encode(
+        pass,
+        this.environment.group,
+        this.hdr.sceneEnabled ? "rgba16float" : scene.gpu.renderFormat,
+      );
     const environment = this.environment.active;
     const colors = this.hdr.sceneEnabled
       ? environment
@@ -159,11 +169,39 @@ export class ColorPass {
     const batches = scene.gpuDraws.enabled
       ? scene.gpuDraws.batches
       : scene.batches;
-    for (let i = 0; i < batches.count; i++) {
+    for (
+      let run = 0;
+      run < (schedule ? schedule.count : batches.count);
+      run++
+    ) {
+      if (schedule && schedule.kind[run] !== 0) {
+        particles!.drawRange(
+          pass,
+          this.hdr.sceneEnabled,
+          schedule.kind[run] === 2,
+          schedule.first[run]!,
+          schedule.length[run]!,
+        );
+        // Effect pipelines replace group zero; restore every mesh binding after crossing a stream boundary.
+        previousFamily =
+          previousPipeline =
+          previousMaterial =
+          previousMesh =
+            -1;
+        continue;
+      }
+      const i = schedule ? schedule.batch[run]! : run;
+      if (
+        !schedule &&
+        batches.pipeline[i]! % MATERIAL_PIPELINE_VARIANTS >=
+          BLEND_PIPELINE_OFFSET
+      )
+        continue;
+      const slice = schedule ? schedule.first[run]! : 0;
       const mesh = batches.mesh[i]!,
         material = batches.material[i]!,
         pipeline = batches.pipeline[i]!,
-        count = batches.instanceCount[i]!;
+        count = schedule ? schedule.length[run]! : batches.instanceCount[i]!;
       const geometry = scene.meshes.get(mesh);
       const family = Math.floor(pipeline / MATERIAL_PIPELINE_VARIANTS);
       const color = family ? customFamilies[family]! : undefined;
@@ -174,6 +212,7 @@ export class ColorPass {
             frameGroups[scene.dynamic.frameSlot]!,
           [instanceOffset],
         );
+        if (environment) pass.setBindGroup(2, this.environment.group!);
         previousFamily = family;
       }
       if (pipeline !== previousPipeline) {
@@ -221,13 +260,14 @@ export class ColorPass {
           count,
           0,
           0,
-          batches.firstInstance[i]!,
+          batches.firstInstance[i]! + slice,
         );
       scene.stats.drawCalls++;
       scene.stats.instances += count;
       if (geometry.topology === 0)
         scene.stats.triangles += (geometry.indexCount / 3) * count;
     }
+    if (schedule) particles!.drawAdditive(pass, this.hdr.sceneEnabled);
     pass.end();
   }
 }

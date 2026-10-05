@@ -1,0 +1,456 @@
+{
+  "checks": [
+    {
+      "mode": "individual",
+      "prepass": false,
+      "hdr": false,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "individual",
+      "prepass": false,
+      "hdr": false,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "individual",
+      "prepass": false,
+      "hdr": true,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "individual",
+      "prepass": false,
+      "hdr": true,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "individual",
+      "prepass": true,
+      "hdr": false,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "individual",
+      "prepass": true,
+      "hdr": false,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "individual",
+      "prepass": true,
+      "hdr": true,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "individual",
+      "prepass": true,
+      "hdr": true,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": false,
+      "hdr": false,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": false,
+      "hdr": false,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": false,
+      "hdr": true,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": false,
+      "hdr": true,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": true,
+      "hdr": false,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": true,
+      "hdr": false,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": true,
+      "hdr": true,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "instanced",
+      "prepass": true,
+      "hdr": true,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": false,
+      "hdr": false,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": false,
+      "hdr": false,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": false,
+      "hdr": true,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": false,
+      "hdr": true,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": true,
+      "hdr": false,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": true,
+      "hdr": false,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": true,
+      "hdr": true,
+      "reverse": false,
+      "pixel": [
+        207,
+        71,
+        137,
+        255
+      ],
+      "kinds": [
+        2,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "mode": "gpu-indirect",
+      "prepass": true,
+      "hdr": true,
+      "reverse": true,
+      "pixel": [
+        152,
+        188,
+        99,
+        255
+      ],
+      "kinds": [
+        0,
+        1,
+        0,
+        2
+      ]
+    }
+  ],
+  "stress": {
+    "meshCount": 128,
+    "billboardCount": 128,
+    "ribbonCount": 127,
+    "runs": 383,
+    "drawCalls": 383,
+    "effectDrawCalls": 255,
+    "uploadBytes": 144,
+    "cpuMedianMs": 0.19999998807907104
+  },
+  "additivePixel": [
+    234,
+    140,
+    179,
+    255
+  ],
+  "cpuMedianMs": 0,
+  "gpuErrors": [],
+  "finalBuffers": 0,
+  "finalTextures": 0
+}

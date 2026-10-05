@@ -1,3 +1,4 @@
+import type { TargetLease } from "../../gpu/TransientTargetPool";
 import { createPresentationPipeline } from "./createPresentationPipeline";
 import { HDRPostEffects } from "./HDRPostEffects";
 import { GPUContext } from "../../gpu/GPUContext";
@@ -24,7 +25,7 @@ export class HDRRendering {
   private layout?: GPUBindGroupLayout;
   private pipeline?: GPURenderPipeline;
   private group?: GPUBindGroup;
-  private texture?: GPUTexture;
+  private sceneTarget?: TargetLease;
   view?: GPUTextureView;
   private width = 0;
   private height = 0;
@@ -187,17 +188,17 @@ export class HDRRendering {
   resize(width: number, height: number): void {
     if (!this.sceneEnabled || (width === this.width && height === this.height))
       return;
-    if (this.texture) this.resources.textures.destroy(this.texture);
+    this.sceneTarget?.release();
     this.width = width;
     this.height = height;
-    this.texture = this.resources.textures.create({
+    this.sceneTarget = this.resources.targets.acquire({
       label: "Linear HDR scene",
       size: [width, height],
       format: "rgba16float",
       usage:
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
-    this.view = this.texture.createView();
+    this.view = this.sceneTarget.view;
     this.group = this.gpu.device.createBindGroup({
       layout: this.layout!,
       entries: [

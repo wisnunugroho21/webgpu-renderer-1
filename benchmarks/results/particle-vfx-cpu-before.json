@@ -1,0 +1,29 @@
+{
+  "source": "artifacts/vfx-baseline-cpu.log",
+  "workloads": {
+    "1000 analytic particle lifetime ticks": {
+      "hz": 609681.5,
+      "minMs": 0.0015,
+      "maxMs": 0.0553,
+      "meanMs": 0.0016
+    },
+    "1000 particle burst records": {
+      "hz": 12555.64,
+      "minMs": 0.0787,
+      "maxMs": 0.2007,
+      "meanMs": 0.0796
+    },
+    "10000 analytic particle lifetime ticks": {
+      "hz": 56442.37,
+      "minMs": 0.0173,
+      "maxMs": 0.0886,
+      "meanMs": 0.0177
+    },
+    "10000 particle burst records": {
+      "hz": 1251.94,
+      "minMs": 0.7902,
+      "maxMs": 0.9029,
+      "meanMs": 0.7988
+    }
+  }
+}

@@ -1,3 +1,10 @@
+import { ParticleTrails, type ParticleTrailLimits } from "./ParticleTrails";
+import type { ParticleTrail, ParticleTrailOptions } from "./ParticleTrail";
+import { ParticleCurves, type ParticleCurveKey } from "./ParticleCurves";
+import {
+  copyParticleAtlas,
+  type ParticleAtlasDefinition,
+} from "./ParticleAtlas";
 import * as particleLayout from "./ParticleLayout";
 import { ParticleEmitter } from "./ParticleEmitter";
 import {
@@ -26,11 +33,55 @@ const {
   PARTICLE_BLEND,
   PARTICLE_FADE_IN,
   PARTICLE_FADE_OUT,
+  PARTICLE_SPRITE,
+  PARTICLE_EFFECTS,
 } = particleLayout;
 
 /** Fixed-capacity CPU provenance for GPU analytic billboards. No ECS traversal, per-particle objects or readback. */
 export class ParticleSystem {
   readonly records: Float32Array;
+  readonly curves = new ParticleCurves();
+  readonly trails: ParticleTrails;
+  private atlasDefinition: ParticleAtlasDefinition | null = null;
+  atlasRevision = 0;
+  /** Return retained atlas provenance; callers must not mutate its copied pixels. */
+  get atlas(): ParticleAtlasDefinition | null {
+    return this.atlasDefinition;
+  }
+  /** Install or clear one shared atlas at a cold boundary; active frame ranges must stay valid. */
+  setAtlas(value: ParticleAtlasDefinition | null): void {
+    if (this.disposed) throw new Error("Particle system disposed");
+    const next = value ? copyParticleAtlas(value) : null;
+    const frames = next ? next.columns * next.rows : 1;
+    for (const emitter of this.emitters) emitter.validateAtlas(frames);
+    for (let i = 0; i < this.count; i++) {
+      const o = i * PARTICLE_WORDS;
+      if (
+        this.records[o + PARTICLE_EFFECTS + 2] &&
+        this.records[o + PARTICLE_SPRITE]! +
+          this.records[o + PARTICLE_SPRITE + 1]! >
+          frames
+      )
+        throw new Error("Live flipbook exceeds replacement atlas");
+    }
+    this.atlasDefinition = next;
+    this.atlasRevision++;
+    if (this.active) for (const prepare of this.owners) prepare();
+  }
+  /** Create a shared immutable lifetime multiplier profile, deduplicated within 64 slots. */
+  createCurve(keys: readonly ParticleCurveKey[]): number {
+    if (this.disposed) throw new Error("Particle system disposed");
+    return this.curves.create(keys);
+  }
+  /** Validate external shared references before emitter publication or any random-state mutation. */
+  validateSettings(
+    settings: ParticleSettings,
+    frames = this.atlas ? this.atlas.columns * this.atlas.rows : 1,
+  ): void {
+    this.curves.require(settings.curve);
+    if (settings.textured && settings.sprite[0]! + settings.sprite[1]! > frames)
+      throw new Error("Particle flipbook exceeds atlas");
+  }
   private liveCount = 0;
   private clock = 0;
   /** Return the dense live record count; particles have no externally recycled numeric IDs. */
@@ -53,6 +104,7 @@ export class ParticleSystem {
   constructor(
     readonly capacity = 4096,
     readonly emitterCapacity = 64,
+    trailLimits: ParticleTrailLimits = {},
   ) {
     if (
       !Number.isInteger(capacity) ||
@@ -64,6 +116,7 @@ export class ParticleSystem {
     )
       throw new Error("Invalid particle capacity");
     this.records = new Float32Array(capacity * PARTICLE_WORDS);
+    this.trails = new ParticleTrails(trailLimits);
   }
   /** Report whether simulation and rendering are active; disabled systems freeze existing particles. */
   get enabled(): boolean {
@@ -94,6 +147,13 @@ export class ParticleSystem {
     const emitter = new ParticleEmitter(this, options);
     this.emitters.push(emitter);
     return emitter;
+  }
+  /** Create a fixed-history ribbon controller and prepare GPU resources at this explicit setup boundary. */
+  createTrail(options: ParticleTrailOptions = {}): ParticleTrail {
+    if (this.disposed) throw new Error("Particle system disposed");
+    const trail = this.trails.create(this, options);
+    if (this.active) for (const prepare of this.owners) prepare();
+    return trail;
   }
   /** Retire an emitter controller without killing particles it already spawned. */
   removeEmitter(emitter: ParticleEmitter): void {
@@ -130,6 +190,7 @@ export class ParticleSystem {
     if (this.disposed) throw new Error("Particle system disposed");
     if (!Number.isInteger(count) || count < 0 || count > 1000000)
       throw new Error("Invalid particle burst count");
+    this.validateSettings(settings);
     if (!this.active) return 0;
     const accepted = Math.min(count, this.capacity - this.count);
     this.dropped += count - accepted;
@@ -145,6 +206,45 @@ export class ParticleSystem {
           (this.random(settings) * 2 - 1) * settings.velocitySpread[axis]!;
         this.records[o + PARTICLE_GRAVITY + axis] = settings.gravity[axis]!;
       }
+      if (settings.emissionShape) {
+        const cos =
+          settings.emissionShape === 1
+            ? 1 - this.random(settings) * (1 - settings.coneCos)
+            : 2 * this.random(settings) - 1;
+        const sin = Math.sqrt(Math.max(0, 1 - cos * cos)),
+          angle = this.random(settings) * Math.PI * 2;
+        const u = Math.cos(angle) * sin,
+          v = Math.sin(angle) * sin;
+        const speed =
+          settings.speed[0]! +
+          this.random(settings) * (settings.speed[1]! - settings.speed[0]!);
+        const radius =
+          settings.radius *
+          (settings.emissionShape === 1
+            ? Math.sqrt(this.random(settings))
+            : Math.cbrt(this.random(settings)));
+        const diskAngle = this.random(settings) * Math.PI * 2;
+        const diskX = Math.cos(diskAngle),
+          diskY = Math.sin(diskAngle);
+        for (let axis = 0; axis < 3; axis++) {
+          const direction =
+            settings.direction[axis]! * cos +
+            settings.tangent[axis]! * u +
+            settings.bitangent[axis]! * v;
+          this.records[o + PARTICLE_VELOCITY + axis]! += direction * speed;
+          this.records[o + PARTICLE_ORIGIN + axis]! +=
+            radius *
+            (settings.emissionShape === 1
+              ? settings.tangent[axis]! * diskX +
+                settings.bitangent[axis]! * diskY
+              : direction);
+        }
+      }
+      this.records.set(settings.sprite, o + PARTICLE_SPRITE);
+      this.records[o + PARTICLE_EFFECTS] = settings.curve;
+      this.records[o + PARTICLE_EFFECTS + 1] = settings.softDistance;
+      this.records[o + PARTICLE_EFFECTS + 2] = settings.textured;
+      this.records[o + PARTICLE_EFFECTS + 3] = 0;
       this.records[o + PARTICLE_BIRTH] = this.time;
       this.records[o + PARTICLE_LIFETIME] =
         settings.lifetime[0]! +
@@ -191,6 +291,7 @@ export class ParticleSystem {
         this.revision++;
       } else i++;
     }
+    this.trails.update(this.time);
     for (let i = 0; i < this.emitters.length; i++)
       this.emitters[i]!.update(delta);
   }
@@ -198,6 +299,7 @@ export class ParticleSystem {
    * Stop scene-owned emitters first or they will fill the pool again on the next active tick. */
   clear(): void {
     this.liveCount = 0;
+    this.trails.clear();
     this.revision++;
     this.dirtyStart = Infinity;
     this.dirtyEnd = 0;
@@ -207,6 +309,7 @@ export class ParticleSystem {
     if (this.disposed) return;
     while (this.emitters.length)
       this.emitters[this.emitters.length - 1]!.dispose();
+    this.trails.dispose();
     this.clear();
     this.owners.clear();
     this.active = false;

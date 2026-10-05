@@ -21,6 +21,7 @@ export class ParticleEmitter {
     options: ParticleEmitterOptions,
   ) {
     this.settings = particleSettings(options);
+    this.system.validateSettings(this.settings);
   }
   /** Return the continuous emission rate in particles per simulation second. */
   get rate(): number {
@@ -36,8 +37,13 @@ export class ParticleEmitter {
   configure(options: ParticleEmitterOptions): void {
     if (this.disposed) throw new Error("Particle emitter disposed");
     const next = particleSettings(options);
+    this.system.validateSettings(next);
     this.settings = next;
     this.remainder = 0;
+  }
+  /** Preflight retained emitter frame ranges before replacing the system atlas. */
+  validateAtlas(frames: number): void {
+    this.system.validateSettings(this.settings, frames);
   }
   /** Move the spawn origin without allocating a new configuration or modifying live particles. */
   setPosition(x: number, y: number, z: number): void {

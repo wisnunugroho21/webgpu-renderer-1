@@ -70,7 +70,7 @@ export class ShadowManager {
   private readonly frustum = new Frustum();
   private readonly culler: FrustumCuller;
   private readonly visible: Uint8Array;
-  /** Initializes directional cascade maps, caster queues and shadow settings. */
+  /** Initializes shared directional/local depth maps, caster queues and shadow settings. */
   constructor(
     private readonly device: GPUDevice,
     resources: Resources,
@@ -109,25 +109,58 @@ export class ShadowManager {
     this.descriptors = prepared.descriptors;
     this.pipelines = prepared.pipelines;
   }
-  /** Selects directional cascades/casters, compares cached scene state and packs changed shadow parameters. */
+  /** Preflight total layer use and local projections before publishing any light-to-layer metadata. */
+  private validateLights(world: RenderWorld, camera: Camera): void {
+    if (!this.enabled) return;
+    let layers = 0,
+      directional = 0;
+    for (let light = 0; light < world.lightCount; light++) {
+      if (!world.lightShadow[light]) continue;
+      const o = light * 16,
+        type = world.lightData[o + 11]!;
+      if (!type) {
+        if (Math.min(camera.far, this.shadowDistance) <= camera.near) continue;
+        if (++directional > 4)
+          throw new Error("Directional shadow light capacity exceeded (4)");
+        layers += this.cascades;
+      } else {
+        const near = world.lightShadowSettings[light * 3] || 0.05;
+        const far = world.lightData[o + 3] || this.shadowDistance;
+        if (
+          near >= far ||
+          !Number.isFinite(Math.fround((near * far) / (far - near)))
+        )
+          throw new Error("Local shadow range must exceed shadowNear");
+        if (
+          type === 2 &&
+          !(world.lightData[o + 13]! > 0 && world.lightData[o + 13]! < 1)
+        )
+          throw new Error("Invalid shadow-casting spot cone");
+        layers += type === 1 ? 6 : 1;
+      }
+    }
+    if (layers > this.capacity)
+      throw new Error("Shared shadow layer capacity exceeded (16)");
+  }
+  /** Selects light projections/casters, compares cached scene state and packs changed shadow parameters. */
   prepare(
     world: RenderWorld,
     camera: Camera,
     queue: GPUQueue,
     stats: RendererStats,
   ): void {
+    this.validateLights(world, camera);
     this.layerCount = 0;
-    let castingLights = 0;
     for (let light = 0; light < world.lightCount; light++) {
       const offset = light * 16,
+        type = world.lightData[offset + 11]!,
         cast =
           this.enabled &&
           world.lightShadow[light] !== 0 &&
-          Math.min(camera.far, this.shadowDistance) > camera.near;
-      if (cast && castingLights === 4)
-        throw new Error("Directional shadow light capacity exceeded (4)");
+          (type !== 0 ||
+            Math.min(camera.far, this.shadowDistance) > camera.near);
       const first = cast ? this.layerCount + 1 : 0,
-        count = cast ? this.cascades : 0;
+        count = cast ? (type === 0 ? this.cascades : type === 1 ? 6 : 1) : 0;
       if (
         world.lightData[offset + 14] !== first ||
         world.lightData[offset + 15] !== count
@@ -137,23 +170,28 @@ export class ShadowManager {
         world.lightDirty[light] = 1;
       }
       if (!cast) continue;
-      castingLights++;
-      let near = camera.near;
-      for (let cascade = 1; cascade <= this.cascades; cascade++) {
-        const far = cascadeSplit(
-          camera.near,
-          Math.min(camera.far, this.shadowDistance),
-          cascade,
-          this.cascades,
-          camera.projectionType === "orthographic" ? 0 : 0.6,
-        );
-        this.camera.fit(camera, world, light, near, far, this.resolution);
+      let near =
+        type === 0 ? camera.near : world.lightShadowSettings[light * 3] || 0.05;
+      for (let cascade = 1; cascade <= count; cascade++) {
+        const far =
+          type === 0
+            ? cascadeSplit(
+                camera.near,
+                Math.min(camera.far, this.shadowDistance),
+                cascade,
+                this.cascades,
+                camera.projectionType === "orthographic" ? 0 : 0.6,
+              )
+            : world.lightData[offset + 3] || this.shadowDistance;
+        if (type === 0)
+          this.camera.fit(camera, world, light, near, far, this.resolution);
+        else this.camera.fitLocal(world, light, cascade - 1, near, far);
         const layer = this.layerCount++,
           o = layer * 20;
         this.data.set(this.camera.matrix, o);
         this.data[o + 16] = far;
-        this.data[o + 17] = 0.0001;
-        this.data[o + 18] = 0.005;
+        this.data[o + 17] = world.lightShadowSettings[light * 3 + 1] ?? 0.0001;
+        this.data[o + 18] = world.lightShadowSettings[light * 3 + 2] ?? 0.005;
         this.data[o + 19] = 0;
         this.uniforms.set(this.camera.matrix, layer * 64);
         let changed = false;
@@ -166,7 +204,7 @@ export class ShadowManager {
           this.previous.set(this.data.subarray(o, o + 20), o);
           stats.shadowUploadBytes += 80;
         }
-        near = far;
+        if (type === 0) near = far;
       }
     }
     if (!this.layerCount) return;
@@ -226,7 +264,7 @@ export class ShadowManager {
         if (!this.visible[this.queue.order[i]!]) stats.shadowRejected++;
 
       const pass = encoder.beginRenderPass({
-        label: "Directional shadow",
+        label: "Shared light shadow",
         timestampWrites: profiler?.writes(GPUPass.shadow),
         colorAttachments: [],
         depthStencilAttachment: {

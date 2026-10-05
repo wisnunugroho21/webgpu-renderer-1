@@ -1,7 +1,7 @@
 /** Binary ABI shared by CPU spawn records and particles.wgsl; offsets are f32 words.
- * Seven vec4 rows hold origin/birth, velocity/lifetime, gravity/drag, start/end
- * colors, size/rotation/spin, then shape/blend/fades. Keep shader fields in sync. */
-export const PARTICLE_WORDS = 28;
+ * Nine vec4 rows hold origin/birth, velocity/lifetime, gravity/drag, start/end
+ * colors, size/rotation/spin, shape/blend/fades, sprite playback and curve/soft metadata. Keep shader fields in sync. */
+export const PARTICLE_WORDS = 36;
 export const PARTICLE_BYTES = PARTICLE_WORDS * 4;
 export const PARTICLE_ORIGIN = 0;
 export const PARTICLE_BIRTH = 3;
@@ -20,6 +20,10 @@ export const PARTICLE_BLEND = 25;
 export const PARTICLE_FADE_IN = 26;
 export const PARTICLE_FADE_OUT = 27;
 
-/** mat4 view-projection, vec4 camera right/up and vec4 clock, padded to uniform alignment. */
-export const PARTICLE_FRAME_WORDS = 28;
+/** mat4 view-projection, vec4 camera right/up and vec4 clock, projection coefficients and atlas grid, padded to uniform alignment. */
+export const PARTICLE_FRAME_WORDS = 36;
 export const PARTICLE_FRAME_BYTES = PARTICLE_FRAME_WORDS * 4;
+
+/** Flipbook start/count/rate/loop and curve/soft-distance/sprite-enabled metadata. */
+export const PARTICLE_SPRITE = 28;
+export const PARTICLE_EFFECTS = 32;

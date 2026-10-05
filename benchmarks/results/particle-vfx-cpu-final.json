@@ -1,0 +1,47 @@
+{
+  "source": "artifacts/vfx-final-cpu.log",
+  "workloads": {
+    "1000 analytic particle lifetime ticks": {
+      "hz": 540060.98,
+      "minMs": 0.0017,
+      "maxMs": 0.0875,
+      "meanMs": 0.0019
+    },
+    "1000 particle burst records": {
+      "hz": 10833.51,
+      "minMs": 0.0895,
+      "maxMs": 1.1295,
+      "meanMs": 0.0923
+    },
+    "10000 analytic particle lifetime ticks": {
+      "hz": 50158.21,
+      "minMs": 0.0193,
+      "maxMs": 0.0754,
+      "meanMs": 0.0199
+    },
+    "10000 particle burst records": {
+      "hz": 1082.82,
+      "minMs": 0.8986,
+      "maxMs": 1.0905,
+      "meanMs": 0.9235
+    },
+    "10000 directional cone burst records": {
+      "hz": 545.72,
+      "minMs": 1.7804,
+      "maxMs": 1.9814,
+      "meanMs": 1.8325
+    },
+    "1016 ribbon segments append and snapshot": {
+      "hz": 10186.76,
+      "minMs": 0.0952,
+      "maxMs": 0.3119,
+      "meanMs": 0.0982
+    },
+    "1016 ribbon segments clock-only ticks": {
+      "hz": 16902647.26,
+      "minMs": 0.0,
+      "maxMs": 0.0615,
+      "meanMs": 0.0001
+    }
+  }
+}

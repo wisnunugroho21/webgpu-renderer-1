@@ -1,6 +1,12 @@
 import { UploadedAsset } from "../assets/gltf/instantiate";
 import { RenderWorld } from "./RenderWorld";
-import { Streaming, StreamLease } from "../assets/Streaming";
+import {
+  Streaming,
+  StreamLease,
+  type StreamMemory,
+  type StreamRequest,
+  type StreamBudget,
+} from "../assets/Streaming";
 import {
   RuntimeAsset,
   RuntimePrimitive,
@@ -15,6 +21,7 @@ type Resident =
   | { groups: GPUBindGroup[]; slots: RuntimeMaterial["textures"] };
 /** Bound slots own leases. Detach to a resident fallback before allowing eviction. */
 export class RendererStreaming {
+  private customMemory?: () => StreamMemory;
   readonly resources: Streaming<Resident>;
   private readonly lodSlots = new Map<
     string,
@@ -37,6 +44,11 @@ export class RendererStreaming {
     private readonly materials: MaterialManager,
     private frame: () => number,
     private readonly world: RenderWorld,
+    private memory: () => StreamMemory = () => {
+      /* Legacy unbudgeted owners need no provider; new accounting must be supplied explicitly. */ throw new Error(
+        "Renderer streaming memory provider required",
+      );
+    },
   ) {
     this.resources = new Streaming(
       () =>
@@ -55,6 +67,11 @@ export class RendererStreaming {
             if (resident.groups.includes(group)) return true;
         }
         return false;
+      },
+      () => {
+        /* Resolve current owners after recovery rather than a retired renderer. */ return (
+          this.customMemory?.() ?? this.memory()
+        );
       },
     );
   }
@@ -75,6 +92,11 @@ export class RendererStreaming {
     textures: MaterialTextures,
     remap: Map<GPUBindGroup[], GPUBindGroup[]>,
     frame: () => number,
+    memory: () => StreamMemory = () => {
+      /* A legacy rebind preserves unbudgeted behavior without reporting stale device payloads. */ throw new Error(
+        "Renderer streaming memory provider required",
+      );
+    },
   ): void {
     const groups = new Map<GPUBindGroup, GPUBindGroup>([
       [this.textures.fallback, textures.fallback],
@@ -96,6 +118,7 @@ export class RendererStreaming {
     this.lods = lods;
     this.textures = textures;
     this.frame = frame;
+    this.memory = memory;
   }
   /** Loads a replacement authored LOD while keeping its resident fallback available until publication. */
   async bindLOD(
@@ -103,6 +126,7 @@ export class RendererStreaming {
     level: number,
     key: string,
     load: () => Promise<RuntimePrimitive>,
+    request: StreamRequest = {},
   ): Promise<void> {
     const slot = `${group}:${level}`;
     const entry = this.lods.entries[group];
@@ -121,6 +145,7 @@ export class RendererStreaming {
 
         if ("mesh" in r) this.meshes.destroy(r.mesh);
       },
+      request,
     );
     this.lodSlots.set(slot, { lease, fallback });
     try {
@@ -149,6 +174,7 @@ export class RendererStreaming {
     material: number,
     key: string,
     load: () => Promise<RuntimeAsset>,
+    request: StreamRequest = {},
   ): Promise<void> {
     if (material < 0 || material >= this.materials.count)
       throw new Error("Unknown streamed material");
@@ -173,11 +199,12 @@ export class RendererStreaming {
 
         if ("groups" in r) await this.textures.release(r.groups);
       },
+      request,
     );
     this.materialSlots.set(material, {
       lease,
       fallback,
-      layout: this.materials.textureLayout(material),
+      layout: this.materials.textureLayout(material, true),
     });
     try {
       const resident = await lease.ready;
@@ -219,6 +246,18 @@ export class RendererStreaming {
   touch(frame: number): void {
     for (const slot of this.lodSlots.values()) slot.lease.touch(frame);
     for (const slot of this.materialSlots.values()) slot.lease.touch(frame);
+  }
+  /** Use a broader cold memory snapshot, such as application caches; retained across owner recovery. */
+  setMemoryProvider(provider: () => StreamMemory): void {
+    this.customMemory = provider;
+  }
+  /** Set opt-in global renderer payload limits for queued LOD/material publication. */
+  setBudget(budget: Partial<StreamBudget>): void {
+    this.resources.setBudget(budget);
+  }
+  /** Reclaim unused residency immediately under memory pressure rather than waiting for age. */
+  trimBudget(): Promise<number> {
+    return this.resources.trimBudget();
   }
   /** Retires old unreferenced streaming resources after safe queue completion and a final reference check. */
   evictUnused(minimumAge = 60): Promise<number> {

@@ -1,3 +1,5 @@
+import type { StreamBudget } from "../assets/StreamingBudget";
+import { retainedMemory } from "../assets/retainedMemory";
 import { ParticleSystem } from "../particles/ParticleSystem";
 import { createDefaultScene } from "./createDefaultScene";
 import { ApplicationPicking } from "./ApplicationPicking";
@@ -51,6 +53,30 @@ export class Application {
   readonly materials = new MaterialManager();
   readonly profiler = new CPUProfiler();
   private readonly assets: ApplicationAssets;
+  /** Cold payload snapshot combining renderer recovery and decoded cache stores without double counting. */
+  get memory() {
+    const renderer = this.renderer.memory;
+    return {
+      ...renderer,
+      environmentCacheBytes: this.environments.cachedBytes,
+      decodedCacheBytes: this.assetLoader.cachedDecodedBytes,
+      recoveryBytes: retainedMemory(
+        this.renderer.recoverySources(),
+        this.environments.recoverySources(),
+        [...this.assetLoader.records.values()].map((record) => {
+          /* Cache provenance can alias texture recovery definitions. */ return record.decoded;
+        }),
+      ),
+    };
+  }
+  /** Budget streamed replacements against application-wide retained caches and current GPU owners. */
+  setStreamingBudget(budget: Partial<StreamBudget>): void {
+    this.renderer.streaming.setMemoryProvider(() => {
+      /* Resolve replaced owners dynamically after device recovery. */ return this
+        .memory;
+    });
+    this.renderer.streaming.setBudget(budget);
+  }
   /** Returns the scene-instance registry used to track imported entity and animator ownership. */
   get assetInstances() {
     return this.assets.instances;

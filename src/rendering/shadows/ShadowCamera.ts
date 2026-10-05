@@ -11,6 +11,34 @@ export class ShadowCamera {
   private readonly center = new Float32Array(3);
   private readonly eye = new Float32Array(3);
   private readonly up = new Float32Array(3);
+  /** Project a spot cone or a fixed +X,-X,+Y,-Y,+Z,-Z point face using retained matrix scratch. */
+  fitLocal(
+    world: RenderWorld,
+    light: number,
+    face: number,
+    near: number,
+    far: number,
+  ): void {
+    const o = light * 16;
+    for (let axis = 0; axis < 3; axis++)
+      this.eye[axis] = world.lightData[o + axis]!;
+    this.up.fill(0);
+    let fov = Math.PI / 2;
+    if (world.lightData[o + 11] === 1) {
+      this.center.set(this.eye);
+      this.center[Math.floor(face / 2)]! += face % 2 ? -1 : 1;
+      if (face === 2 || face === 3) this.up[2] = face === 2 ? 1 : -1;
+      else this.up[1] = -1;
+    } else {
+      for (let axis = 0; axis < 3; axis++)
+        this.center[axis] = this.eye[axis]! + world.lightData[o + 8 + axis]!;
+      this.up[Math.abs(world.lightData[o + 9]!) > 0.95 ? 2 : 1] = 1;
+      fov = 2 * Math.acos(Math.max(-1, Math.min(1, world.lightData[o + 13]!)));
+    }
+    Mat4.lookAt(this.view, this.eye, this.center, this.up);
+    Mat4.perspective(this.projection, fov, 1, near, far);
+    Mat4.multiply(this.matrix, this.projection, this.view);
+  }
   /** Fits a directional light projection to the requested camera slice using retained matrix scratch. */
   fit(
     camera: Camera,

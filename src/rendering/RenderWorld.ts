@@ -4,6 +4,7 @@ export class RenderWorld {
   lightCount = 0;
   readonly lightData: Float32Array;
   readonly lightEntity: Uint32Array;
+  readonly lightShadowSettings: Float32Array;
   readonly lightShadow: Uint8Array;
   readonly lightDirty: Uint8Array;
   readonly lodGroup: Int32Array;
@@ -49,6 +50,9 @@ export class RenderWorld {
   ) {
     this.lightData = new Float32Array(lightCapacity * 16);
     this.lightEntity = new Uint32Array(lightCapacity).fill(0xffffffff);
+    this.lightShadowSettings = new Float32Array(lightCapacity * 3);
+    for (let i = 0; i < lightCapacity; i++)
+      this.lightShadowSettings.set([0.05, 0.0001, 0.005], i * 3);
     this.lightShadow = new Uint8Array(lightCapacity);
     this.lightDirty = new Uint8Array(lightCapacity);
     this.lodGroup = new Int32Array(capacity).fill(-1);

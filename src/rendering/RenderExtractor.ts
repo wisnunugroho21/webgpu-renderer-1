@@ -147,6 +147,9 @@ export class RenderExtractor {
         d[15] = sameLight ? out.lightData[id * 16 + 15]! : 0;
         out.lightEntity[id] = e;
         out.lightShadow[id] = lights.castShadow[e]!;
+        out.lightShadowSettings[id * 3] = lights.shadowNear[e]!;
+        out.lightShadowSettings[id * 3 + 1] = lights.shadowBias[e]!;
+        out.lightShadowSettings[id * 3 + 2] = lights.shadowNormalBias[e]!;
         for (let k = 0; k < 16; k++)
           if (out.lightData[id * 16 + k] !== d[k]) {
             out.lightData[id * 16 + k] = d[k]!;

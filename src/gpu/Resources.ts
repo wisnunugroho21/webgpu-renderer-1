@@ -1,3 +1,4 @@
+import { TransientTargetPool } from "./TransientTargetPool";
 import { BufferManager } from "./BufferManager";
 import { TextureManager } from "./TextureManager";
 import { ShaderManager } from "./ShaderManager";
@@ -8,6 +9,7 @@ export class Resources {
   readonly stats = new ResourceStats();
   readonly buffers: BufferManager;
   readonly textures: TextureManager;
+  readonly targets: TransientTargetPool;
   readonly shaders: ShaderManager;
   readonly samplers: SamplerCache;
   readonly pipelines: PipelineCache;
@@ -15,6 +17,10 @@ export class Resources {
   constructor(device: GPUDevice) {
     this.buffers = new BufferManager(device, this.stats);
     this.textures = new TextureManager(device, this.stats);
+    this.targets = new TransientTargetPool(this.textures, () => {
+      // Only released targets at cold lifecycle boundaries request a completion fence.
+      return device.queue.onSubmittedWorkDone();
+    });
     this.shaders = new ShaderManager(device, this.stats);
     this.samplers = new SamplerCache(device, this.stats);
     this.pipelines = new PipelineCache(device, this.stats);
@@ -22,6 +28,7 @@ export class Resources {
   /** Releases tracked buffers/textures and clears pipeline, shader and sampler caches. */
   dispose(): void {
     this.buffers.dispose();
+    this.targets.dispose();
     this.textures.dispose();
     this.shaders.clear();
     this.samplers.clear();

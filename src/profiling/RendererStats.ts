@@ -1,4 +1,6 @@
 export class RendererStats {
+  particleTrailSegments = 0;
+  particleTrailUploadBytes = 0;
   particleCount = 0;
   particleDrawCalls = 0;
   particleUploadBytes = 0;
@@ -56,6 +58,7 @@ export class RendererStats {
   bvhNodesTested = 0;
   /** Clears per-frame work counters while leaving long-lived configuration outside the statistics object. */
   reset(): void {
+    this.particleTrailSegments = this.particleTrailUploadBytes = 0;
     this.particleCount =
       this.particleDrawCalls =
       this.particleUploadBytes =

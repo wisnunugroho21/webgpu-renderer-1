@@ -1,4 +1,4 @@
-// ABI: seven vec4 spawn fields (112 bytes); motion is analytic and records change only at spawn/retirement.
+// ABI: nine vec4 spawn fields (144 bytes); motion is analytic and records change only at spawn/retirement.
 struct Particle {
   originBirth: vec4<f32>,
   velocityLife: vec4<f32>,
@@ -6,24 +6,66 @@ struct Particle {
   startColor: vec4<f32>,
   endColor: vec4<f32>,
   appearance: vec4<f32>,
-  mode: vec4<f32>
+  mode: vec4<f32>,
+  sprite: vec4<f32>,
+  effects: vec4<f32>
 }
 
 struct ParticleFrame {
   viewProjection: mat4x4<f32>,
   right: vec4<f32>,
   up: vec4<f32>,
-  clock: vec4<f32>
+  clock: vec4<f32>,
+  projection: vec4<f32>,
+  atlas: vec4<f32>
 }
 
 @group(0) @binding(0) var<storage, read> particles: array<Particle>;
 @group(0) @binding(1) var<storage, read> order: array<u32>;
 @group(0) @binding(2) var<uniform> frame: ParticleFrame;
+struct CurveKey {
+  timing: vec4<f32>,
+  color: vec4<f32>
+}
+
+struct Curve {
+  header: vec4<f32>,
+  keys: array<CurveKey,
+  4>
+}
+
+@group(0) @binding(3) var<storage, read> curves: array<Curve>;
+@group(0) @binding(4) var atlas: texture_2d<f32>;
+@group(0) @binding(5) var atlasSampler: sampler;
+@group(0) @binding(6) var sceneDepth: texture_depth_2d;
 struct VertexOutput {
   @builtin(position) position: vec4<f32>,
   @location(0) uv: vec2<f32>,
   @location(1) color: vec4<f32>,
-  @location(2) @interpolate(flat) shape: u32
+  @location(2) @interpolate(flat) shape: u32,
+  @location(3) spriteUV: vec2<f32>,
+  @location(4) @interpolate(flat) effects: vec2<f32>
+}
+
+// Evaluate at most four immutable profile keys; size and RGBA are lifetime multipliers.
+fn curveAt(id: u32, t: f32) -> CurveKey {
+  if id == 0u {
+    // Default procedural particles bypass storage reads and profile interpolation.
+    return CurveKey(vec4<f32>(t, 1.0, 0.0, 0.0), vec4<f32>(1.0));
+  }
+  let curve = curves[id];
+  var result = curve.keys[0];
+  for (var i = 1u; i < u32(curve.header.x); i++) {
+    let next = curve.keys[i];
+    if t <= next.timing.x {
+      let amount = clamp((t - result.timing.x) / (next.timing.x - result.timing.x), 0.0, 1.0);
+      result.timing = mix(result.timing, next.timing, amount);
+      result.color = mix(result.color, next.color, amount);
+      return result;
+    }
+    result = next;
+  }
+  return result;
 }
 
 // Evaluate one spawn record at the shared clock, then expand a rotated camera-facing quad.
@@ -44,9 +86,10 @@ struct VertexOutput {
   let angle = p.appearance.z + age * p.appearance.w;
   let corner = corners[vertex];
   let rotated = vec2<f32>(corner.x * cos(angle) - corner.y * sin(angle), corner.x * sin(angle) + corner.y * cos(angle));
-  let size = mix(p.appearance.x, p.appearance.y, t) * 0.5;
+  let curve = curveAt(u32(p.effects.x), t);
+  let size = mix(p.appearance.x, p.appearance.y, t) * curve.timing.y * 0.5;
   let world = p.originBirth.xyz + motion + (frame.right.xyz * rotated.x + frame.up.xyz * rotated.y) * size;
-  var color = mix(p.startColor, p.endColor, t);
+  var color = mix(p.startColor, p.endColor, t) * curve.color;
   var fade = 1.0;
   if p.mode.z > 0.0 {
     fade *= clamp(t / p.mode.z, 0.0, 1.0);
@@ -60,6 +103,69 @@ struct VertexOutput {
   output.uv = corner;
   output.color = color;
   output.shape = u32(p.mode.x);
+  output.spriteUV = vec2<f32>(0.0);
+  if p.effects.z > 0.0 {
+    let frameAge = select(t * p.sprite.y, age * p.sprite.z, p.sprite.z >= 0.0);
+    let number = select(min(floor(frameAge), p.sprite.y - 1.0), floor(frameAge) % p.sprite.y, p.sprite.w > 0.0) + p.sprite.x;
+    let tile = vec2<f32>(number % frame.atlas.x, floor(number / frame.atlas.x));
+    let inset = 0.5 / (frame.atlas.zw / frame.atlas.xy);
+    let uv = mix(inset, vec2<f32>(1.0) - inset, corner * 0.5 + 0.5);
+    output.spriteUV = (tile + uv) / frame.atlas.xy;
+  }
+  output.effects = p.effects.yz;
+  return output;
+}
+
+// Build a bounded miter in the camera plane; degenerate/reversing tangents fall back safely.
+fn ribbonOffset(previous: vec3<f32>, current: vec3<f32>, next: vec3<f32>) -> vec2<f32> {
+  let a = current - previous;
+  let b = next - current;
+  var before = vec2<f32>(dot(a, frame.right.xyz), dot(a, frame.up.xyz));
+  var after = vec2<f32>(dot(b, frame.right.xyz), dot(b, frame.up.xyz));
+  if length(before) < 0.000001 {
+    before = after;
+  }
+  if length(after) < 0.000001 {
+    after = before;
+  }
+  if length(before) < 0.000001 {
+    before = vec2<f32>(1.0, 0.0);
+    after = before;
+  }
+  before = normalize(before);
+  after = normalize(after);
+  var tangent = before + after;
+  if length(tangent) < 0.000001 {
+    tangent = after;
+  }
+  tangent = normalize(tangent);
+  let normal = vec2<f32>(- tangent.y, tangent.x);
+  let afterNormal = vec2<f32>(- after.y, after.x);
+  return normal / max(0.25, abs(dot(normal, afterNormal)));
+}
+
+// Expand connected history segments; each endpoint ages independently without CPU vertex animation.
+@vertex fn trailVS(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> VertexOutput {
+  let corners = array<vec2<f32>, 6>(vec2<f32>(0.0, - 1.0), vec2<f32>(1.0, - 1.0), vec2<f32>(0.0, 1.0), vec2<f32>(0.0, 1.0), vec2<f32>(1.0, - 1.0), vec2<f32>(1.0, 1.0));
+  let p = particles[order[instance]];
+  let corner = corners[vertex];
+  let atEnd = corner.x > 0.5;
+  let current = select(p.originBirth.xyz, p.velocityLife.xyz, atEnd);
+  let birth = select(p.originBirth.w, p.velocityLife.w, atEnd);
+  let previous = select(p.gravityDrag.xyz, p.originBirth.xyz, atEnd);
+  let next = select(p.velocityLife.xyz, p.sprite.xyz, atEnd);
+  let t = clamp((frame.clock.x - birth) / p.appearance.y, 0.0, 1.0);
+  let curve = curveAt(u32(p.effects.x), t);
+  let normal = ribbonOffset(previous, current, next) * corner.y * p.appearance.x * curve.timing.y * 0.5;
+  let world = current + frame.right.xyz * normal.x + frame.up.xyz * normal.y;
+  var output: VertexOutput;
+  output.position = frame.viewProjection * vec4<f32>(world, 1.0);
+  output.uv = corner;
+  output.color = mix(p.startColor, p.endColor, t) * curve.color;
+  output.color.a *= 1.0 - t;
+  output.shape = 4u;
+  output.spriteUV = vec2<f32>(0.0);
+  output.effects = vec2<f32>(p.effects.y, 0.0);
   return output;
 }
 
@@ -77,6 +183,26 @@ struct VertexOutput {
   if input.shape == 2u {
     coverage = smoothstep(0.65, 0.8, radius) * (1.0 - smoothstep(0.85, 1.0, radius));
   }
-  let alpha = input.color.a * coverage;
-  return vec4<f32>(input.color.rgb * alpha, alpha);
+  if input.shape == 4u {
+    coverage = 1.0 - smoothstep(0.75, 1.0, abs(input.uv.y));
+  }
+  var texel = vec4<f32>(1.0);
+  if input.effects.y > 0.0 {
+    texel = textureSampleLevel(atlas, atlasSampler, input.spriteUV, 0.0);
+  }
+  var fade = 1.0;
+  if input.effects.x > 0.0 {
+    let depth = textureLoad(sceneDepth, vec2<i32>(input.position.xy), 0);
+    if depth < 1.0 {
+      var scene = frame.projection.y / (depth + frame.projection.x);
+      var particle = frame.projection.y / (input.position.z + frame.projection.x);
+      if frame.projection.z > 0.0 {
+        scene = (frame.projection.y - depth) / frame.projection.x;
+        particle = (frame.projection.y - input.position.z) / frame.projection.x;
+      }
+      fade = clamp((scene - particle) / input.effects.x, 0.0, 1.0);
+    }
+  }
+  let alpha = input.color.a * texel.a * coverage * fade;
+  return vec4<f32>(input.color.rgb * texel.rgb * alpha, alpha);
 }

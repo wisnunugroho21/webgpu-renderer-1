@@ -24,6 +24,10 @@ export class MeshManager {
     number,
     { vertices: Float32Array; indices: Uint32Array }
   >();
+  /** Expose retained definitions for cold backing-store accounting, including deformation provenance. */
+  recoverySources(): unknown[] {
+    return [...this.recovery.values(), ...this.entries];
+  }
   /** Returns retained CPU geometry bytes needed to rebuild meshes after device loss. */
   get recoveryBytes(): number {
     let bytes = 0;

@@ -1,3 +1,4 @@
+import { isColorTexture } from "./MaterialTextureLayout";
 import { BasisTranscoder } from "../../assets/textures/BasisTranscoder";
 import {
   compressedTexture,
@@ -42,10 +43,7 @@ export class TextureUploader {
     const { image, bytes, hash, format, basis, role, compressed, bitmaps } =
       input;
     if (basis) {
-      const data = await this.basis.decode(
-        image.image,
-        role === "baseColor" || role === "emissive",
-      );
+      const data = await this.basis.decode(image.image, isColorTexture(role));
       if (this.isDisposed())
         throw new Error("Texture manager disposed during Basis decode");
       const texture = uploadCompressed(

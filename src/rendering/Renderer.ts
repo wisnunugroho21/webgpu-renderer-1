@@ -1,3 +1,4 @@
+import { retainedMemory } from "../assets/retainedMemory";
 import { copyRendererSettings } from "./copyRendererSettings";
 import { ParticleSystem } from "../particles/ParticleSystem";
 import { ParticleRenderer } from "./particles/ParticleRenderer";
@@ -138,6 +139,32 @@ export class Renderer {
     a: 1,
   };
 
+  /** Cold diagnostic snapshot: GPU logical storage and unique retained recovery payloads, never called per frame. */
+  get memory() {
+    const stats = this.resources.stats;
+    return {
+      gpuBytes: stats.gpuBytes,
+      bufferBytes: stats.bufferBytes,
+      textureBytes: stats.textureBytes,
+      mipBytes: stats.textureMipBytes,
+      compressedBytes: stats.compressedTextureBytes,
+      renderTargetBytes: stats.renderTargetBytes,
+      recoveryBytes: retainedMemory(this.recoverySources()),
+    };
+  }
+  /** Gather CPU definitions shared with asset caches; application totals deduplicate their backing stores. */
+  recoverySources(): unknown[] {
+    return [
+      this.meshes.recoverySources(),
+      this.textures.recoverySources(),
+      this.environment.data,
+      this.particles.records,
+      this.particles.curves.records,
+      this.particles.atlas,
+      this.particles.trails.recoverySources(),
+      this.materials,
+    ];
+  }
   /** Initializes frame visibility, batching, shared uploads and graph execution. */
   constructor(
     readonly gpu: GPUContext,
@@ -189,6 +216,10 @@ export class Renderer {
         /** Returns the current frame stamp for safe retirement and temporal resource tracking. */ this
           .frameNumber,
       world,
+      () => {
+        /* Cold streaming admission includes fixed pools, targets and retained provenance. */ return this
+          .memory;
+      },
     );
     this.queue = new RenderQueue(world.capacity);
     this.lodSelector = new LODSelector(world.capacity, this.lodGroups);
@@ -360,6 +391,10 @@ export class Renderer {
       () =>
         /** Returns the current frame stamp for safe retirement and temporal resource tracking. */ this
           .frameNumber,
+      () => {
+        /* Budget diagnostics follow the newly recovered resource owners. */ return this
+          .memory;
+      },
     );
     this.streaming = previous.streaming;
   }
@@ -381,6 +416,7 @@ export class Renderer {
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
     });
     this.depthView = this.depth.createView();
+    this.particleRenderer.setDepth(this.depthView);
     this.hiz.resize(width, height, this.depthView);
     this.gpuOcclusion.resize(this.hiz.texture!);
   }
@@ -411,10 +447,16 @@ export class Renderer {
     this.stats.particleRecordUploadBytes =
       this.particleRenderer.recordUploadBytes;
     this.stats.particleDropped = this.particles.dropped;
+    this.stats.particleTrailSegments = this.particles.enabled
+      ? this.particles.trails.count
+      : 0;
+    this.stats.particleTrailUploadBytes =
+      this.particleRenderer.trailUploadBytes;
     this.stats.bufferUploadBytes += this.particleRenderer.uploadBytes;
     this.stats.drawCalls += this.particleRenderer.drawCalls;
     this.stats.pipelineSwitches += this.particleRenderer.drawCalls;
-    this.stats.triangles += this.stats.particleCount * 2;
+    this.stats.triangles +=
+      (this.stats.particleCount + this.stats.particleTrailSegments) * 2;
   }
 
   /** GPU-selected instance/triangle counts are unknown without a diagnostic readback. */

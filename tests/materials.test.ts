@@ -1,3 +1,4 @@
+import { MATERIAL_WORDS, MATERIAL_BYTES } from "../src/rendering/layouts";
 import { describe, expect, it, vi } from "vitest";
 import { MaterialManager } from "../src/rendering/materials/MaterialManager";
 import { MaterialFlags } from "../src/rendering/materials/MaterialFlags";
@@ -15,14 +16,14 @@ describe("shared material data", () => {
         alphaMode: "MASK",
         doubleSided: true,
       });
-    expect(m.data[id * 20 + 4]).toBeCloseTo(0.8);
+    expect(m.data[id * MATERIAL_WORDS + 4]).toBeCloseTo(0.8);
     expect(m.pipelineIndex(id)).toBe(3);
     expect(m.flags[id]).toBe(
       MaterialFlags.ALPHA_MASK | MaterialFlags.DOUBLE_SIDED,
     );
     m.set(id, { alphaMode: "BLEND" });
     expect(m.pipelineIndex(id)).toBe(4);
-    expect(m.data[id * 20]).toBe(1);
+    expect(m.data[id * MATERIAL_WORDS]).toBe(1);
   });
   it("uploads changed ranges and skips unchanged data", () => {
     // Verifies uploads changed ranges and skips unchanged data.
@@ -32,19 +33,19 @@ describe("shared material data", () => {
     const buffer = {} as GPUBuffer,
       queue = { writeBuffer: vi.fn() } as unknown as GPUQueue;
     m.upload(queue, buffer);
-    expect(m.uploadBytes).toBe(240);
+    expect(m.uploadBytes).toBe(3 * MATERIAL_BYTES);
     m.upload(queue, buffer);
     expect(m.uploadBytes).toBe(0);
     m.set(1, { roughness: 0.3 });
     m.upload(queue, buffer);
     expect(queue.writeBuffer).toHaveBeenLastCalledWith(
       buffer,
-      80,
+      MATERIAL_BYTES,
       m.data.buffer,
-      80,
-      80,
+      MATERIAL_BYTES,
+      MATERIAL_BYTES,
     );
-    expect(m.uploadBytes).toBe(80);
+    expect(m.uploadBytes).toBe(MATERIAL_BYTES);
   });
   it("rejects capacity and invalid values", () => {
     // Verifies rejects capacity and invalid values.

@@ -1,0 +1,32 @@
+{
+  "matrixBaseline": "restructure-matrix-final.json (source before comment-only ab2c31f)",
+  "comparedLeafValues": 2743,
+  "excludedFields": [
+    "assetPreparationMs",
+    "cpuMedianMs",
+    "environment",
+    "gpuPassMedianMs"
+  ],
+  "newZeroCounterValues": 72,
+  "differences": [],
+  "unchangedParticleReferenceFields": [
+    "shapes",
+    "red",
+    "sorted",
+    "additive",
+    "mixed",
+    "hdr",
+    "draws",
+    "unchangedRecordBytes",
+    "depthDifference",
+    "bloomDifference",
+    "gpuErrors",
+    "finalBuffers",
+    "finalTextures"
+  ],
+  "particleDifferences": [],
+  "steadyFrameBytes": {
+    "before": 112,
+    "final": 144
+  }
+}

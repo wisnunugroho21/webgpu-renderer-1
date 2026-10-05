@@ -1,3 +1,10 @@
+import type {
+  Clearcoat,
+  IOR,
+  Specular,
+  EmissiveStrength,
+  Transform,
+} from "@gltf-transform/extensions";
 import type { Material, Texture, TextureInfo } from "@gltf-transform/core";
 import type { RuntimeAsset, RuntimeTextureSlot } from "./RuntimeAsset";
 
@@ -14,7 +21,19 @@ export function convertMaterials(
     texture && info
       ? {
           texture: textures.indexOf(texture),
-          texCoord: info.getTexCoord(),
+          texCoord:
+            info
+              .getExtension<Transform>("KHR_texture_transform")
+              ?.getTexCoord() ?? info.getTexCoord(),
+          offset: info
+            .getExtension<Transform>("KHR_texture_transform")
+            ?.getOffset(),
+          scale: info
+            .getExtension<Transform>("KHR_texture_transform")
+            ?.getScale(),
+          rotation: info
+            .getExtension<Transform>("KHR_texture_transform")
+            ?.getRotation(),
           magFilter: info.getMagFilter(),
           minFilter: info.getMinFilter(),
           wrapS: info.getWrapS(),
@@ -24,7 +43,9 @@ export function convertMaterials(
   return materials.map((material) => {
     // Preserve PBR values and sampler metadata for later material publication.
 
-    const bindings: Record<string, RuntimeTextureSlot> = {};
+    const bindings: Record<string, RuntimeTextureSlot> = {},
+      coat = material.getExtension<Clearcoat>("KHR_materials_clearcoat"),
+      spec = material.getExtension<Specular>("KHR_materials_specular");
     for (const [name, texture, info] of [
       [
         "baseColor",
@@ -51,7 +72,43 @@ export function convertMaterials(
       const binding = slot(texture, info);
       if (binding) bindings[name] = binding;
     }
+    for (const [name, texture, info] of [
+      [
+        "clearcoat",
+        coat?.getClearcoatTexture(),
+        coat?.getClearcoatTextureInfo(),
+      ],
+      [
+        "clearcoatRoughness",
+        coat?.getClearcoatRoughnessTexture(),
+        coat?.getClearcoatRoughnessTextureInfo(),
+      ],
+      [
+        "clearcoatNormal",
+        coat?.getClearcoatNormalTexture(),
+        coat?.getClearcoatNormalTextureInfo(),
+      ],
+      ["specular", spec?.getSpecularTexture(), spec?.getSpecularTextureInfo()],
+      [
+        "specularColor",
+        spec?.getSpecularColorTexture(),
+        spec?.getSpecularColorTextureInfo(),
+      ],
+    ] as const) {
+      const binding = slot(texture ?? null, info ?? null);
+      if (binding) bindings[name] = binding;
+    }
     return {
+      ior: material.getExtension<IOR>("KHR_materials_ior")?.getIOR(),
+      specular: spec?.getSpecularFactor(),
+      specularColor: spec?.getSpecularColorFactor(),
+      clearcoat: coat?.getClearcoatFactor(),
+      clearcoatRoughness: coat?.getClearcoatRoughnessFactor(),
+      clearcoatNormalScale: coat?.getClearcoatNormalScale(),
+      emissiveStrength: material
+        .getExtension<EmissiveStrength>("KHR_materials_emissive_strength")
+        ?.getEmissiveStrength(),
+      unlit: !!material.getExtension("KHR_materials_unlit"),
       baseColor: material.getBaseColorFactor(),
       metallic: material.getMetallicFactor(),
       roughness: material.getRoughnessFactor(),

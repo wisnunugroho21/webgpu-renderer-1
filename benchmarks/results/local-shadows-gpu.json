@@ -1,0 +1,88 @@
+{
+  "results": {
+    "spot": {
+      "difference": 9408,
+      "warmDifference": 0,
+      "cullingDifference": 0,
+      "passes": 1,
+      "cacheHits": 1,
+      "cpuMs": 0,
+      "completionMs": 0.9000000059604645,
+      "resourcesBefore": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      },
+      "resourcesAfter": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      }
+    },
+    "point": {
+      "difference": 9408,
+      "warmDifference": 0,
+      "cullingDifference": 0,
+      "passes": 6,
+      "cacheHits": 6,
+      "cpuMs": 0.09999999403953552,
+      "completionMs": 1.300000011920929,
+      "resourcesBefore": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      },
+      "resourcesAfter": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      }
+    }
+  },
+  "gpuError": null,
+  "errors": []
+}

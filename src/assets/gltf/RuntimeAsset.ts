@@ -1,5 +1,8 @@
 import type { PreparedMesh } from "../../rendering/geometry/prepareMesh";
-import type { Material } from "../../rendering/materials/Material";
+import type {
+  Material,
+  MaterialTextureSlot,
+} from "../../rendering/materials/Material";
 /** Decoded primitive attributes and morph targets; prepared data is optional and GPU-free. */
 export interface RuntimePrimitive {
   /** Optional worker-prepared canonical data; no GPU handles. */
@@ -11,7 +14,7 @@ export interface RuntimePrimitive {
   targets: Record<string, Float32Array>[];
 }
 /** Texture-table index and sampler metadata used during material publication. */
-export interface RuntimeTextureSlot {
+export interface RuntimeTextureSlot extends MaterialTextureSlot {
   texture: number;
   texCoord: number;
   magFilter: number | null;

@@ -49,6 +49,10 @@ export class EnvironmentLoader {
   get size(): number {
     return this.cache.size;
   }
+  /** Expose cached bake definitions for cold unique-backing-store memory snapshots. */
+  recoverySources(): EnvironmentData[] {
+    return [...this.cache.values()];
+  }
   /** Returns the retained environment-array byte total for cache-budget accounting. */
   get cachedBytes(): number {
     return this.bytes;

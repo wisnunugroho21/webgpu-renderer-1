@@ -26,7 +26,7 @@ pnpm run format:check
 
 ## Particles and visual effects
 
-Enable `app.particles.enabled`, create reusable emitters or call `playEffect` for sparks, smoke, explosions, confetti and shockwaves. Configurable world-space billboards use analytic GPU motion, sorted alpha/additive blending and shared buffers; scene depth, HDR bloom, FXAA and recovery are supported. The feature starts disabled and creates no particle GPU resources before enablement. Try `/?example=particles` (Space: explosion, C: confetti, P: pause, B: bloom). See [PARTICLES.md](PARTICLES.md) for setup, controls, capacity, ownership and limits.
+Enable `app.particles.enabled`, create reusable emitters or call `playEffect` for sparks, smoke, explosions, confetti and shockwaves. Configurable world-space billboards and connected ribbons support sprite atlases/flipbooks, cone/sphere emission, lifetime curves, soft depth fades and analytic GPU motion, sorted alpha/additive blending and shared buffers; scene depth, HDR bloom, FXAA and recovery are supported. The feature starts disabled and creates no particle GPU resources before enablement. Try `/?example=particles` (Space: explosion, C: confetti, P: pause, B: bloom). See [PARTICLES.md](PARTICLES.md) for setup, controls, capacity, ownership and limits.
 
 ## Validation
 
@@ -191,7 +191,7 @@ One environment is shared across materials. Installation is transactional and se
 
 HDR/EXR loading and skyboxes are available through the APIs below; glTF environment extensions remain a separate capability. This implementation supplies single-scattering diffuse/specular IBL; enable optional HDR rendering below to preserve bright highlights through tone mapping. Validation, measured overhead and limitations: [scene features report](benchmarks/SCENE_FEATURES_REPORT.md).
 
-Lights use ECS `world.lights.set(entity, properties)` with directional/point/spot types. Directional lights opt into shadows with `castShadow: true`. Configure `renderer.shadows.cascades` (1–4), `shadowDistance` (>0.1–100), `enabled`, or `cacheEnabled`. The shared array supports four shadow lights and rejects overflow. Clustered lighting defaults to automatic selection for many bounded lights; `renderer.clusters.mode` accepts `auto`, `off`, or `on`, with safe overflow fallback.
+Lights use ECS `world.lights.set(entity, properties)` with directional/point/spot types. All three types opt into shadows with `castShadow: true`; point lights reserve six layers and spots one. Configure `renderer.shadows.cascades` (1–4), `shadowDistance` (>0), `enabled`, or `cacheEnabled`. The shared 16-layer array supports at most four directional casters and rejects layer overflow. Clustered lighting defaults to automatic selection for many bounded lights; `renderer.clusters.mode` accepts `auto`, `off`, or `on`, with safe overflow fallback.
 
 `app.profiler` exposes fixed CPU stage history and frame totals. `renderer.gpuProfiler.supported` reports timestamp availability. Set `enabled=true` for at most three captured frames, then `enabled=false` and explicitly call `await readSamples()` for pass times. Full capture slots drop further samples until readback; this diagnostic API keeps all readback outside ordinary frames.
 
@@ -472,3 +472,11 @@ Run scripts with `pnpm run <name>` or execute installed tools with `pnpm exec <t
 ## Custom shader materials
 
 Register surface WGSL with `await app.registerMaterialShader({ name, source })`, then create materials with `shaderId` and up to 16 `shaderParameters`. The required `shadeMaterial(MaterialSurface, MaterialShaderParameters) -> vec3<f32>` function returns linear RGB while shared geometry, alpha coverage, instancing, depth/shadows, HDR and recovery remain renderer-owned. See [CUSTOM_MATERIALS.md](CUSTOM_MATERIALS.md) for the complete contract and examples. Try `/?example=shaders`; run `pnpm run validate:materials` for correctness, lifetime and diagnostic benchmarks.
+
+## Memory and streaming budgets
+
+Inspect `app.memory` for GPU buffers/textures, mip chains, compressed blocks, render targets and unique retained recovery stores. Opt in with `app.setStreamingBudget(...)` to bound queued LOD/material replacement loading, reserve headroom, evict unleased residency under pressure and retain fallbacks on budget rejection. See [MEMORY_AND_STREAMING.md](MEMORY_AND_STREAMING.md).
+
+See [AUTHORED_RENDERING.md](AUTHORED_RENDERING.md) for local shadow controls, glTF clearcoat/specular/IOR/emission/unlit, texture transforms, layout costs and validation.
+
+Render graphs now expose compiled resource lifetimes and optional compatible transient-target assignments. HDR/post resize targets reuse completed device-local pool entries with bounded idle retention. See [RENDER_GRAPH.md](RENDER_GRAPH.md).

@@ -30,7 +30,7 @@ struct ShadowOutput {
 // Discards masked texels below cutoff before they can write camera/shadow depth.
 @fragment fn shadowFS(input: ShadowOutput) {
   let m = materials[input.materialId];
-  let uv = select(input.uv0, input.uv1, m.uv.x == 1.0);
+  let uv = materialUV(m, input.uv0, input.uv1, 0u);
   let alpha = m.baseColor.a * input.color.a * textureSample(baseMap, baseSampler, uv).a;
   if (m.surface.z == 1.0 && alpha < m.surface.w) {
     discard;

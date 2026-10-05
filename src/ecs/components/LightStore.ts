@@ -2,6 +2,12 @@ import { ComponentStore } from "./ComponentStore";
 export interface Light {
   type: "directional" | "point" | "spot";
   castShadow?: boolean;
+  /** Positive local projection near plane, default 0.05 world units. */
+  shadowNear?: number;
+  /** Depth-comparison offset in normalized depth, default 0.0001; zero is valid. */
+  shadowBias?: number;
+  /** Receiver offset along its shading normal in world units, default 0.005. */
+  shadowNormalBias?: number;
   color?: ArrayLike<number>;
   intensity?: number;
   range?: number;
@@ -10,6 +16,9 @@ export interface Light {
   outerCone?: number;
 }
 export class LightStore extends ComponentStore {
+  readonly shadowNear: Float32Array;
+  readonly shadowBias: Float32Array;
+  readonly shadowNormalBias: Float32Array;
   readonly type: Uint8Array;
   readonly castShadow: Uint8Array;
   readonly direction: Float32Array;
@@ -21,6 +30,9 @@ export class LightStore extends ComponentStore {
   /** Initializes packed directional, point and spot-light component data. */
   constructor(capacity: number) {
     super(capacity);
+    this.shadowNear = new Float32Array(capacity);
+    this.shadowBias = new Float32Array(capacity);
+    this.shadowNormalBias = new Float32Array(capacity);
     this.type = new Uint8Array(capacity);
     this.castShadow = new Uint8Array(capacity);
     this.direction = new Float32Array(capacity * 3);
@@ -40,6 +52,9 @@ export class LightStore extends ComponentStore {
     this.intensity[entity] = 1;
     this.range[entity] = 0;
     this.castShadow[entity] = 0;
+    this.shadowNear[entity] = 0.05;
+    this.shadowBias[entity] = 0.0001;
+    this.shadowNormalBias[entity] = 0.005;
     this.innerCone[entity] = 0;
     this.outerCone[entity] = Math.PI / 4;
   }
@@ -58,15 +73,35 @@ export class LightStore extends ComponentStore {
       intensity = light.intensity ?? 1,
       range = light.range ?? 0,
       inner = light.innerCone ?? 0,
-      outer = light.outerCone ?? Math.PI / 4;
+      outer = light.outerCone ?? Math.PI / 4,
+      near = light.shadowNear ?? 0.05,
+      bias = light.shadowBias ?? 0.0001,
+      normalBias = light.shadowNormalBias ?? 0.005;
     if (
       type < 0 ||
-      (light.castShadow === true && type !== 0) ||
+      !Number.isFinite(Math.fround(near)) ||
+      Math.fround(near) <= 0 ||
+      near <= 0 ||
+      !Number.isFinite(bias) ||
+      bias < 0 ||
+      bias > 1 ||
+      !Number.isFinite(normalBias) ||
+      normalBias < 0 ||
+      normalBias > 10000 ||
+      (light.castShadow === true &&
+        type !== 0 &&
+        range > 0 &&
+        Math.fround(near) >= Math.fround(range)) ||
+      (light.castShadow === true &&
+        type === 2 &&
+        (outer <= 0 ||
+          outer >= Math.PI / 2 ||
+          Math.fround(Math.cos(Math.fround(outer))) >= 1)) ||
       color.length !== 3 ||
       direction.length !== 3 ||
       !Number.isFinite(intensity) ||
       intensity < 0 ||
-      !Number.isFinite(range) ||
+      !Number.isFinite(Math.fround(range)) ||
       range < 0 ||
       !Number.isFinite(inner) ||
       !Number.isFinite(outer) ||
@@ -87,6 +122,9 @@ export class LightStore extends ComponentStore {
     this.add(entity);
     this.type[entity] = type;
     this.castShadow[entity] = light.castShadow ? 1 : 0;
+    this.shadowNear[entity] = near;
+    this.shadowBias[entity] = bias;
+    this.shadowNormalBias[entity] = normalBias;
     this.intensity[entity] = intensity;
     this.range[entity] = range;
     this.innerCone[entity] = inner;

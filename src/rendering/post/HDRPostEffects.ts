@@ -1,3 +1,4 @@
+import type { TargetLease } from "../../gpu/TransientTargetPool";
 import {
   createPostReduction,
   createExposureAdaptation,
@@ -10,6 +11,7 @@ interface Level {
   height: number;
   view: GPUTextureView;
   texture: GPUTexture;
+  lease: TargetLease;
   group: GPUBindGroup;
 }
 /** Optional bounded GPU-only radiance processing. Allocation and group construction are cold. */
@@ -24,6 +26,7 @@ export class HDRPostEffects {
   maxStops = 8;
   deltaSeconds = 1 / 60;
   private bloom?: GPUTexture;
+  private bloomTarget?: TargetLease;
   private readonly luminance: Level[] = [];
   private readonly bloomLevels: Level[] = [];
   private bloomReduction?: PostReduction;
@@ -113,9 +116,10 @@ export class HDRPostEffects {
     this.width = width;
     this.height = height;
     this.source = source;
-    if (this.bloom) this.resources.textures.destroy(this.bloom);
-    for (const level of this.luminance)
-      this.resources.textures.destroy(level.texture);
+    this.bloomTarget?.release();
+    this.bloomTarget = undefined;
+    this.bloom = undefined;
+    for (const level of this.luminance) level.lease.release();
     this.bloomLevels.length = this.luminance.length = 0;
     /** Creates one retained compute binding group for the supplied reduction resources. */
     const group = (
@@ -135,7 +139,7 @@ export class HDRPostEffects {
       const w = Math.max(1, Math.floor(width / 2)),
         h = Math.max(1, Math.floor(height / 2)),
         mips = Math.min(6, Math.floor(Math.log2(Math.max(w, h))) + 1);
-      this.bloom = this.resources.textures.create({
+      this.bloomTarget = this.resources.targets.acquire({
         label: "Bloom pyramid",
         size: [w, h],
         mipLevelCount: mips,
@@ -143,6 +147,7 @@ export class HDRPostEffects {
         usage:
           GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
       });
+      this.bloom = this.bloomTarget.texture;
       let input = source;
       for (let mip = 0; mip < mips; mip++) {
         const view = this.bloom.createView({
@@ -153,6 +158,7 @@ export class HDRPostEffects {
           width: Math.max(1, w >> mip),
           height: Math.max(1, h >> mip),
           texture: this.bloom,
+          lease: this.bloomTarget,
           view,
           group: group(this.bloomReduction.layout, input, view),
         });
@@ -166,18 +172,20 @@ export class HDRPostEffects {
       do {
         w = Math.max(1, Math.ceil(w / 2));
         h = Math.max(1, Math.ceil(h / 2));
-        const texture = this.resources.textures.create({
+        const lease = this.resources.targets.acquire({
             label: "Weighted log luminance",
             size: [w, h],
             format: "rgba32float",
             usage:
               GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING,
           }),
-          view = texture.createView();
+          texture = lease.texture,
+          view = lease.view;
         this.luminance.push({
           width: w,
           height: h,
           texture,
+          lease,
           view,
           group: group(this.lumaReduction.layout, input, view),
         });

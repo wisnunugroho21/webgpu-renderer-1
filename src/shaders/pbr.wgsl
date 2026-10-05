@@ -10,6 +10,16 @@
 @group(1) @binding(7) var aoSampler: sampler;
 @group(1) @binding(8) var emissiveMap: texture_2d<f32>;
 @group(1) @binding(9) var emissiveSampler: sampler;
+@group(1) @binding(10) var coatMap: texture_2d<f32>;
+@group(1) @binding(11) var coatSampler: sampler;
+@group(1) @binding(12) var coatRoughMap: texture_2d<f32>;
+@group(1) @binding(13) var coatRoughSampler: sampler;
+@group(1) @binding(14) var coatNormalMap: texture_2d<f32>;
+@group(1) @binding(15) var coatNormalSampler: sampler;
+@group(1) @binding(16) var specularMap: texture_2d<f32>;
+@group(1) @binding(17) var specularSampler: sampler;
+@group(1) @binding(18) var specularColorMap: texture_2d<f32>;
+@group(1) @binding(19) var specularColorSampler: sampler;
 struct Output {
   @builtin(position) position: vec4<f32>,
   @location(0) color: vec4<f32>,
@@ -72,16 +82,31 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
 // Samples material maps, applies alpha/normal handling and combines direct, ambient and emissive linear radiance.
 @fragment fn fs(input: Output, @builtin(front_facing) front: bool) -> @location(0) vec4<f32> {
   let m = materials[input.materialId];
-  let base = m.baseColor * input.color * textureSample(baseMap, baseSampler, coords(input, m.uv.x));
-  let mr = textureSample(mrMap, mrSampler, coords(input, m.uv.y));
-  let sampledNormal = textureSample(normalMap, normalSampler, coords(input, m.uv.z)).xyz * 2.0 - 1.0;
-  let ao = mix(1.0, textureSample(aoMap, aoSampler, coords(input, m.uv.w)).r, m.params.x);
-  let emissive = m.emissive.rgb * textureSample(emissiveMap, emissiveSampler, coords(input, m.params.y)).rgb;
-  let normalUV = coords(input, m.uv.z);
+  let base = m.baseColor * input.color * textureSample(baseMap, baseSampler, materialUV(m, input.uv0, input.uv1, 0u));
+  let mr = textureSample(mrMap, mrSampler, materialUV(m, input.uv0, input.uv1, 1u));
+  let sampledNormal = textureSample(normalMap, normalSampler, materialUV(m, input.uv0, input.uv1, 2u)).xyz * 2.0 - 1.0;
+  let ao = mix(1.0, textureSample(aoMap, aoSampler, materialUV(m, input.uv0, input.uv1, 3u)).r, m.params.x);
+  let emissive = m.emissive.rgb * m.authored.z * textureSample(emissiveMap, emissiveSampler, materialUV(m, input.uv0, input.uv1, 4u)).rgb;
+  let normalUV = materialUV(m, input.uv0, input.uv1, 2u);
   let dx = dpdx(input.world);
   let dy = dpdy(input.world);
   let ux = dpdx(normalUV);
   let uy = dpdy(normalUV);
+  let authoredUV5 = materialUV(m, input.uv0, input.uv1, 5u);
+  let ax5 = dpdx(authoredUV5);
+  let ay5 = dpdy(authoredUV5);
+  let authoredUV6 = materialUV(m, input.uv0, input.uv1, 6u);
+  let ax6 = dpdx(authoredUV6);
+  let ay6 = dpdy(authoredUV6);
+  let authoredUV7 = materialUV(m, input.uv0, input.uv1, 7u);
+  let ax7 = dpdx(authoredUV7);
+  let ay7 = dpdy(authoredUV7);
+  let authoredUV8 = materialUV(m, input.uv0, input.uv1, 8u);
+  let ax8 = dpdx(authoredUV8);
+  let ay8 = dpdy(authoredUV8);
+  let authoredUV9 = materialUV(m, input.uv0, input.uv1, 9u);
+  let ax9 = dpdx(authoredUV9);
+  let ay9 = dpdy(authoredUV9);
   if m.surface.z == 1.0 && base.a < m.surface.w {
     discard;
   }
@@ -92,7 +117,7 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
   if m.params.z == 1.0 {
     var t = safeNormalize(input.tangent.xyz - n * dot(n, input.tangent.xyz));
     var b = cross(n, t) * input.tangent.w;
-    if dot(t, t) < 0.5 {
+    if dot(t, t) < 0.5 || m.textureTransforms[4].w == 1.0 || m.textureTransforms[5].w == 1.0 {
       // Tangent-free glTF meshes use the selected normal map UV derivatives.
       let determinant = ux.x * uy.y - ux.y * uy.x;
       if abs(determinant) > 1e-8 {
@@ -105,6 +130,50 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
     }
   }
   var result = base.rgb + emissive;
+  if m.authored.w == 1.0 {
+    // glTF unlit uses only base color/vertex color/alpha; it ignores emission and lighting.
+    return vec4<f32>(base.rgb, select(1.0, base.a, m.surface.z == 2.0));
+  }
+  let flags = u32(m.coat.w);
+  var coatWeight = m.specularCoat.w;
+  var coatRoughness = m.coat.x;
+  var specularWeight = m.authored.y;
+  var specularColor = m.specularCoat.rgb;
+  // Explicit gradients preserve mip/anisotropic filtering inside optional-map branches.
+  if (flags & 1u) != 0u {
+    coatWeight *= textureSampleGrad(coatMap, coatSampler, authoredUV5, ax5, ay5).r;
+  }
+  if (flags & 2u) != 0u {
+    coatRoughness *= textureSampleGrad(coatRoughMap, coatRoughSampler, authoredUV6, ax6, ay6).g;
+  }
+  if (flags & 8u) != 0u {
+    specularWeight *= textureSampleGrad(specularMap, specularSampler, authoredUV8, ax8, ay8).a;
+  }
+  if (flags & 16u) != 0u {
+    specularColor *= textureSampleGrad(specularColorMap, specularColorSampler, authoredUV9, ax9, ay9).rgb;
+  }
+  var coatNormal = safeNormalize(input.normal);
+  if m.params.w == 1.0 && ! front {
+    coatNormal = - coatNormal;
+  }
+  let coatUV = materialUV(m, input.uv0, input.uv1, 7u);
+  let cx = ax7;
+  let cy = ay7;
+  if (flags & 4u) != 0u {
+    let sampledCoat = textureSampleGrad(coatNormalMap, coatNormalSampler, coatUV, ax7, ay7).xyz * 2.0 - 1.0;
+    var ct = safeNormalize(input.tangent.xyz - coatNormal * dot(coatNormal, input.tangent.xyz));
+    var cb = cross(coatNormal, ct) * input.tangent.w;
+    if dot(ct, ct) < 0.5 || m.textureTransforms[14].w == 1.0 || m.textureTransforms[15].w == 1.0 {
+      let determinant = cx.x * cy.y - cx.y * cy.x;
+      if abs(determinant) > 1e-8 {
+        ct = safeNormalize((dx * cy.y - dy * cx.y) / determinant);
+        cb = safeNormalize((- dx * cy.x + dy * cx.x) / determinant);
+      }
+    }
+    if dot(ct, ct) > 0.5 && dot(cb, cb) > 0.5 {
+      coatNormal = safeNormalize(mat3x3<f32>(ct, cb, coatNormal) * vec3<f32>(sampledCoat.xy * m.coat.y, sampledCoat.z));
+    }
+  }
   if dot(n, n) > 0.5 {
     let metallic = clamp(m.surface.x * mr.b, 0.0, 1.0);
     let roughness = clamp(m.surface.y * mr.g, 0.045, 1.0);
@@ -112,7 +181,13 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
     if ((u32(frame.lighting.z) & 2u) != 0u) {
       v = safeNormalize(vec3<f32>(frame.view[0].z, frame.view[1].z, frame.view[2].z));
     }
-    result = directLighting(base.rgb, metallic, roughness, n, v, input.world, input.position.xy) + ambientLighting(base.rgb, metallic, roughness, n, v, ao) + emissive;
+    let ratio = (m.authored.x - 1.0) / (m.authored.x + 1.0);
+    let dielectric = select(select(ratio * ratio, 0.04, m.authored.x == 1.5), 1.0, m.authored.x == 0.0);
+    let f0 = mix(min(vec3<f32>(dielectric) * specularColor, vec3<f32>(1.0)) * specularWeight, base.rgb, metallic);
+    let extended = m.authored.x != 1.5 || specularWeight != 1.0 || any(specularColor != vec3<f32>(1.0)) || coatWeight > 0.0;
+    let lobes = AuthoredLobes(f0, mix(specularWeight, 1.0, metallic), coatNormal, clamp(coatRoughness, 0.045, 1.0), coatWeight, extended);
+    let coatF = coatWeight * (0.04 + 0.96 * pow(1.0 - clamp(dot(coatNormal, v), 0.0, 1.0), 5.0));
+    result = authoredDirectLighting(base.rgb, metallic, roughness, n, v, input.world, input.position.xy, lobes) + authoredAmbientLighting(base.rgb, metallic, roughness, n, v, ao, lobes) + emissive * (1.0 - coatF);
   }
   return vec4<f32>(result, select(1.0, base.a, m.surface.z == 2.0));
 }

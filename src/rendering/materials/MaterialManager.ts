@@ -1,3 +1,4 @@
+import { packTextureLayout } from "./MaterialTextureLayout";
 import { MATERIAL_PIPELINE_VARIANTS } from "../pipelines/ColorPipelineLayout";
 import { MaterialShaderRegistry } from "./MaterialShaderRegistry";
 import { MaterialShaderParameters } from "./MaterialShaderParameters";
@@ -117,17 +118,38 @@ export class MaterialManager {
       occlusion > 1
     )
       throw new Error("Invalid PBR properties");
-    /** Reads packed texture-coordinate selection for a material. */
+    const layout = packTextureLayout(material.textures),
+      ior = material.ior ?? 1.5,
+      specular = material.specular ?? 1,
+      specularColor = material.specularColor ?? [1, 1, 1],
+      clearcoat = material.clearcoat ?? 0,
+      coatRoughness = material.clearcoatRoughness ?? 0,
+      coatNormalScale = material.clearcoatNormalScale ?? 1,
+      strength = material.emissiveStrength ?? 1;
+    if (
+      specularColor.length !== 3 ||
+      [
+        ior,
+        specular,
+        ...Array.from(specularColor),
+        clearcoat,
+        coatRoughness,
+        coatNormalScale,
+        strength,
+      ].some(
+        (v) =>
+          /** Reject invalid or unrepresentable authored factors before any record mutation. */ !Number.isFinite(
+            Math.fround(v),
+          ) || v < 0,
+      ) ||
+      (ior !== 0 && ior < 1) ||
+      specular > 1 ||
+      clearcoat > 1 ||
+      coatRoughness > 1
+    )
+      throw new Error("Invalid authored PBR properties");
+    /** Read the validated UV index for legacy metadata fields. */
     const uv = (role: string) => material.textures?.[role]?.texCoord ?? 0;
-    for (const role of [
-      "baseColor",
-      "metallicRoughness",
-      "normal",
-      "occlusion",
-      "emissive",
-    ])
-      if (![0, 1].includes(uv(role)))
-        throw new Error("Only TEXCOORD_0/1 are supported");
     this.shaderIds[id] = shaderId;
     this.customParameters.write(id, material.shaderParameters);
     this.data.set(baseColor, offset);
@@ -149,6 +171,19 @@ export class MaterialManager {
       [uv("baseColor"), uv("metallicRoughness"), uv("normal"), uv("occlusion")],
       offset + 16,
     );
+    this.data.set(
+      [ior, specular, strength, material.unlit ? 1 : 0],
+      offset + 20,
+    );
+    this.data.set(
+      [specularColor[0]!, specularColor[1]!, specularColor[2]!, clearcoat],
+      offset + 24,
+    );
+    this.data.set(
+      [coatRoughness, coatNormalScale, 0, layout[86]!],
+      offset + 28,
+    );
+    this.data.set(layout.subarray(6, 86), offset + 32);
     this.alphaMode[id] = alpha;
     this.doubleSided[id] = material.doubleSided ? 1 : 0;
     this.flags[id] =
@@ -200,11 +235,11 @@ export class MaterialManager {
     this.shaderUploadBytes = this.customParameters.upload(queue, buffer);
   }
   /** Returns the texture layout metadata associated with a material. */
-  textureLayout(id: number): Float32Array {
+  textureLayout(id: number, extended = false): Float32Array {
     if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
     const o = id * MATERIAL_WORDS;
-    return new Float32Array([
+    const layout = new Float32Array([
       this.data[o + 13]!,
       this.data[o + 14]!,
       this.data[o + 16]!,
@@ -212,16 +247,44 @@ export class MaterialManager {
       this.data[o + 18]!,
       this.data[o + 19]!,
     ]);
+    if (!extended) return layout;
+    const complete = new Float32Array(87);
+    complete.set(layout);
+    complete.set(this.data.subarray(o + 32, o + 112), 6);
+    complete[86] = this.data[o + 31]!;
+    return complete;
   }
   /** Updates texture-coordinate/normal-map metadata and invalidates the packed material state. */
   setTextureLayout(id: number, layout: ArrayLike<number>): void {
     if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
-    if (layout.length !== 6) throw new Error("Invalid texture layout");
+    if (layout.length !== 6 && layout.length !== 87)
+      throw new Error("Invalid texture layout");
     for (let i = 0; i < 6; i++)
       if (layout[i] !== 0 && layout[i] !== 1)
         throw new Error("Only TEXCOORD_0/1 are supported");
+    if (layout.length === 87) {
+      for (let i = 6; i < 87; i++)
+        if (!Number.isFinite(Math.fround(layout[i]!)))
+          throw new Error("Invalid texture layout");
+      for (let i = 0; i < 10; i++) {
+        const uv = layout[9 + i * 8],
+          transformed = layout[13 + i * 8];
+        if ((uv !== 0 && uv !== 1) || (transformed !== 0 && transformed !== 1))
+          throw new Error("Invalid texture layout");
+      }
+      if (!Number.isInteger(layout[86]) || layout[86]! < 0 || layout[86]! > 31)
+        throw new Error("Invalid texture flags");
+    }
     const o = id * MATERIAL_WORDS;
+    if (layout.length === 87) {
+      this.data.set(Array.from(layout).slice(6, 86), o + 32);
+      this.data[o + 31] = layout[86]!;
+    } else {
+      // Legacy six-word callers still update the matching affine-row UV selectors.
+      for (let i = 0; i < 5; i++)
+        this.data[o + 35 + i * 8] = layout[i === 4 ? 0 : i + 2]!;
+    }
     this.data[o + 13] = layout[0]!;
     this.data[o + 14] = layout[1]!;
     for (let i = 2; i < 6; i++) this.data[o + 14 + i] = layout[i]!;
@@ -231,14 +294,7 @@ export class MaterialManager {
   }
   /** Attaches material texture slots while retaining scalar PBR factors. */
   setTextureSlots(id: number, slots: NonNullable<Material["textures"]>): void {
-    this.setTextureLayout(id, [
-      slots.emissive?.texCoord ?? 0,
-      slots.normal ? 1 : 0,
-      slots.baseColor?.texCoord ?? 0,
-      slots.metallicRoughness?.texCoord ?? 0,
-      slots.normal?.texCoord ?? 0,
-      slots.occlusion?.texCoord ?? 0,
-    ]);
+    this.setTextureLayout(id, packTextureLayout(slots));
   }
   /** Encodes alpha mode and sidedness into the bounded material pipeline variant index. */
   pipelineIndex(id: number): number {

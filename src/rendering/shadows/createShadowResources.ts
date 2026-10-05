@@ -1,3 +1,4 @@
+import { MATERIAL_BYTES } from "../layouts";
 import type { Resources } from "../../gpu/Resources";
 import type { DynamicBufferAllocator } from "../../gpu/DynamicBufferAllocator";
 import type { RenderWorld } from "../RenderWorld";
@@ -39,7 +40,7 @@ export function createShadowResources({
   dataBytes,
 }: ShadowResourcesInput) {
   const texture = resources.textures.create({
-    label: "Directional shadow array",
+    label: "Shared light shadow array",
     size: [resolution, resolution, capacity],
     format: "depth32float",
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
@@ -84,7 +85,7 @@ export function createShadowResources({
             binding === 0
               ? 192
               : binding === 2
-                ? 80
+                ? MATERIAL_BYTES
                 : binding === 3
                   ? 48
                   : binding === 5

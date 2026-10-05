@@ -1,0 +1,218 @@
+{
+  "reference": {
+    "same": false,
+    "pixels": [
+      [
+        255,
+        0,
+        0,
+        255
+      ],
+      [
+        0,
+        255,
+        0,
+        255
+      ]
+    ],
+    "logicalBytes": 512,
+    "physicalBytes": 512,
+    "before": {
+      "pipelineCreations": 52,
+      "shaderModules": 13,
+      "bufferCreations": 39,
+      "textureCreations": 7,
+      "textureBytes": 69976536,
+      "textureMipBytes": 409552,
+      "compressedTextureBytes": 0,
+      "renderTargetBytes": 69976528,
+      "samplerCreations": 2,
+      "buffers": 39,
+      "textures": 7,
+      "bufferBytes": 66295504,
+      "cacheHits": 54,
+      "cacheMisses": 67
+    },
+    "after": {
+      "pipelineCreations": 52,
+      "shaderModules": 13,
+      "bufferCreations": 39,
+      "textureCreations": 7,
+      "textureBytes": 69976536,
+      "textureMipBytes": 409552,
+      "compressedTextureBytes": 0,
+      "renderTargetBytes": 69976528,
+      "samplerCreations": 2,
+      "buffers": 39,
+      "textures": 7,
+      "bufferBytes": 66295504,
+      "cacheHits": 54,
+      "cacheMisses": 67
+    }
+  },
+  "aliased": {
+    "same": true,
+    "pixels": [
+      [
+        255,
+        0,
+        0,
+        255
+      ],
+      [
+        0,
+        255,
+        0,
+        255
+      ]
+    ],
+    "logicalBytes": 512,
+    "physicalBytes": 256,
+    "before": {
+      "pipelineCreations": 52,
+      "shaderModules": 13,
+      "bufferCreations": 39,
+      "textureCreations": 7,
+      "textureBytes": 69976536,
+      "textureMipBytes": 409552,
+      "compressedTextureBytes": 0,
+      "renderTargetBytes": 69976528,
+      "samplerCreations": 2,
+      "buffers": 39,
+      "textures": 7,
+      "bufferBytes": 66295504,
+      "cacheHits": 54,
+      "cacheMisses": 67
+    },
+    "after": {
+      "pipelineCreations": 52,
+      "shaderModules": 13,
+      "bufferCreations": 39,
+      "textureCreations": 7,
+      "textureBytes": 69976536,
+      "textureMipBytes": 409552,
+      "compressedTextureBytes": 0,
+      "renderTargetBytes": 69976528,
+      "samplerCreations": 2,
+      "buffers": 39,
+      "textures": 7,
+      "bufferBytes": 66295504,
+      "cacheHits": 54,
+      "cacheMisses": 67
+    }
+  },
+  "repeated": {
+    "same": true,
+    "pixels": [
+      [
+        255,
+        0,
+        0,
+        255
+      ],
+      [
+        0,
+        255,
+        0,
+        255
+      ]
+    ],
+    "logicalBytes": 512,
+    "physicalBytes": 256,
+    "before": {
+      "pipelineCreations": 52,
+      "shaderModules": 13,
+      "bufferCreations": 39,
+      "textureCreations": 7,
+      "textureBytes": 69976536,
+      "textureMipBytes": 409552,
+      "compressedTextureBytes": 0,
+      "renderTargetBytes": 69976528,
+      "samplerCreations": 2,
+      "buffers": 39,
+      "textures": 7,
+      "bufferBytes": 66295504,
+      "cacheHits": 54,
+      "cacheMisses": 67
+    },
+    "after": {
+      "pipelineCreations": 52,
+      "shaderModules": 13,
+      "bufferCreations": 39,
+      "textureCreations": 7,
+      "textureBytes": 69976536,
+      "textureMipBytes": 409552,
+      "compressedTextureBytes": 0,
+      "renderTargetBytes": 69976528,
+      "samplerCreations": 2,
+      "buffers": 39,
+      "textures": 7,
+      "bufferBytes": 66295504,
+      "cacheHits": 54,
+      "cacheMisses": 67
+    }
+  },
+  "reuseCreations": 0,
+  "resize": {
+    "creations": 0,
+    "hits": 8,
+    "pool": {
+      "hits": 11,
+      "misses": 31,
+      "activeBytes": 65528,
+      "retiredBytes": 0,
+      "idleBytes": 5996688,
+      "evictions": 0
+    }
+  },
+  "warm": {
+    "pipelineCreations": 91,
+    "shaderModules": 18,
+    "bufferCreations": 42,
+    "textureCreations": 37,
+    "textureBytes": 76038248,
+    "textureMipBytes": 832312,
+    "compressedTextureBytes": 0,
+    "renderTargetBytes": 76038232,
+    "samplerCreations": 2,
+    "buffers": 42,
+    "textures": 37,
+    "bufferBytes": 66295568,
+    "cacheHits": 96,
+    "cacheMisses": 111
+  },
+  "afterWarm": {
+    "pipelineCreations": 91,
+    "shaderModules": 18,
+    "bufferCreations": 42,
+    "textureCreations": 37,
+    "textureBytes": 76038248,
+    "textureMipBytes": 832312,
+    "compressedTextureBytes": 0,
+    "renderTargetBytes": 76038232,
+    "samplerCreations": 2,
+    "buffers": 42,
+    "textures": 37,
+    "bufferBytes": 66295568,
+    "cacheHits": 96,
+    "cacheMisses": 111
+  },
+  "timings": {
+    "cpuMs": 0.10000002384185791,
+    "completionMs": 1.5
+  },
+  "gpuError": null,
+  "gpuErrors": [],
+  "disposed": {
+    "textures": 0,
+    "bytes": 0,
+    "pool": {
+      "hits": 23,
+      "misses": 31,
+      "activeBytes": 0,
+      "retiredBytes": 0,
+      "idleBytes": 0,
+      "evictions": 0
+    }
+  }
+}

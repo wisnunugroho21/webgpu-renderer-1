@@ -1,0 +1,63 @@
+{
+  "base": {
+    "gpuBytes": 135517864,
+    "bufferBytes": 65541840,
+    "textureBytes": 69976024,
+    "mipBytes": 409552,
+    "compressedBytes": 0,
+    "renderTargetBytes": 69976016,
+    "recoveryBytes": 1501552,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "resident": {
+    "gpuBytes": 135523324,
+    "bufferBytes": 65541840,
+    "textureBytes": 69981484,
+    "mipBytes": 410916,
+    "compressedBytes": 0,
+    "renderTargetBytes": 69976016,
+    "recoveryBytes": 1501693,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "recovered": {
+    "gpuBytes": 135523324,
+    "bufferBytes": 65541840,
+    "textureBytes": 69981484,
+    "mipBytes": 410916,
+    "compressedBytes": 0,
+    "renderTargetBytes": 69976016,
+    "recoveryBytes": 1501695,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "hdr": {
+    "gpuBytes": 137975480,
+    "bufferBytes": 65541856,
+    "textureBytes": 72433624,
+    "mipBytes": 409552,
+    "compressedBytes": 0,
+    "renderTargetBytes": 72433616,
+    "recoveryBytes": 1501552,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "resized": {
+    "gpuBytes": 133981880,
+    "bufferBytes": 65541856,
+    "textureBytes": 68440024,
+    "mipBytes": 102352,
+    "compressedBytes": 0,
+    "renderTargetBytes": 68440016,
+    "recoveryBytes": 1501552,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "compressedBytes": 24,
+  "actualRejected": true,
+  "gpuErrors": [],
+  "finalGPUBytes": 0,
+  "finalTextureBytes": 0,
+  "finalRenderTargetBytes": 0
+}

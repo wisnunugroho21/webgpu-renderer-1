@@ -1,0 +1,813 @@
+{
+  "baseline": "particle-vfx-matrix-final.json",
+  "comparedExistingValues": 2815,
+  "excludedFields": [
+    "assetPreparationMs",
+    "cpuMedianMs",
+    "environment",
+    "gpuPassMedianMs"
+  ],
+  "newAccountingValues": [
+    {
+      "path": ".geometry.benchmarks[0].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[0].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[0].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[0].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".geometry.benchmarks[0].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[0].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[0].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[0].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[1].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[2].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".geometry.benchmarks[3].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".occlusion[0].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".occlusion[0].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".occlusion[0].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".occlusion[0].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".occlusion[0].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".occlusion[0].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".occlusion[0].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".occlusion[0].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".occlusion[1].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".occlusion[1].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".occlusion[1].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".occlusion[1].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".occlusion[1].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".occlusion[1].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".occlusion[1].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".occlusion[1].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[0].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[0].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[0].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[0].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[0].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[0].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[0].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[0].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[1].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[1].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[1].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[1].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[1].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[1].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[1].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[1].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[2].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[2].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[2].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[2].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[2].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[2].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[2].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[2].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[3].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[3].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[3].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[3].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[3].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[3].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[3].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[3].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[4].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[4].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[4].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[4].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".morph[4].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".morph[4].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".morph[4].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".morph[4].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".combined.resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".combined.resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".combined.resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".combined.resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".combined.resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".combined.resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".combined.resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".combined.resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[0].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[0].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[0].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[0].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[0].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[0].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[0].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[0].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[1].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[1].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[1].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[1].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[1].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[1].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[1].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[1].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[2].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[2].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[2].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[2].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[2].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[2].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[2].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[2].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[3].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[3].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[3].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[3].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[3].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[3].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[3].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[3].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[4].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[4].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[4].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[4].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[4].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[4].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[4].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[4].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[5].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[5].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[5].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[5].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[5].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[5].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[5].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[5].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[6].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[6].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[6].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[6].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[6].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[6].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[6].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[6].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[7].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[7].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[7].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[7].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[7].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[7].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[7].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[7].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[8].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[8].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[8].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[8].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".materials[8].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".materials[8].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".materials[8].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".materials[8].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[0].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[0].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[0].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[0].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[0].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[0].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[0].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[0].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[1].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[1].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[1].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[1].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[1].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[1].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[1].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[1].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[2].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[2].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[2].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[2].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[2].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[2].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[2].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[2].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[3].resourcesAfter.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[3].resourcesAfter.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[3].resourcesAfter.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[3].resourcesAfter.textureMipBytes",
+      "value": 1638352
+    },
+    {
+      "path": ".animation[3].resourcesBefore.compressedTextureBytes",
+      "value": 0
+    },
+    {
+      "path": ".animation[3].resourcesBefore.renderTargetBytes",
+      "value": 78577616
+    },
+    {
+      "path": ".animation[3].resourcesBefore.textureBytes",
+      "value": 78577624
+    },
+    {
+      "path": ".animation[3].resourcesBefore.textureMipBytes",
+      "value": 1638352
+    }
+  ],
+  "differences": []
+}

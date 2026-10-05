@@ -13,13 +13,8 @@ import {
   RuntimeAsset,
   RuntimeTextureSlot,
 } from "../../assets/gltf/RuntimeAsset";
-export const textureRoles = [
-  "baseColor",
-  "metallicRoughness",
-  "normal",
-  "occlusion",
-  "emissive",
-] as const;
+import { textureRoles, isColorTexture } from "./MaterialTextureLayout";
+export { textureRoles } from "./MaterialTextureLayout";
 /** Cold-path material textures; all groups and sampler objects are reused by frames. */
 export class MaterialTextures {
   readonly layout: GPUBindGroupLayout;
@@ -96,7 +91,8 @@ export class MaterialTextures {
         (_, i) => /** Returns the ordered values needed by this operation. */ [
           {
             binding: i * 2,
-            resource: views?.[i] ?? (i === 2 ? this.flatNormal : this.white),
+            resource:
+              views?.[i] ?? (i === 2 || i === 7 ? this.flatNormal : this.white),
           },
           {
             binding: i * 2 + 1,
@@ -107,6 +103,10 @@ export class MaterialTextures {
         ],
       ),
     });
+  }
+  /** Retained runtime definitions rebuild bindings after loss; callers count aliased stores only once. */
+  recoverySources(): RuntimeAsset[] {
+    return [...this.prepared.values()];
   }
   /** Releases retained texture records and material bindings. */
   dispose(): void {
@@ -134,16 +134,11 @@ export class MaterialTextures {
       const basis = image.mimeType === "image/ktx2" && isBasis(image.image);
       const compressed =
         image.mimeType === "image/ktx2" && !basis
-          ? compressedTexture(
-              image.image,
-              role === "baseColor" || role === "emissive",
-            )
+          ? compressedTexture(image.image, isColorTexture(role))
           : undefined;
       const format: GPUTextureFormat =
         compressed?.format ??
-        (role === "baseColor" || role === "emissive"
-          ? "rgba8unorm-srgb"
-          : "rgba8unorm");
+        (isColorTexture(role) ? "rgba8unorm-srgb" : "rgba8unorm");
       if (this.disposed) throw new Error("Texture manager disposed");
       const key = `${hash}:${basis ? "basis:" + format : format}`;
       if (!owned.has(key)) {
@@ -193,7 +188,9 @@ export class MaterialTextures {
                     pending.push(result);
                     return result;
                   })()
-                : Promise.resolve(i === 2 ? this.flatNormal : this.white),
+                : Promise.resolve(
+                    i === 2 || i === 7 ? this.flatNormal : this.white,
+                  ),
             ),
           );
           if (this.disposed) throw new Error("Texture manager disposed");

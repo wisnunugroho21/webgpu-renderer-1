@@ -28,7 +28,10 @@
     "validate:post": "node scripts/validate-post.mjs",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix --max-warnings 0",
-    "validate:particles": "node scripts/validate-particles.mjs"
+    "validate:particles": "node scripts/validate-particles.mjs",
+    "validate:memory": "node scripts/validate-memory.mjs",
+    "validate:authored": "node scripts/validate-authored-rendering.mjs",
+    "validate:graph": "node scripts/validate-render-graph.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

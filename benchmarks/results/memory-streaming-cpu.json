@@ -1,0 +1,22 @@
+{
+  "workloads": {
+    "account 1000 compressed cube mip chains": {
+      "hz": 5364.81,
+      "minMs": 0.1836,
+      "maxMs": 0.2892,
+      "meanMs": 0.1864
+    },
+    "snapshot 1000 aliased recovery stores": {
+      "hz": 3377.31,
+      "minMs": 0.2802,
+      "maxMs": 1.0556,
+      "meanMs": 0.2961
+    },
+    "admit and pressure-evict 100 streamed resources": {
+      "hz": 10054.14,
+      "minMs": 0.0918,
+      "maxMs": 0.1746,
+      "meanMs": 0.0995
+    }
+  }
+}

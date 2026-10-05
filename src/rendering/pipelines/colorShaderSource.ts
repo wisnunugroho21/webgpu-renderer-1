@@ -14,6 +14,11 @@ const defaultAmbient = `
 // Returns a 3% diffuse ambient term attenuated by AO when no environment is installed.
 fn ambientLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, ao: f32) -> vec3<f32> {
   return base * (1.0 - metallic) * 0.03 * ao;
+}
+// No environment means no reflected coat radiance; retain diffuse ambient under its Fresnel layer.
+fn authoredAmbientLighting(base: vec3<f32>, metallic: f32, roughness: f32, n: vec3<f32>, v: vec3<f32>, ao: f32, lobes: AuthoredLobes) -> vec3<f32> {
+  let coatF = lobes.coatWeight * (0.04 + 0.96 * pow(1.0 - clamp(dot(lobes.coatNormal, v), 0.0, 1.0), 5.0));
+  return ambientLighting(base, metallic, roughness, n, v, ao) * (1.0 - coatF);
 }`;
 const sharedShader = [
   frameShader,

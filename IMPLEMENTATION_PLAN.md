@@ -2687,3 +2687,37 @@ Compose particles after scene color using read-only scene depth and before HDR/p
 ## User-requested maintenance restructuring — 2026-10-05
 
 Review the full repository after particle integration. Separate shadow/particle cold GPU construction from frame owners, name the particle spawn/uniform ABI, isolate renderer recovery control replay and separate asset transaction types while preserving existing imports. Keep established focused modules, serialized browser boundaries, resource creation order/identity, seeded emission, dirty ranges, profiled stages, feature defaults and Phase 44 behavior. Validate targeted setup changes before advancing, then run the complete production gate, CPU suite, long-animation GPU matrix and particle reference/timing scenario against a clean committed baseline. Record evidence in `benchmarks/RESTRUCTURE_REPORT.md`.
+
+
+## User-requested particle effects extension — 2026-10-05
+
+This amendment supersedes the original particle scope exclusions for atlases, soft fades and ribbons/trails. Preserve fixed capacities, typed provenance, cold GPU setup, analytic shading, existing feature defaults and normal-frame no-readback/no-wait rules. Implement and validate/benchmark in dependency order:
+
+1. Shared evenly tiled sprite atlas and lifetime/FPS flipbook playback — implemented; targeted CPU/GPU validation and benchmark passed.
+2. Shared bounded lifetime size/color multiplier profiles — implemented; targeted CPU/GPU validation and benchmark passed.
+3. Seeded directional cone/sphere emission — implemented; deterministic distribution/limits tests and birth benchmarks passed.
+4. Soft depth-intersection fades using existing scene depth — implemented; perspective/orthographic linear-reference tests passed.
+5. Fixed-capacity connected ribbons/trails, GPU strip expansion and endpoint aging — implemented; bounded-history, join, blend, soft-depth, recovery and warm-resource checks plus CPU/GPU benchmarks passed.
+
+Combined demonstration and documentation are complete. Production validation passes 256 tests across 66 files and all GPU gates; extended effect benchmarks and the long-animation regression matrix pass. Evidence is recorded in `benchmarks/PARTICLE_VFX_REPORT.md`. Keep collisions, mesh particles, arbitrary particle shaders, global transparency sorting and general gameplay physics outside this extension.
+
+
+## User-requested memory accounting and budget-aware streaming — 2026-10-05
+
+Track owned GPU texture storage including all mip chains, compressed blocks, array/volume layers, samples and render targets. Report unique retained recovery backing stores alongside decoded caches. Preserve shared-resource ownership, cold GPU setup, existing defaults and normal-frame no-wait/no-readback constraints.
+
+Implement in dependency order: descriptor accounting and lifecycle subtraction; retained provenance snapshots; opt-in priority/concurrency/reservation streaming admission and safe pressure eviction; real-GPU fallback/recovery/rollback checks; documentation and complete regression validation. Targeted unit tests, production GPU validation and cold CPU benchmarks pass. The final full gate passes 262 tests across 67 files and every GPU scenario. The long-animation regression matches 2,815 existing non-timing values; evidence is recorded in `benchmarks/MEMORY_STREAMING_REPORT.md`. Limits govern tracked streamed residency/publication, with explicit authored estimates; driver overhead and transient unknown-size uploads are not claimed as a hard physical memory ceiling.
+
+
+## User-requested local shadows and authored PBR — 2026-10-05
+
+Extend the existing shared shadow array to point and spot lights without new per-frame GPU objects or separate deformation paths. Preflight mixed light capacity transactionally; spots reserve one layer, points six, directional lights their existing cascades, within sixteen layers. Expose validated near/depth/normal bias settings, per-face culling and cache reuse. Validate local projection conventions, invalid inputs/capacity, production images and warm resources; benchmark before advancing to authored PBR.
+
+Add glTF clearcoat (all three maps), IOR/specular (both maps), emissive strength, unlit and per-role texture transforms using fixed shared material storage and bounded texture bindings. Preserve custom shader family/helper contracts, core factor offsets, alpha/deformation consistency, compression/mip ownership and recovery. Complete streamed layouts retain affine transforms/map flags. Targeted unit/GPU checks, cold CPU benchmarks and the complete validation gate pass; long-animation production benchmarking is recorded in `benchmarks/AUTHORED_RENDERING_REPORT.md`. Transmission/refraction, sheen, anisotropy and cross-face point PCF remain outside this extension. Existing user amendments and Phase 44 defaults remain in force.
+
+
+## User-requested render-graph lifetimes and transient target reuse — 2026-10-06
+
+Compile first/last-use intervals for explicit graph versions. Add exact-compatible transient texture interval coloring with strict nonoverlap, imported/persistent exclusions, exported end-of-graph retention and an explicit first-writer clear/full-write contract. Acquire physical leases and views once during cold graph preparation, rolling back partial failure. Preserve stable hot dispatch and established feature defaults.
+
+Add a device-local idle byte/count-bounded target pool with submitted-work completion quarantine, failed-fence cleanup and teardown protection. Use leases for HDR scene/bloom/luminance resize targets; retain persistent depth, Hi-Z, cached shadows and exposure state ownership. Never acquire, wait, create groups/targets or analyze lifetimes on a steady frame. Configuration/release happens between submissions; unsubmitted command buffers referencing released targets are prohibited by the ownership contract. Validate CPU intervals/compatibility/rollback/fences, real GPU alias results/resize reuse/disposal, cold compilation and hot dispatch benchmarks, and the full production regression matrix. Record evidence in `benchmarks/RENDER_GRAPH_REPORT.md`.

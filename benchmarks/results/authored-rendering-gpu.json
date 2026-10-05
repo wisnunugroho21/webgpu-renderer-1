@@ -1,0 +1,135 @@
+{
+  "results": {
+    "spot": {
+      "difference": 9408,
+      "warmDifference": 0,
+      "cullingDifference": 0,
+      "passes": 1,
+      "cacheHits": 1,
+      "cpuMs": 0.09999999403953552,
+      "completionMs": 1,
+      "resourcesBefore": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      },
+      "resourcesAfter": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      }
+    },
+    "point": {
+      "difference": 9408,
+      "warmDifference": 0,
+      "cullingDifference": 0,
+      "passes": 6,
+      "cacheHits": 6,
+      "cpuMs": 0.19999998807907104,
+      "completionMs": 1.4000000059604645,
+      "resourcesBefore": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      },
+      "resourcesAfter": {
+        "pipelineCreations": 52,
+        "shaderModules": 13,
+        "bufferCreations": 41,
+        "textureCreations": 5,
+        "textureBytes": 69976024,
+        "textureMipBytes": 409552,
+        "compressedTextureBytes": 0,
+        "renderTargetBytes": 69976016,
+        "samplerCreations": 2,
+        "buffers": 41,
+        "textures": 5,
+        "bufferBytes": 66295944,
+        "cacheHits": 54,
+        "cacheMisses": 67
+      }
+    }
+  },
+  "factors": {
+    "ior": 227936,
+    "specular": 226968,
+    "specularColor": 230390,
+    "clearcoat": 229378,
+    "emission": 229336,
+    "unlitLightDifference": 0,
+    "unlitEmissionDifference": 0,
+    "authoredRestoreDifference": 0,
+    "channelReferenceDifference": 5,
+    "channelReferenceMaxError": 1,
+    "depthMaskDifference": 0,
+    "transformDifference": 52419,
+    "transformedDepthDifference": 0,
+    "streamRestoreDifference": 0,
+    "streamLayoutDifference": 0,
+    "environmentDifference": 331181,
+    "environmentCoatDifference": 25767,
+    "environmentRestoreDifference": 0,
+    "recoveryDifference": 0,
+    "recoveryMaterialDifference": 0
+  },
+  "authoredMaps": {
+    "clearcoat": 19251,
+    "clearcoatRoughness": 7408,
+    "clearcoatNormal": 8215,
+    "specular": 19809,
+    "specularColor": 16751
+  },
+  "modeImages": [
+    {
+      "mode": "individual",
+      "difference": 0
+    },
+    {
+      "mode": "sorted",
+      "difference": 0
+    },
+    {
+      "mode": "instanced",
+      "difference": 0
+    },
+    {
+      "mode": "gpu-indirect",
+      "difference": 0
+    }
+  ],
+  "gpuError": null,
+  "errors": []
+}

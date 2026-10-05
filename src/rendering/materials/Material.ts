@@ -1,4 +1,10 @@
 export type AlphaMode = "OPAQUE" | "MASK" | "BLEND";
+export interface MaterialTextureSlot {
+  texCoord: number;
+  offset?: ArrayLike<number>;
+  scale?: ArrayLike<number>;
+  rotation?: number;
+}
 export interface Material {
   /** Registered custom family ID; omitted/zero selects built-in PBR. */
   shaderId?: number;
@@ -13,5 +19,18 @@ export interface Material {
   emissive?: ArrayLike<number>;
   normalScale?: number;
   occlusionStrength?: number;
-  textures?: Record<string, { texCoord: number }>;
+  /** Dielectric index of refraction (default 1.5); zero selects glTF infinite-IOR compatibility. */
+  ior?: number;
+  /** Dielectric reflection weight in [0,1]; metals retain their base-color reflectance. */
+  specular?: number;
+  /** Linear dielectric reflection tint; components above one are allowed and Fresnel is clamped. */
+  specularColor?: ArrayLike<number>;
+  /** Independent top GGX layer weight in [0,1], disabled by default. */
+  clearcoat?: number;
+  clearcoatRoughness?: number;
+  clearcoatNormalScale?: number;
+  emissiveStrength?: number;
+  /** Built-in unlit ignores lighting, AO, normal maps and emission, preserving base/vertex color and alpha. */
+  unlit?: boolean;
+  textures?: Record<string, MaterialTextureSlot>;
 }

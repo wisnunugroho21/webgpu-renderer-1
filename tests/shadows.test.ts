@@ -1,3 +1,5 @@
+import { ShadowManager } from "../src/rendering/shadows/ShadowManager";
+import { RendererStats } from "../src/profiling/RendererStats";
 import { ShadowSceneCache } from "../src/rendering/shadows/ShadowSceneCache";
 import { cascadeSplit } from "../src/rendering/shadows/CascadeSplits";
 import { describe, it, expect } from "vitest";
@@ -6,7 +8,7 @@ import { Camera } from "../src/rendering/Camera";
 import { ShadowCamera } from "../src/rendering/shadows/ShadowCamera";
 import { RenderWorld } from "../src/rendering/RenderWorld";
 import { LightStore } from "../src/ecs/components/LightStore";
-describe("directional shadows", () => {
+describe("light shadows", () => {
   // Groups checks for directional shadows.
 
   it("invalidates cached depth on geometry, palette, weights, materials and membership changes", () => {
@@ -119,8 +121,8 @@ describe("directional shadows", () => {
           expect(p[2]).toBeLessThanOrEqual(1);
         }
   });
-  it("rejects unsupported shadow light types transactionally", () => {
-    // Verifies rejects unsupported shadow light types transactionally.
+  it("rejects invalid local shadow ranges transactionally", () => {
+    // Verifies rejects invalid local shadow ranges transactionally.
 
     const lights = new LightStore(2);
     lights.set(0, { type: "directional", castShadow: true });
@@ -128,10 +130,102 @@ describe("directional shadows", () => {
     expect(() =>
       /** Delegates this operation to lights.set. */ lights.set(0, {
         type: "point",
+        range: 0.01,
         castShadow: true,
       }),
     ).toThrow();
     expect(lights.type[0]).toBe(0);
     expect(lights.castShadow[0]).toBe(1);
+  });
+  it("projects all point faces and spot cones into WebGPU depth", () => {
+    // Check face orientation and depth conventions independently of rasterization.
+    const world = new RenderWorld(1),
+      shadow = new ShadowCamera(),
+      p = new Float32Array(3);
+    world.lightData[11] = 1;
+    for (let face = 0; face < 6; face++) {
+      const axis = Math.floor(face / 2),
+        sign = face % 2 ? -1 : 1;
+      shadow.fitLocal(world, 0, face, 0.1, 10);
+      for (const depth of [0.1, 10]) {
+        const point = [0, 0, 0];
+        point[axis] = depth * sign;
+        Mat4.transformPoint(p, shadow.matrix, point);
+        expect(p[0]).toBeCloseTo(0);
+        expect(p[1]).toBeCloseTo(0);
+        expect(p[2]).toBeCloseTo(depth === 0.1 ? 0 : 1);
+      }
+    }
+    world.lightData[11] = 2;
+    world.lightData[9] = -1;
+    world.lightData[13] = Math.cos(Math.PI / 6);
+    shadow.fitLocal(world, 0, 0, 0.1, 10);
+    Mat4.transformPoint(p, shadow.matrix, [0, -1, 0]);
+    expect(p[0]).toBeCloseTo(0);
+    expect(p[1]).toBeCloseTo(0);
+    expect(p[2]).toBeGreaterThan(0);
+    expect(p[2]).toBeLessThan(1);
+  });
+  it("accepts point and spot shadow controls", () => {
+    // All light types share validated bias settings and retain zero bias explicitly.
+    const lights = new LightStore(2);
+    lights.set(0, {
+      type: "point",
+      range: 10,
+      castShadow: true,
+      shadowBias: 0,
+    });
+    lights.set(1, {
+      type: "spot",
+      range: 10,
+      castShadow: true,
+      outerCone: 0.5,
+    });
+    expect(lights.castShadow[0]).toBe(1);
+    expect(lights.castShadow[1]).toBe(1);
+    expect(lights.shadowBias[0]).toBe(0);
+    expect(() =>
+      /** Reject a degenerate shadow-casting spot cone. */ lights.set(1, {
+        type: "spot",
+        castShadow: true,
+        outerCone: Math.PI / 2,
+      }),
+    ).toThrow();
+  });
+  it("rejects layer overflow before mutating light metadata or writing the GPU", () => {
+    // Use only the preflight path: an invalid configuration must not depend on GPU resources.
+    const manager = Object.create(ShadowManager.prototype) as ShadowManager;
+    Object.assign(manager, { enabled: true, capacity: 16 });
+    manager.cascades = 1;
+    manager.shadowDistance = 30;
+    const world = new RenderWorld(1),
+      camera = new Camera();
+    world.lightCount = 3;
+    for (let i = 0; i < 3; i++) {
+      world.lightShadow[i] = 1;
+      world.lightData[i * 16 + 11] = 1;
+      world.lightData[i * 16 + 3] = 10;
+    }
+    const original = world.lightData.slice();
+    expect(() =>
+      /** Attempt an over-capacity shadow preparation with no GPU resources. */ manager.prepare(
+        world,
+        camera,
+        {} as GPUQueue,
+        new RendererStats(),
+      ),
+    ).toThrow("capacity");
+    expect(world.lightData).toEqual(original);
+    world.lightCount = 1;
+    world.lightShadowSettings[0] = 10;
+    expect(() =>
+      /** Attempt an invalid local near/far range before publishing metadata. */ manager.prepare(
+        world,
+        camera,
+        {} as GPUQueue,
+        new RendererStats(),
+      ),
+    ).toThrow("shadowNear");
+    expect(world.lightData).toEqual(original);
   });
 });

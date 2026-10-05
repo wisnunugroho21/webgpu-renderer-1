@@ -42,3 +42,20 @@ describe("shadow camera", () => {
     shadow.fit(camera, world, 0, 0.1, 30, 1024);
   });
 });
+
+const localWorld = new RenderWorld(1),
+  localCamera = new ShadowCamera();
+localWorld.lightData[11] = 1;
+bench("fit six point shadow faces", () => {
+  // Point projections use retained matrix scratch and do not traverse caster bounds.
+  for (let face = 0; face < 6; face++)
+    localCamera.fitLocal(localWorld, 0, face, 0.05, 30);
+});
+const spotWorld = new RenderWorld(1);
+spotWorld.lightData[11] = 2;
+spotWorld.lightData[10] = -1;
+spotWorld.lightData[13] = Math.cos(0.5);
+bench("fit one spot shadow cone", () => {
+  // Measure cold projection arithmetic separately from per-face caster culling.
+  localCamera.fitLocal(spotWorld, 0, 0, 0.05, 30);
+});

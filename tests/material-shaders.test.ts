@@ -1,3 +1,4 @@
+import { MATERIAL_WORDS } from "../src/rendering/layouts";
 import { describe, it, expect, vi } from "vitest";
 import { MaterialManager } from "../src/rendering/materials/MaterialManager";
 import {
@@ -74,7 +75,7 @@ describe("custom surface material families", () => {
       roughness: 0.2,
       shaderParameters: [1, 2, 3],
     });
-    expect(manager.data.length).toBe(4 * 20);
+    expect(manager.data.length).toBe(4 * MATERIAL_WORDS);
     expect(manager.colorPipelineIndex(id, 0)).toBe(18);
     const queue = { writeBuffer: vi.fn() } as unknown as GPUQueue;
     const buffer = {} as GPUBuffer;

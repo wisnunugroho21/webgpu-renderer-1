@@ -22,7 +22,9 @@ interface DeviceRebuildInput {
 }
 
 /** Prepare a replacement without publishing it. On failure, CPU provenance stays retryable.
- * Asset and streaming tasks settle before ownership changes; all work is outside the frame loop. */
+ * Asset and streaming tasks settle before ownership changes; all work is outside the frame loop.
+ * Camera and particle CPU identities are reused; GPU buffers/bind groups are rebuilt.
+ * Application publishes the validated result and remaps asset leases as one transaction. */
 export async function rebuildDeviceResources(input: DeviceRebuildInput) {
   const previous = input.previous;
   if (!previous) throw new Error("Application is not initialized");
@@ -35,7 +37,9 @@ export async function rebuildDeviceResources(input: DeviceRebuildInput) {
     nextGPU = await GPUContext.create(
       input.canvas,
       () =>
-        /** Delegates this operation to input.onLost. */ input.onLost(nextGPU!),
+        /** Identify the replacement context so late loss notifications cannot retire a newer device. */ input.onLost(
+          nextGPU!,
+        ),
       input.onError,
     );
     if (input.isDisposing())

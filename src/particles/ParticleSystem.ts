@@ -75,7 +75,8 @@ export class ParticleSystem {
     if (value && !this.active) for (const prepare of this.owners) prepare();
     this.active = value;
   }
-  /** Attach one renderer's cold preparation callback; recovery prepares a new device from retained records. */
+  /** Attach an enable-time GPU setup callback and prepare immediately if already active.
+   * The unsubscribe removes only this callback. Dirty-range acknowledgement assumes one active GPU renderer. */
   attach(prepare: () => void): () => void {
     if (this.active) prepare();
     this.owners.add(prepare);
@@ -99,7 +100,8 @@ export class ParticleSystem {
     const index = this.emitters.indexOf(emitter);
     if (index >= 0) this.emitters.splice(index, 1);
   }
-  /** Spawn a custom one-shot burst without consuming a retained emitter slot. */
+  /** Validate and copy a one-shot configuration, then return the number accepted by the bounded pool.
+   * This cold event allocation consumes no retained emitter slot; reuse an emitter for repeated emission. */
   burst(options: ParticleEmitterOptions, count: number): number {
     return this.emit(particleSettings(options), count);
   }
@@ -112,7 +114,8 @@ export class ParticleSystem {
     const preset = particleEffectOptions(effect, position, scale);
     return this.burst(preset.options, preset.count);
   }
-  /** Advance seeded xorshift state without allocating a random object per particle. */
+  /** Advance controller-owned xorshift32 state and return a uniform value in [0, 1).
+   * Zero seeds use a fixed nonzero fallback; keep call order stable for reproducible spawn records. */
   private random(settings: ParticleSettings): number {
     let value = settings.seed || 0x9e3779b9;
     value ^= value << 13;
@@ -121,7 +124,8 @@ export class ParticleSystem {
     settings.seed = value >>> 0;
     return settings.seed / 4294967296;
   }
-  /** Write seven vec4 spawn records, rejecting invalid counts before touching the pool. */
+  /** Append accepted spawns in dense order and account for overflow without increasing capacity.
+   * Random state advances for accepted particles only; existing rows are never changed by a new birth. */
   emit(settings: ParticleSettings, count: number): number {
     if (this.disposed) throw new Error("Particle system disposed");
     if (!Number.isInteger(count) || count < 0 || count > 1000000)
@@ -166,7 +170,8 @@ export class ParticleSystem {
     this.dirtyEnd = Math.max(this.dirtyEnd, end);
     this.revision++;
   }
-  /** Retire expired particles by dense swap removal, then advance bounded rate emission. */
+  /** Advance the clock, swap-remove expired rows, then emit into newly freed capacity.
+   * Recheck a swapped row before incrementing: it may also have expired. Motion remains GPU-analytic. */
   update(delta: number): void {
     if (!Number.isFinite(delta) || delta < 0 || delta > 3600)
       throw new Error("Invalid particle delta");
@@ -189,7 +194,8 @@ export class ParticleSystem {
     for (let i = 0; i < this.emitters.length; i++)
       this.emitters[i]!.update(delta);
   }
-  /** Remove all live particles, keeping reusable emitters and monotonic time intact. */
+  /** Clear the whole shared pool while retaining emitters, random state, counters and simulation time.
+   * Stop scene-owned emitters first or they will fill the pool again on the next active tick. */
   clear(): void {
     this.liveCount = 0;
     this.revision++;

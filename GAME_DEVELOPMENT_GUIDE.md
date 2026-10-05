@@ -13,7 +13,7 @@ pnpm run dev
 
 Open the localhost URL printed by Vite in a WebGPU-capable browser. WebGPU requires a secure context; localhost is suitable for development. Run `pnpm run build` and `pnpm run preview` to try a production build.
 
-The existing entry is [src/main.ts](src/main.ts). [index.html](index.html) provides `canvas#viewport` and `output#status`. Try `/?example=collect` for the complete collection game, `/?example=lighting` for a lighting scene, or `/?example=shaders` for procedural materials (M switches between PBR and the custom surface). The collection example supports keyboard, gamepad, touch, orbit and follow controls. Read [collect.ts](src/examples/collect.ts) and [CollectGame.ts](src/examples/CollectGame.ts) together: the former connects rendering/input; the latter owns simulation rules.
+The existing entry is [src/main.ts](src/main.ts). [index.html](index.html) provides `canvas#viewport` and `output#status`. Try `/?example=collect` for the complete collection game, `/?example=lighting` for a lighting scene, `/?example=shaders` for procedural materials (M switches between PBR and the custom surface), or `/?example=particles` for visual effects (Space: explosion, C: confetti, P: pause effects, B: toggle bloom). The collection example supports keyboard, gamepad, touch, orbit and follow controls. Read [collect.ts](src/examples/collect.ts) and [CollectGame.ts](src/examples/CollectGame.ts) together: the former connects rendering/input; the latter owns simulation rules.
 
 ## 2. Understand the responsibilities
 
@@ -22,6 +22,7 @@ The existing entry is [src/main.ts](src/main.ts). [index.html](index.html) provi
 | `app.world`                | Creates entities and changes transform, mesh, bounds, light and camera components. |
 | `app.onFixedUpdate`        | Advances authoritative gameplay by a fixed duration in seconds.                    |
 | `app.onUpdate`             | Interpolates visuals and updates frame-dependent presentation before extraction.   |
+| `app.particles`            | Enables bounded emitters and event bursts; Application advances their clock.       |
 | `app.materials`            | Creates shared PBR/custom material descriptions and updates their parameter rows.  |
 | `app.renderer`             | Configures rendering and the direct camera; it consumes an extracted snapshot.     |
 | `app.instantiateAsset`     | Loads a scene with independent entity lifetime and shared underlying assets.       |
@@ -33,13 +34,13 @@ The browser entry point creates the application, waits for startup and delegates
 app.world.meshes.remove(app.sceneEntity); // Keeps the entity and its transform alive.
 ```
 
-Each frame, the application advances simulation, evaluates animation and transforms, updates skeletons and animated bounds, extracts `RenderWorld`, prepares visibility/batches and encodes GPU passes. Rendering passes operate on the snapshot rather than querying gameplay entities. See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed sequence.
+Each frame, the application advances simulation and particle lifetimes, evaluates animation and transforms, updates skeletons and animated bounds, extracts `RenderWorld`, prepares visibility/batches and encodes GPU passes. Scene geometry establishes depth/color; particles composite with read-only depth before bloom, exposure and presentation. Rendering passes operate on the snapshot rather than querying gameplay entities. See [ARCHITECTURE.md](ARCHITECTURE.md) for the detailed sequence.
 
 Do not add another `requestAnimationFrame` loop to render the same application. Register hooks on the existing loop. Use component setters so dirty/version tracking can detect changes; directly writing component arrays can leave transforms, bounds or GPU uploads stale.
 
 ## 3. Build a small playable game
 
-Replace `src/main.ts` with this example. It uses the existing HTML/CSS, bootstrap cube and default directional light. Click the canvas, move with WASD and collect the three golden cubes. Restart with R.
+Replace `src/main.ts` with this example. It uses the existing HTML/CSS, bootstrap cube and default directional light. Click the canvas, move with WASD and collect the three golden cubes. Each pickup triggers sparks; restart with R clears the effects and restores the items.
 
 The sample uses generational handles for newly created entities, fixed-step collision and interpolated presentation. The built-in cube extends from -1 to +1 on each local axis, so scaling it by 0.3 makes it 0.6 units wide.
 
@@ -53,6 +54,11 @@ const canvas = document.querySelector<HTMLCanvasElement>("#viewport")!;
 const status = document.querySelector<HTMLOutputElement>("#status")!;
 const app = new Application(canvas, status);
 await app.start(); // GPU resources are usable after startup resolves.
+// Enable and prepare shared effect resources once, before gameplay hooks run.
+app.particles.enabled = true;
+app.renderer.hdr.enabled = true;
+app.renderer.hdr.toneMapping = "filmic";
+app.renderer.hdr.bloomStrength = 0.15;
 const world = app.world;
 const player = app.sceneEntity;
 const gold = app.materials.create({
@@ -128,6 +134,7 @@ function showScore(): void {
 function reset(): void {
   x = z = previousX = previousZ = score = 0;
   collected.fill(0);
+  app.particles.clear(); // Remove previous pickup effects; preserve reusable storage.
   for (const handle of items) world.meshes.set(world.require(handle), 0, gold);
   showScore();
 }
@@ -149,6 +156,8 @@ const offFixed = app.onFixedUpdate((dt) => {
     ) {
       collected[i] = 1;
       world.meshes.remove(world.require(items[i]!));
+      // Allocate preset settings only at the event; particles are not new ECS entities.
+      app.particles.playEffect("sparks", [itemX[i]!, 0.4, itemZ[i]!], 0.5);
       score++;
       showScore();
     }
@@ -185,6 +194,11 @@ window.addEventListener(
   },
   { once: true },
 );
+if (import.meta.hot)
+  import.meta.hot.dispose(() => {
+    // Development replacement uses the same idempotent cleanup as page navigation.
+    void disposeGame();
+  });
 showScore();
 ```
 
@@ -273,7 +287,7 @@ For entity-driven cameras, add a camera component and transform, then select it 
 | `OrbitCameraController`        | Orbit/zoom from pointer deltas.                                                |
 | `ThirdPersonCameraController`  | Follow a character position with smoothing and optional orbit input.           |
 
-The helpers clear held state on focus loss. Dispose them when leaving a scene. A camera controller does not supply wall collision: implement that in your game. Controllers retain a camera reference; if device recovery replaces the renderer, rebuild/rebind your controllers to its current camera.
+The helpers clear held state on focus loss. Dispose them when leaving a scene. A camera controller does not supply wall collision: implement that in your game. Controllers retain a camera reference. Built-in device recovery reuses the same camera object, so these controllers remain attached. Rebind them if your game explicitly replaces that camera; reacquire renderer/GPU owners after recovery.
 
 ## 9. Add materials, lighting and adjustable effects
 
@@ -373,7 +387,7 @@ Retain unsubscribe functions from frame/fixed/animation hooks. At a scene transi
 
 Call `await app.dispose()` when the whole application is finished. It releases application GPU/worker/lifecycle ownership. Keep teardown idempotent, as in the sample, so page navigation and explicit game exit cannot race into duplicate cleanup.
 
-Unexpected device loss pauses rendering and normally triggers recovery (`app.autoRecoverDevice` defaults to true). Observe `app.deviceState` for recovery/failure UI. The world persists, but GPU context/renderer owners can be replaced. Resolve `app.renderer` and `app.gpu` at use time; rebuild helpers retaining old GPU/camera references. A failed recovery needs a retry/reload path appropriate to your game.
+Unexpected device loss pauses rendering and normally triggers recovery (`app.autoRecoverDevice` defaults to true). Observe `app.deviceState` for recovery/failure UI. The world persists, but GPU context/renderer owners can be replaced. Resolve `app.renderer` and `app.gpu` at use time; rebuild helpers retaining old GPU buffers or bind groups. The CPU camera and particle system retain identity and live state, so camera-only controllers and particle emitters can continue using their existing references. A failed recovery needs a retry/reload path appropriate to your game.
 
 ## 12. Validate and measure your game
 
@@ -406,6 +420,7 @@ Keep game rules in your own model module, as [CollectGame.ts](src/examples/Colle
 | Smooth motion, update a camera or animate shader parameters | `app.onUpdate`, reusable presentation state                                          |
 | Load/despawn a level or character                           | `app.instantiateAsset`, scene leases, `ApplicationAssets.ts`                         |
 | Add authored animation                                      | The lease's animator; clip, mask and root-motion APIs                                |
+| Add bursts, exhaust or spell particles                      | `app.particles`, `ParticleEmitter.ts`, `PARTICLES.md`                                |
 | Add a procedural visual style                               | `app.registerMaterialShader`, `materials.setShaderParameters`, `CUSTOM_MATERIALS.md` |
 | Adjust presentation or quality settings                     | Renderer HDR/environment/visibility/geometry controls                                |
 | Add an engine material feature                              | `MaterialManager.ts` and `MaterialShaderParameters.ts`                               |
@@ -415,11 +430,11 @@ Keep game rules in your own model module, as [CollectGame.ts](src/examples/Colle
 
 Follow the existing ownership boundaries when extending the engine. Shader registration lives in `CustomMaterialShaders.ts`; drawing reads its prepared tables. GPU destruction stays with the renderer's resource owners. Material parameter changes use one shared dirty-range upload. Passes consume `RenderWorld` rather than reaching into the ECS. Do not create per-object buffers, compile shaders each frame or add normal-frame GPU readbacks to implement a game effect.
 
-Use [ARCHITECTURE.md](ARCHITECTURE.md) for the module contracts and [benchmarks/CODEBASE_MAINTENANCE_REPORT.md](benchmarks/CODEBASE_MAINTENANCE_REPORT.md) for the restructuring's validation evidence. A scene-specific game feature normally belongs in your model/scene code; change renderer internals when it needs a new rendering capability shared by multiple games or scenes.
+Use [ARCHITECTURE.md](ARCHITECTURE.md) for the module contracts and [benchmarks/RESTRUCTURE_REPORT.md](benchmarks/RESTRUCTURE_REPORT.md) for the restructuring's validation evidence. A scene-specific game feature normally belongs in your model/scene code; change renderer internals when it needs a new rendering capability shared by multiple games or scenes.
 
 ## 14. Add particles to gameplay events
 
-Continuing the playable sample with its `app`, `x` and `z`, enable the persistent particle system and retain a scene-owned emitter:
+The playable sample already enables particles and emits sparks on pickup. Add this continuous-emitter block after the sample's `offFrame` registration and before cleanup to demonstrate an actor trail:
 
 ```ts
 app.particles.enabled = true;
@@ -433,17 +448,41 @@ const exhaust = app.particles.createEmitter({
   startColor: [0.1, 0.8, 3, 1],
   endColor: [0.02, 0.1, 0.3, 0],
 });
-const offExhaust = app.onUpdate(() => {
-  // Follow the actor without moving particles that were already spawned.
-  exhaust.setPosition(x, 0.35, z);
+const offExhaust = app.onUpdate((_dt, alpha) => {
+  // Follow the same interpolated visual position as the player; old particles remain independent.
+  exhaust.setPosition(
+    previousX + (x - previousX) * alpha,
+    0.35,
+    previousZ + (z - previousZ) * alpha,
+  );
 });
-// Call this on a hit/pickup rather than constructing an emitter each frame.
-app.particles.playEffect("sparks", [x, 0.35, z]);
-// Scene transition: offExhaust(); exhaust.dispose();
+// Add to disposeGame(), before destroying entities or calling app.dispose():
+// offExhaust(); exhaust.dispose();
 ```
 
-The application advances particle lifetimes automatically after gameplay hooks. Do not add a second update loop for the same system. Disable with `app.particles.enabled = false` to hide/freeze effects; stop individual emission with `exhaust.emitting = false` and adjust density with `exhaust.rate`. Clear scene particles explicitly when leaving a level; disable/dispose its continuous emitters before clearing.
+The application advances particle lifetimes automatically after gameplay hooks. Do not add a second update loop for the same system. Disable with `app.particles.enabled = false` to hide/freeze effects; stop individual emission with `exhaust.emitting = false` and adjust density with `exhaust.rate`. At a scene transition, unsubscribe `offExhaust`, dispose the emitter, then clear the pool if the outgoing scene owns all current effects. `clear()` removes every particle in the shared system and leaves emitter controllers alive. `exhaust.dispose()` stops future births; existing particles live until expiration. Whole-application disposal releases the system automatically.
 
-Sparks, smoke, explosion, confetti and shockwave presets are event bursts and do not occupy retained emitter slots. Custom emitter settings control origin/spread, velocity/spread, gravity, drag, lifetime, color, size, rotation, fade windows and alpha/additive blending. Use HDR/bloom for radiance above one. Effects depth-test without writing depth or casting shadows, and render before presentation effects.
+Sparks, smoke, explosion, confetti and shockwave presets are event bursts and do not occupy retained emitter slots. Custom emitter settings control origin/spread, velocity/spread, gravity, drag, lifetime, color, size, rotation, fade windows and alpha/additive blending. Lifetime values are seconds, sizes are world-space diameters, angles are radians, and fade windows are fractions of lifetime. `configure(options)` replaces the entire configuration with defaults for omitted fields and resets its seed/fractional emission; `setPosition` and `rate` adjust those controls without resetting the others. Use HDR/bloom for radiance above one. Effects depth-test without writing depth or casting shadows, and render before presentation effects.
 
 Particles use a separate bounded pool rather than ECS entities or PBR materials. Default capacity is 4,096 particles/64 emitters; overflow drops new requests and is visible in renderer particle counters. Device recovery retains the same CPU system and reuploads records to the replacement renderer. Follow [PARTICLES.md](PARTICLES.md) for capacity customization, cleanup and sorting limits; `/?example=particles` demonstrates controls. Billboard overlap can cost more GPU time than its small draw count suggests, so benchmark the effects at your game's resolution and worst-case density.
+
+To change capacity, import `ParticleSystem` from `./particles/ParticleSystem` and replace the sample's single Application construction with `new Application(canvas, status, 16384, 16384, new ParticleSystem(8192, 128))`. The fifth argument sets application-owned particle/emitter capacity; it is independent of ECS/render capacity. Choose capacity during setup, retain one active renderer for the system, and watch `particleDropped` under sustained emission. Enablement prepares GPU resources; disabling hides/freezes live particles and retains their storage. Bursts while disabled accept zero, so decide whether paused visual effects should be discarded in your game.
+
+For a custom burst, call `exhaust.burst(count)` or `app.particles.burst(options, count)` at an event boundary and check the returned accepted count. Continuous `emitting = false` does not block explicit bursts; system `enabled = false` blocks both. A ring/shockwave faces the camera and is not a ground decal. Procedural particles currently have no sprite atlas, collision, ribbons, soft depth-intersection fading or custom particle shader API; custom surface materials apply to meshes, not particle records.
+
+## 15. Diagnose common integration problems
+
+| Symptom                                       | Check first                                                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Blank canvas or startup failure               | Read the status output/browser console; confirm a usable WebGPU device and awaited `app.start()`.                    |
+| Objects vanish or picking misses              | Add local bounds that contain the mesh, use transform setters, and query the latest extracted snapshot.              |
+| Keyboard input does nothing                   | Make the canvas focusable and focus it on pointer interaction; remove listeners on scene exit.                       |
+| Movement or animation speeds up after a retry | Retain/unsubscribe the previous gameplay hooks; render through one Application loop.                                 |
+| A material change affects several objects     | They share a material ID; create another row only when independent values are needed.                                |
+| A trail leads/lags the rendered actor         | Use the same interpolation alpha/previous-current positions in the emitter and actor update hooks.                   |
+| A burst disappears or stops spawning          | Check enabled state, lifetime, capacity, accepted count and `particleDropped`; disabled bursts are discarded.        |
+| A glow looks flat or clips                    | Enable HDR at setup, tune exposure/bloom and use linear radiance; additive overdraw still costs GPU work.            |
+| Effects survive a level transition            | Unsubscribe effect hooks, dispose scene emitters and clear the shared pool only when the scene owns all its effects. |
+| GPU errors appear after recovery              | Reacquire `app.renderer`/`app.gpu` and their GPU objects; built-in CPU camera/particle references remain valid.      |
+
+Use [PARTICLES.md](PARTICLES.md), [CUSTOM_MATERIALS.md](CUSTOM_MATERIALS.md) and [ARCHITECTURE.md](ARCHITECTURE.md) for detailed API and ownership contracts. The latest maintenance evidence is [benchmarks/RESTRUCTURE_REPORT.md](benchmarks/RESTRUCTURE_REPORT.md).

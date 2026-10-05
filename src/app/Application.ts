@@ -152,7 +152,7 @@ export class Application {
     }
     if (!this.starting)
       this.starting = this.initialize().finally(() => {
-        // Clears the settled startup promise so later start calls can resume or retry.
+        // Release deduplication after success or failure; later calls may resume or retry startup.
 
         this.starting = undefined;
       });
@@ -171,7 +171,7 @@ export class Application {
         this.status.textContent = `GPU device lost (${info.reason}): ${info.message}`;
         if (this.autoRecoverDevice && !this.disposing)
           void this.recoverDevice(resume).catch(() => {
-            // Intentionally performs no work at this optional callback boundary.
+            // Recovery records failure in deviceState/status; consume the rejection from this fire-and-forget callback.
           });
       },
       (message) => {
@@ -212,7 +212,7 @@ export class Application {
       this.particles,
     );
     this.observer = new ResizeObserver(() =>
-      /** Delegates this operation to this.gpu.resize. */ this.gpu.resize(),
+      /** Resize the current recovered GPU context when the canvas layout changes. */ this.gpu.resize(),
     );
     this.observer.observe(this.canvas);
     this.status.textContent = "WebGPU ready • indexed cube";
@@ -263,7 +263,7 @@ export class Application {
           this.deviceState = "lost";
           if (this.autoRecoverDevice)
             void this.recoverDevice(resume).catch(() => {
-              // Intentionally performs no work at this optional callback boundary.
+              // Recovery records failure in deviceState/status; consume the rejection from this fire-and-forget callback.
             });
         }
       },
@@ -458,7 +458,7 @@ export class Application {
   unloadAsset(url: string): Promise<void> {
     if (this.recovering)
       return this.recovering.then(() =>
-        /** Continues application after the preceding asynchronous operation succeeds. */ this.assetLoader.unload(
+        /** Delay unload until recovery has published replacement resource owners. */ this.assetLoader.unload(
           url,
         ),
       );
@@ -484,7 +484,7 @@ export class Application {
     this.disposing = true;
     this.deviceState = "disposed";
     await this.recovering?.catch(() => {
-      // Intentionally performs no work at this optional callback boundary.
+      // A failed recovery must not prevent disposal of the remaining CPU/GPU owners.
     });
     this.environments.clear();
     this.simulation.clear();

@@ -68,7 +68,8 @@ export class ParticleRenderer {
     this.direct = prepared.direct;
     this.hdr = prepared.hdr;
   }
-  /** Compute the same ballistic/drag center as WGSL to sort alpha billboards, without simulating vertex data. */
+  /** Evaluate the WGSL ballistic/drag center and return positive forward camera depth.
+   * View matrices are column-major; sorting uses center depth, not per-vertex or mesh-interleaved transparency. */
   private depth(index: number, view: Float32Array): number {
     const r = this.system.records,
       o = index * PARTICLE_WORDS;
@@ -86,7 +87,9 @@ export class ParticleRenderer {
           r[o + PARTICLE_GRAVITY + axis]! * acceleration);
     return -z;
   }
-  /** Reuse spawn records, upload changed ordering and draw at most two instanced billboard groups. */
+  /** Encode onto already-rendered scene color with read-only depth; no submission or completion wait.
+   * Refresh dirty records, sort the alpha prefix, append additive indices and draw at most two groups.
+   * hdr selects the half-float scene target, including FXAA-only presentation. Empty/disabled pools reset counters and skip work. */
   encode(
     encoder: GPUCommandEncoder,
     target: GPUTextureView,

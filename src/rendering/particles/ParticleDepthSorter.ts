@@ -14,7 +14,9 @@ export class ParticleDepthSorter {
     this.scratch = new Uint32Array(depths.length);
     this.keys = new Uint32Array(depths.length);
   }
-  /** Sort only the used prefix far-to-near, retaining input order for equal depths and avoiding per-frame views. */
+  /** Stable far-to-near ordering of finite Float32 depths referenced by the used index prefix.
+   * Flip sign-bit ordering into sortable unsigned keys, then complement for descending depth.
+   * Four byte passes return results to the caller array; equal depths preserve incoming order. */
   sort(order: Uint32Array, count: number): void {
     if (count < 2) return;
     for (let i = 0; i < count; i++) {

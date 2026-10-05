@@ -98,7 +98,7 @@ export function createShadowResources({
     ),
   });
   const groups = dynamic.buffers.map((buffer) =>
-    /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+    /** Create one retained group per frame-arena slot; encoding only selects the active slot. */ device.createBindGroup(
       {
         layout,
         entries: Array.from(
@@ -139,7 +139,7 @@ export function createShadowResources({
     ],
   });
   const passGroups = dynamic.buffers.map((buffer) =>
-    /** Delegates this operation to device.createBindGroup. */ device.createBindGroup(
+    /** Create one retained group per frame-arena slot; encoding only selects the active slot. */ device.createBindGroup(
       {
         layout: passLayout,
         entries: [{ binding: 0, resource: { buffer, size: 64 } }],

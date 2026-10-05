@@ -31,7 +31,8 @@ export class ParticleEmitter {
     if (this.disposed) throw new Error("Particle emitter disposed");
     this.settings.rate = particleRange(value, 0, 1000000);
   }
-  /** Replace spawn settings atomically; already emitted particles keep their original records. */
+  /** Replace the entire configuration, restoring defaults for omitted fields.
+   * Validation completes before mutation; seed and fractional emission restart, while live particles retain their records. */
   configure(options: ParticleEmitterOptions): void {
     if (this.disposed) throw new Error("Particle emitter disposed");
     const next = particleSettings(options);
@@ -48,12 +49,14 @@ export class ParticleEmitter {
     this.settings.position[1] = y;
     this.settings.position[2] = z;
   }
-  /** Emit immediately, returning accepted particles; pool overflow drops newest requests without growing storage. */
+  /** Emit an immediate burst independently of continuous emitting state.
+   * Returns accepted particles; disabled systems accept zero and full pools drop newest requests. */
   burst(count: number): number {
     if (this.disposed) throw new Error("Particle emitter disposed");
     return this.system.emit(this.settings, count);
   }
-  /** Advance fractional-rate emission after old particles retire; blocked spawns do not accumulate a backlog. */
+  /** Internal system-owned tick after expiration frees capacity; callers normally let Application advance it.
+   * Retain only a fractional particle, drop excess requests, and never accumulate a capacity backlog. */
   update(delta: number): void {
     if (!this.emitting || this.disposed || !this.system.enabled) return;
     const wanted = this.remainder + this.settings.rate * delta;

@@ -36,9 +36,12 @@ export class AssetLoader<Network, Decoded, Uploaded> {
       signal: AbortSignal,
     ) => Promise<Uploaded>,
     private readonly yieldTask = () =>
-      /** Creates Promise storage for this operation. */ new Promise<void>(
+      /** Yield a browser task between loading stages so input and loading UI can run. */ new Promise<void>(
         (resolve) =>
-          /** Delegates this operation to setTimeout. */ setTimeout(resolve, 0),
+          /** Resume on a later task rather than extending the current microtask chain. */ setTimeout(
+            resolve,
+            0,
+          ),
       ),
     private readonly options: AssetLoaderOptions<Decoded, Uploaded> = {},
   ) {
@@ -222,7 +225,7 @@ export class AssetLoader<Network, Decoded, Uploaded> {
         this.records.delete(url);
       })
       .finally(() =>
-        /** Delegates this operation to this.unloading.delete. */ this.unloading.delete(
+        /** Clear the deduplicated unload operation even when release fails, permitting a retry. */ this.unloading.delete(
           url,
         ),
       );
@@ -295,7 +298,8 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     await Promise.allSettled([
       ...Array.from(
         this.records.values(),
-        (r) => /** Returns r pending. */ r.pending,
+        (r) =>
+          /** Include each active URL transaction in the recovery settlement barrier. */ r.pending,
       ),
       ...this.unloading.values(),
     ]);
@@ -306,17 +310,22 @@ export class AssetLoader<Network, Decoded, Uploaded> {
     for (const url of this.controllers.keys()) this.cancel(url);
     const results = await Promise.allSettled(
       Array.from(this.records.keys(), (url) =>
-        /** Delegates this operation to this.unload. */ this.unload(url),
+        /** Retire each cached URL while allowing the other cleanup operations to settle. */ this.unload(
+          url,
+        ),
       ),
     );
     const errors = results.filter(
       (r): r is PromiseRejectedResult =>
-        /** Evaluates the r.status === "rejected" condition. */ r.status ===
+        /** Retain cleanup failures after every URL has had a chance to release ownership. */ r.status ===
         "rejected",
     );
     if (errors.length)
       throw new AggregateError(
-        errors.map((r) => /** Returns r reason. */ r.reason),
+        errors.map(
+          (r) =>
+            /** Preserve the original cleanup causes in the aggregate disposal failure. */ r.reason,
+        ),
         "Asset disposal failed",
       );
   }

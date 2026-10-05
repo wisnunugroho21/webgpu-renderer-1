@@ -67,7 +67,8 @@ export class SimulationLoop {
         entry.active = false;
         this[kind] = this[kind].filter(
           (item) =>
-            /** Evaluates the item !== entry condition. */ item !== entry,
+            /** Keep every other subscriber when removing this registration. */ item !==
+            entry,
         );
       }
     };
@@ -76,7 +77,9 @@ export class SimulationLoop {
   resetAccumulator(): void {
     this.accumulator = this.alpha = 0;
   }
-  /** Runs bounded fixed ticks, accounts for dropped catch-up time, then invokes variable updates and returns clamped delta. */
+  /** Advance authoritative ticks first, then presentation once with fractional interpolation alpha.
+   * Excess elapsed time is counted and discarded instead of creating an unbounded catch-up loop.
+   * Dispatch captures subscription arrays: new callbacks wait, while inactive ones are skipped immediately. */
   advance(deltaSeconds: number): number {
     if (!Number.isFinite(deltaSeconds) || deltaSeconds < 0)
       throw new Error("Invalid frame delta");

@@ -239,20 +239,20 @@ export class Renderer {
   /** Compile persistent callbacks after every pass owner exists. Encoding follows graph dependencies. */
   private configurePasses(): void {
     configureRenderGraph(this.graph, {
-      /** Delegates this operation to this.gpuFrustum.encode. */
+      /** Test snapshot bounds against the camera using this frame's shared arena slot. */
       gpuFrustum: (encoder) =>
         this.gpuFrustum.encode(
           encoder,
           this.dynamic.frameSlot,
           this.gpuProfiler,
         ),
-      /** Delegates this operation to this.shadows.encode. */
+      /** Draw only invalidated directional shadow layers with current deformation data. */
       shadows: (encoder) =>
         this.shadows.encode(encoder, this.world, this.stats, this.gpuProfiler),
-      /** Delegates this operation to this.clusters.encode. */
+      /** Build screen-space light lists before the color pass consumes them. */
       lightClusters: (encoder) =>
         this.clusters.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
-      /** Delegates this operation to this.depthPrepass.encode. */
+      /** Populate the main depth target with the same pose and alpha coverage as color. */
       depth: (encoder) =>
         this.depthPrepass.encode(
           encoder,
@@ -263,7 +263,7 @@ export class Renderer {
           this.stats,
           this.gpuProfiler,
         ),
-      /** Delegates this operation to this.geometryOptimization.encode. */
+      /** Cull prepared geometry clusters before color selects indirect cluster draws. */
       geometryClusters: (encoder) =>
         this.geometryOptimization.encode(
           encoder,
@@ -271,7 +271,7 @@ export class Renderer {
           this.colorInstanceOffset,
           this.gpuProfiler,
         ),
-      /** Delegates this operation to this.colorPass.encode. */
+      /** Draw the sorted scene into the current direct or linear scene target. */
       color: (encoder, view) =>
         this.colorPass.encode(
           encoder,
@@ -289,9 +289,9 @@ export class Renderer {
           this.camera,
           this.hdr.sceneEnabled,
         ),
-      /** Delegates this operation to this.hdr.encodeEffects. */
+      /** Apply bloom/exposure to scene color after particle composition. */
       postProcessing: (encoder) => this.hdr.encodeEffects(encoder),
-      /** Delegates this operation to this.hdr.encode. */
+      /** Map/filter linear scene color into the final presentation attachment. */
       toneMapping: (encoder, view) =>
         this.hdr.encode(encoder, view, this.gpuProfiler),
       /** Builds the depth pyramid consumed by occlusion tests after the depth pass. */
@@ -299,7 +299,7 @@ export class Renderer {
         if (!this.temporal.reuse) this.hiz.encode(encoder, this.gpuProfiler);
         else this.hiz.passes = 0;
       },
-      /** Delegates this operation to this.hiz.debug. */
+      /** Overlay the selected depth-pyramid mip when diagnostic display is enabled. */
       hizDebug: (encoder, view) => this.hiz.debug(encoder, view),
       /** Reuses prior visibility when temporally valid; otherwise tests current objects against the depth pyramid. */
       gpuOcclusion: (encoder) => {
@@ -330,12 +330,12 @@ export class Renderer {
             );
         }
       },
-      /** Delegates this operation to this.gpuCompaction.encode. */
+      /** Compact surviving object indices for subsequent GPU draw preparation. */
       gpuCompaction: (encoder) =>
         this.gpuCompaction.encode(encoder, this.gpuProfiler),
-      /** Delegates this operation to this.gpuDraws.encode. */
+      /** Generate indirect arguments from compacted visibility before color submission. */
       gpuIndirect: (encoder) => this.gpuDraws.encode(encoder, this.gpuProfiler),
-      /** Delegates this operation to this.gpuLOD.encode. */
+      /** Resolve per-object mesh levels before indirect arguments are generated. */
       gpuLod: (encoder) =>
         this.gpuLOD.encode(encoder, this.dynamic.frameSlot, this.gpuProfiler),
     });

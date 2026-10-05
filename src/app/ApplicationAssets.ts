@@ -91,37 +91,37 @@ export class ApplicationAssets {
   }
   readonly loader = new AssetLoader<JSONDocument, RuntimeAsset, UploadedAsset>(
     (url, signal) =>
-      /** Delegates this operation to this.gltf.fetch. */ this.gltf.fetch(
+      /** Fetch the glTF document and external bytes with the URL transaction signal. */ this.gltf.fetch(
         url,
         signal,
       ),
     (data, signal) =>
-      /** Delegates this operation to this.decoder.decode. */ this.decoder.decode(
+      /** Decode into engine-owned CPU records, using the reusable worker when available. */ this.decoder.decode(
         data,
         signal,
       ),
     (asset, signal) =>
-      /** Delegates this operation to this.uploadAsset. */ this.uploadAsset(
+      /** Publish shared GPU resources only against the current usable device. */ this.uploadAsset(
         asset,
         signal,
       ),
     undefined,
     {
-      /** Accumulates the input entries into one result. */
+      /** Account for distinct transferable backing stores rather than counting aliased views twice. */
       decodedBytes: (asset) =>
         transferableBuffers(asset).reduce(
           (bytes, buffer) =>
-            /** Computes the bytes + buffer.byteLength result. */ bytes +
+            /** Include this unique backing store in the decoded-cache byte budget. */ bytes +
             buffer.byteLength,
           0,
         ),
-      /** Applies this.assertCanUnloadAsset, this.instances.detach, this.context.refreshSnapshot to before unload. */
+      /** Veto removal of resources still used externally, then detach owned scenes before GPU retirement. */
       beforeUnload: (uploaded, asset, url) => {
         if (!this.disposing) this.assertCanUnloadAsset(url, uploaded);
         this.instances.detach(url, asset);
         this.context.refreshSnapshot();
       },
-      /** Delegates this operation to releaseUploadedAsset. */
+      /** Retire shared resources through their current recovered owners after submitted work completes. */
       release: (uploaded) =>
         releaseUploadedAsset(
           uploaded,
@@ -129,9 +129,9 @@ export class ApplicationAssets {
           this.materials,
           this.renderer.textures,
           () =>
-            /** Delegates this operation to this.gpu.queue.onSubmittedWorkDone. */ this.gpu.queue.onSubmittedWorkDone(),
+            /** Fence submitted draws only during asset retirement; ordinary frames never wait here. */ this.gpu.queue.onSubmittedWorkDone(),
         ),
-      /** Returns false. */
+      /** Evict only assets whose uploaded resources have no surviving external consumers. */
       canEvict: (record) => {
         if (!record.uploaded) return true;
         try {
@@ -271,7 +271,9 @@ export class ApplicationAssets {
     for (const group of this.renderer.lodGroups.entries)
       if (
         group.meshes.some((id) =>
-          /** Delegates this operation to ids.has. */ ids.has(id),
+          /** Detect LOD groups that still reference meshes scheduled for this URL's unload. */ ids.has(
+            id,
+          ),
         )
       )
         throw new Error(

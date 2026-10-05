@@ -26,7 +26,8 @@ struct VertexOutput {
   @location(2) @interpolate(flat) shape: u32
 }
 
-// Expand six procedural vertices into a camera-facing world-space quad; no geometry buffer is needed.
+// Evaluate one spawn record at the shared clock, then expand a rotated camera-facing quad.
+// instance_index includes firstInstance, so additive draws address their suffix in the order table.
 @vertex fn vs(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> VertexOutput {
   let corners = array<vec2<f32>, 6>(vec2<f32>(- 1.0, - 1.0), vec2<f32>(1.0, - 1.0), vec2<f32>(- 1.0, 1.0), vec2<f32>(- 1.0, 1.0), vec2<f32>(1.0, - 1.0), vec2<f32>(1.0, 1.0));
   let p = particles[order[instance]];
@@ -34,6 +35,8 @@ struct VertexOutput {
   let t = clamp(age / p.velocityLife.w, 0.0, 1.0);
   var motion = p.velocityLife.xyz * age + p.gravityDrag.xyz * (0.5 * age * age);
   let drag = p.gravityDrag.w;
+  // Integrate exponential velocity damping plus constant gravity analytically.
+  // The small-drag ballistic branch avoids subtractive cancellation; CPU depth sorting matches it.
   if drag > 0.0001 {
     let integral = (1.0 - exp(- drag * age)) / drag;
     motion = p.velocityLife.xyz * integral + p.gravityDrag.xyz * ((age - integral) / drag);
@@ -60,7 +63,8 @@ struct VertexOutput {
   return output;
 }
 
-// Return premultiplied linear radiance for disc, glow, ring or square coverage; depth remains read-only.
+// Convert procedural coverage and lifetime alpha into premultiplied linear radiance.
+// Alpha uses one/one-minus-src-alpha; additive uses one/one. Render state tests depth without writing it.
 @fragment fn fs(input: VertexOutput) -> @location(0) vec4<f32> {
   let radius = length(input.uv);
   var coverage = 1.0;

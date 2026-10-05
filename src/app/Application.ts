@@ -1,3 +1,4 @@
+import { ParticleSystem } from "../particles/ParticleSystem";
 import { createDefaultScene } from "./createDefaultScene";
 import { ApplicationPicking } from "./ApplicationPicking";
 import { SpatialQueries } from "../spatial/SpatialQueries";
@@ -77,6 +78,7 @@ export class Application {
     readonly status: HTMLOutputElement,
     entityCapacity = 16384,
     renderCapacity = entityCapacity,
+    readonly particles = new ParticleSystem(),
   ) {
     this.world = new World(entityCapacity);
     this.transformSystem = new TransformSystem(entityCapacity);
@@ -206,6 +208,8 @@ export class Application {
       this.renderWorld,
       this.materials,
       this.profiler,
+      undefined,
+      this.particles,
     );
     this.observer = new ResizeObserver(() =>
       /** Delegates this operation to this.gpu.resize. */ this.gpu.resize(),
@@ -302,6 +306,7 @@ export class Application {
   private prepareScene(delta: number): void {
     // Bounds and extraction must follow deformation and world-transform updates.
     this.profiler.start(CPUStage.animation);
+    this.particles.update(delta);
     this.animations.update(delta);
     if (this.renderer.hdr.autoExposure)
       this.renderer.hdr.frameDeltaSeconds = delta;
@@ -483,6 +488,7 @@ export class Application {
     });
     this.environments.clear();
     this.simulation.clear();
+    this.particles.dispose();
     this.assetDecoder.dispose();
     try {
       await this.assetLoader.dispose();

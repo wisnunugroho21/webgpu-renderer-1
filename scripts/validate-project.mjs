@@ -12,6 +12,7 @@ const checks = [
   "validate:game",
   "validate:features",
   "validate:materials",
+  "validate:particles",
   "validate:hdr",
   "validate:quality",
   "validate:post",

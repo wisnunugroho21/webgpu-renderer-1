@@ -1,3 +1,5 @@
+import { ParticleSystem } from "../particles/ParticleSystem";
+import { ParticleRenderer } from "./particles/ParticleRenderer";
 import { createRendererResources } from "./createRendererResources";
 import { ColorPass } from "./passes/ColorPass";
 import { EnvironmentSkybox } from "./environment/EnvironmentSkybox";
@@ -54,6 +56,7 @@ import { MaterialTextures } from "./materials/MaterialTextures";
 
 /** Snapshot-only frame coordinator. Pass owners prepare resources; encode reuses shared frame state. */
 export class Renderer {
+  readonly particleRenderer: ParticleRenderer;
   readonly environment: EnvironmentLighting;
   readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
@@ -141,6 +144,7 @@ export class Renderer {
     readonly materials: MaterialManager,
     readonly profiler = new CPUProfiler(),
     camera?: Camera,
+    readonly particles = new ParticleSystem(),
   ) {
     this.camera = camera ?? new Camera();
     const shared = createRendererResources(
@@ -222,6 +226,11 @@ export class Renderer {
     this.pipeline = color.pipeline;
     this.pipelines = color.pipelines;
     this.frameGroup = color.frameGroups[0]!;
+    this.particleRenderer = new ParticleRenderer(
+      gpu,
+      this.resources,
+      particles,
+    );
     this.configurePasses();
     this.resize();
   }
@@ -269,6 +278,15 @@ export class Renderer {
           this.depthView!,
           this.colorInstanceOffset,
           this.clearColor,
+        ),
+      /** Composite particles into linear scene color after geometry and before HDR effects. */
+      particles: (encoder, view) =>
+        this.particleRenderer.encode(
+          encoder,
+          this.hdr.sceneEnabled ? this.hdr.view! : view,
+          this.depthView!,
+          this.camera,
+          this.hdr.sceneEnabled,
         ),
       /** Delegates this operation to this.hdr.encodeEffects. */
       postProcessing: (encoder) => this.hdr.encodeEffects(encoder),
@@ -408,6 +426,18 @@ export class Renderer {
     this.uploadFrameState(indirect);
     this.streaming.touch(this.frameNumber);
     this.graph.execute(encoder, view);
+    this.stats.particleCount = this.particles.enabled
+      ? this.particles.count
+      : 0;
+    this.stats.particleDrawCalls = this.particleRenderer.drawCalls;
+    this.stats.particleUploadBytes = this.particleRenderer.uploadBytes;
+    this.stats.particleRecordUploadBytes =
+      this.particleRenderer.recordUploadBytes;
+    this.stats.particleDropped = this.particles.dropped;
+    this.stats.bufferUploadBytes += this.particleRenderer.uploadBytes;
+    this.stats.drawCalls += this.particleRenderer.drawCalls;
+    this.stats.pipelineSwitches += this.particleRenderer.drawCalls;
+    this.stats.triangles += this.stats.particleCount * 2;
     this.gpuProfiler.resolveFrame(encoder);
     this.profiler.end(CPUStage.encoding);
     if (this.geometryOptimization.count)
@@ -683,6 +713,7 @@ export class Renderer {
   }
   /** Stops streaming publication and releases shared GPU resources and profiler ownership. */
   dispose(): void {
+    this.particleRenderer.dispose();
     this.meshes.clearRecovery();
     this.environment.dispose();
     this.gpuProfiler.dispose();

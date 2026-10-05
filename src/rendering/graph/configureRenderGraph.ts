@@ -7,6 +7,7 @@ interface RenderCallbacks {
   depth: Execute;
   geometryClusters: Execute;
   color: Execute;
+  particles?: Execute;
   postProcessing: Execute;
   toneMapping: Execute;
   hiz: Execute;
@@ -79,8 +80,18 @@ export function configureRenderGraph(
     execute: callbacks.color,
   });
   graph.add({
+    name: "particles",
+    reads: ["sceneColor", "mainDepth", "frame"],
+    writes: ["particleSceneColor"],
+    execute:
+      callbacks.particles ??
+      (() => {
+        // Legacy callback sets retain scene color unchanged through the optional composition stage.
+      }),
+  });
+  graph.add({
     name: "post-processing",
-    reads: ["sceneColor"],
+    reads: ["particleSceneColor"],
     writes: ["processedSceneColor"],
     execute: callbacks.postProcessing,
   });

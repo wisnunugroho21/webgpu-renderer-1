@@ -1,0 +1,34 @@
+{
+  "command": "pnpm exec vitest bench --run tests/particles.bench.ts",
+  "timing": "CPU workload means; lifetime ticks use delta zero, no expirations",
+  "metrics": [
+    {
+      "name": "1000 analytic particle lifetime ticks",
+      "hz": 117402.54,
+      "minMs": 0.0082,
+      "maxMs": 0.0541,
+      "meanMs": 0.0085
+    },
+    {
+      "name": "1000 particle burst records",
+      "hz": 11301.86,
+      "minMs": 0.0877,
+      "maxMs": 0.1191,
+      "meanMs": 0.0885
+    },
+    {
+      "name": "10000 analytic particle lifetime ticks",
+      "hz": 11818.84,
+      "minMs": 0.0838,
+      "maxMs": 0.1162,
+      "meanMs": 0.0846
+    },
+    {
+      "name": "10000 particle burst records",
+      "hz": 1126.72,
+      "minMs": 0.8657,
+      "maxMs": 0.9845,
+      "meanMs": 0.8875
+    }
+  ]
+}

@@ -48,6 +48,7 @@ export async function rebuildDeviceResources(input: DeviceRebuildInput) {
       input.materials,
       input.profiler,
       previous.camera,
+      previous.particles,
     );
     previous.meshes.rebuildInto(next.meshes);
     const remap = await previous.textures.rebuildInto(next.textures);

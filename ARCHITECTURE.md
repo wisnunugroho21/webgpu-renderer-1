@@ -63,6 +63,14 @@ The color pipeline entry point remains `pipelines/createColorResources.ts`. It c
 
 Focused math, sampling, bounds, visibility and queue kernels remain separate from setup helpers. Avoid adding generic per-frame context objects, closures or directory-wide barrels merely to shorten files. Browser benchmark callbacks passed to `page.evaluate()` deliberately keep browser-local dependencies inside the serialized callback; importing Node helpers into that callback would break the harness.
 
+## Particle snapshot and composition
+
+`src/particles/ParticleSystem.ts` owns fixed-capacity packed spawn provenance, clock, dense retirement and emitter slots. `ParticleEmitter.ts` owns seeded/rate controls; `ParticleEffects.ts` supplies one-shot presets. These owners contain no GPU objects or ECS traversal. `Application` advances this system after gameplay hooks and retains it across recovery; an optional system can be supplied as its fifth constructor argument.
+
+`rendering/particles/ParticleRenderer.ts` attaches an explicit enable-time setup callback, prepares three shared buffers and four bounded pipelines, and consumes numeric spawn records. `ParticleDepthSorter.ts` reuses radix scratch to sort alpha centers without per-frame array views. `shaders/particles.wgsl` evaluates motion, color, size, fade and rotation while generating six billboard vertices per instance. Steady motion uploads only camera/time unless order changes; birth/dense retirement writes dirty rows. Default disabled scenes create no particle GPU objects. Resources owns destruction; GPU-owner disposal detaches setup notifications while application provenance survives recovery.
+
+The graph versions scene color through `color → particles → post-processing → tone-mapping`. Particle composition loads scene color, reads main depth without writing it, and outputs `particleSceneColor`; post-processing depends on that version. Direct and FXAA/HDR targets share the same particle geometry/coverage. Alpha particles sort by center, followed by additive particles; they do not participate in scene-mesh transparency sorting, shadow passes or geometry clusters. CPU particle lifetime work is included in the existing animation preparation stage; renderer particle counters report draw/upload work separately. See [PARTICLES.md](PARTICLES.md).
+
 ## Frame flow
 
 The application dispatches bounded fixed-step gameplay and variable update hooks, then updates animation, world transforms, the selected ECS camera, joint palettes and conservative animated bounds before extracting render state. Renderer passes consume `RenderWorld`; they do not query ECS stores.

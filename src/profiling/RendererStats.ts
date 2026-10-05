@@ -1,4 +1,9 @@
 export class RendererStats {
+  particleCount = 0;
+  particleDrawCalls = 0;
+  particleUploadBytes = 0;
+  particleRecordUploadBytes = 0;
+  particleDropped = 0;
   geometryClusterCandidates = 0;
   geometryClusterDraws = 0;
   geometryFallbackBatches = 0;
@@ -51,6 +56,11 @@ export class RendererStats {
   bvhNodesTested = 0;
   /** Clears per-frame work counters while leaving long-lived configuration outside the statistics object. */
   reset(): void {
+    this.particleCount =
+      this.particleDrawCalls =
+      this.particleUploadBytes =
+      this.particleRecordUploadBytes =
+        0;
     this.geometryClusterCandidates =
       this.geometryClusterDraws =
       this.geometryFallbackBatches =

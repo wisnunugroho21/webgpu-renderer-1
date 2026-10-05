@@ -24,6 +24,10 @@ pnpm run format
 pnpm run format:check
 ```
 
+## Particles and visual effects
+
+Enable `app.particles.enabled`, create reusable emitters or call `playEffect` for sparks, smoke, explosions, confetti and shockwaves. Configurable world-space billboards use analytic GPU motion, sorted alpha/additive blending and shared buffers; scene depth, HDR bloom, FXAA and recovery are supported. The feature starts disabled and creates no particle GPU resources before enablement. Try `/?example=particles` (Space: explosion, C: confetti, P: pause, B: bloom). See [PARTICLES.md](PARTICLES.md) for setup, controls, capacity, ownership and limits.
+
 ## Validation
 
 ```sh
@@ -31,6 +35,7 @@ pnpm test
 pnpm run build
 pnpm run validate:gpu
 pnpm run validate:game
+pnpm run validate:particles
 RENDERER_PREVIEW=1 pnpm run validate:gpu
 pnpm run benchmark --outputJson artifacts/benchmarks.json
 pnpm run benchmark:gpu

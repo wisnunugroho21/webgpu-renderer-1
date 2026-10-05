@@ -27,7 +27,8 @@
     "bake:environment": "node scripts/bake-environment.mjs",
     "validate:post": "node scripts/validate-post.mjs",
     "lint": "eslint . --max-warnings 0",
-    "lint:fix": "eslint . --fix --max-warnings 0"
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "validate:particles": "node scripts/validate-particles.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

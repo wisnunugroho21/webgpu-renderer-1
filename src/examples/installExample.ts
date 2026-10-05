@@ -29,6 +29,12 @@ export async function installExample(
       Object.assign(window, { materialShaderDemoReady: true });
       return example;
     }
+    case "particles": {
+      const { createParticleExample } = await import("./particles");
+      const example = createParticleExample(app);
+      Object.assign(window, { particleDemoReady: true });
+      return example;
+    }
     default:
       return undefined;
   }

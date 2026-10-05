@@ -1,0 +1,117 @@
+{
+  "shapes": [
+    {
+      "shape": "disc",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "shape": "glow",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    },
+    {
+      "shape": "ring",
+      "pixel": [
+        10,
+        20,
+        36,
+        255
+      ]
+    },
+    {
+      "shape": "square",
+      "pixel": [
+        255,
+        0,
+        0,
+        255
+      ]
+    }
+  ],
+  "red": [
+    255,
+    0,
+    0,
+    255
+  ],
+  "sorted": [
+    188,
+    0,
+    188,
+    255
+  ],
+  "additive": [
+    188,
+    20,
+    36,
+    255
+  ],
+  "mixed": [
+    255,
+    137,
+    0,
+    255
+  ],
+  "hdr": [
+    188,
+    20,
+    36,
+    255
+  ],
+  "draws": 1,
+  "unchangedRecordBytes": 0,
+  "steadyBytes": 112,
+  "depthDifference": 0,
+  "recoveryDifference": 0,
+  "bloomDifference": 50540,
+  "timings": [
+    {
+      "blend": "alpha",
+      "count": 1000,
+      "cpuMedianMs": 0.09999999403953552,
+      "completionMedianMs": 0.7000000178813934,
+      "draws": 1,
+      "recordUploadBytes": 0,
+      "totalUploadBytes": 112
+    },
+    {
+      "blend": "alpha",
+      "count": 4000,
+      "cpuMedianMs": 0.19999998807907104,
+      "completionMedianMs": 0.7999999821186066,
+      "draws": 1,
+      "recordUploadBytes": 0,
+      "totalUploadBytes": 112
+    },
+    {
+      "blend": "additive",
+      "count": 1000,
+      "cpuMedianMs": 0,
+      "completionMedianMs": 0.699999988079071,
+      "draws": 1,
+      "recordUploadBytes": 0,
+      "totalUploadBytes": 112
+    },
+    {
+      "blend": "additive",
+      "count": 4000,
+      "cpuMedianMs": 0,
+      "completionMedianMs": 0.7000000178813934,
+      "draws": 1,
+      "recordUploadBytes": 0,
+      "totalUploadBytes": 112
+    }
+  ],
+  "gpuErrors": [],
+  "finalBuffers": 0,
+  "finalTextures": 0
+}

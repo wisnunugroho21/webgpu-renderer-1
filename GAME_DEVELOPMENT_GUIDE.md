@@ -416,3 +416,34 @@ Keep game rules in your own model module, as [CollectGame.ts](src/examples/Colle
 Follow the existing ownership boundaries when extending the engine. Shader registration lives in `CustomMaterialShaders.ts`; drawing reads its prepared tables. GPU destruction stays with the renderer's resource owners. Material parameter changes use one shared dirty-range upload. Passes consume `RenderWorld` rather than reaching into the ECS. Do not create per-object buffers, compile shaders each frame or add normal-frame GPU readbacks to implement a game effect.
 
 Use [ARCHITECTURE.md](ARCHITECTURE.md) for the module contracts and [benchmarks/CODEBASE_MAINTENANCE_REPORT.md](benchmarks/CODEBASE_MAINTENANCE_REPORT.md) for the restructuring's validation evidence. A scene-specific game feature normally belongs in your model/scene code; change renderer internals when it needs a new rendering capability shared by multiple games or scenes.
+
+## 14. Add particles to gameplay events
+
+Continuing the playable sample with its `app`, `x` and `z`, enable the persistent particle system and retain a scene-owned emitter:
+
+```ts
+app.particles.enabled = true;
+const exhaust = app.particles.createEmitter({
+  rate: 40,
+  position: [0, 1, 0],
+  velocity: [0, 1, 0],
+  lifetime: [0.5, 1],
+  shape: "glow",
+  blend: "additive",
+  startColor: [0.1, 0.8, 3, 1],
+  endColor: [0.02, 0.1, 0.3, 0],
+});
+const offExhaust = app.onUpdate(() => {
+  // Follow the actor without moving particles that were already spawned.
+  exhaust.setPosition(x, 0.35, z);
+});
+// Call this on a hit/pickup rather than constructing an emitter each frame.
+app.particles.playEffect("sparks", [x, 0.35, z]);
+// Scene transition: offExhaust(); exhaust.dispose();
+```
+
+The application advances particle lifetimes automatically after gameplay hooks. Do not add a second update loop for the same system. Disable with `app.particles.enabled = false` to hide/freeze effects; stop individual emission with `exhaust.emitting = false` and adjust density with `exhaust.rate`. Clear scene particles explicitly when leaving a level; disable/dispose its continuous emitters before clearing.
+
+Sparks, smoke, explosion, confetti and shockwave presets are event bursts and do not occupy retained emitter slots. Custom emitter settings control origin/spread, velocity/spread, gravity, drag, lifetime, color, size, rotation, fade windows and alpha/additive blending. Use HDR/bloom for radiance above one. Effects depth-test without writing depth or casting shadows, and render before presentation effects.
+
+Particles use a separate bounded pool rather than ECS entities or PBR materials. Default capacity is 4,096 particles/64 emitters; overflow drops new requests and is visible in renderer particle counters. Device recovery retains the same CPU system and reuploads records to the replacement renderer. Follow [PARTICLES.md](PARTICLES.md) for capacity customization, cleanup and sorting limits; `/?example=particles` demonstrates controls. Billboard overlap can cost more GPU time than its small draw count suggests, so benchmark the effects at your game's resolution and worst-case density.

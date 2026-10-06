@@ -11,6 +11,8 @@ export const textureRoles = [
   "clearcoatNormal",
   "specular",
   "specularColor",
+  "transmission",
+  "thickness",
 ] as const;
 /** Color maps require sRGB decoding; factors, normals and channel masks are linear. */
 export function isColorTexture(role: string): boolean {
@@ -22,7 +24,7 @@ export function isColorTexture(role: string): boolean {
 export function packTextureLayout(
   slots: Material["textures"] = {},
 ): Float32Array {
-  const result = new Float32Array(87);
+  const result = new Float32Array(103);
   result.set([
     slots.emissive?.texCoord ?? 0,
     slots.normal ? 1 : 0,
@@ -72,7 +74,7 @@ export function packTextureLayout(
       ],
       o,
     );
-    if (slot && i >= 5) result[86]! |= 1 << (i - 5);
+    if (slot && i >= 5) result[102]! |= 1 << (i - 5);
   }
   return result;
 }

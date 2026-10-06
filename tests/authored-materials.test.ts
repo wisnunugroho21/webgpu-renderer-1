@@ -75,9 +75,9 @@ describe("authored material publication", () => {
     expect(rows[1]).toBeCloseTo(-3);
     expect(rows[4]).toBeCloseTo(2);
     expect(rows[3]).toBe(1);
-    expect(old[86]).toBe(4);
+    expect(old[102]).toBe(4);
     manager.setTextureSlots(id, { specularColor: { texCoord: 0 } });
-    expect(manager.textureLayout(id, true)[86]).toBe(16);
+    expect(manager.textureLayout(id, true)[102]).toBe(16);
     manager.setTextureLayout(id, old);
     expect(manager.textureLayout(id, true)).toEqual(old);
     const invalid = old.slice();

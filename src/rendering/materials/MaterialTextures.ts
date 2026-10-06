@@ -1,3 +1,4 @@
+import { VolumeTexturePacker } from "./VolumeTexturePacker";
 import { contentHash } from "../../assets/contentHash";
 import {
   BasisTranscoder,
@@ -32,6 +33,8 @@ export class MaterialTextures {
   private disposed = false;
   private readonly white: GPUTextureView;
   private readonly flatNormal: GPUTextureView;
+  private readonly volumeWhite: GPUTextureView;
+  private volumePacker?: VolumeTexturePacker;
   /** Initializes deduplicated role-correct texture bindings and resource leases. */
   constructor(
     private readonly device: GPUDevice,
@@ -46,23 +49,58 @@ export class MaterialTextures {
     this.basis = this.uploader.basis;
     this.mipmaps = this.uploader.mipmaps;
     this.layout = device.createBindGroupLayout({
-      entries: textureRoles.flatMap(
-        (_, i) => /** Returns the ordered values needed by this operation. */ [
-          {
-            binding: i * 2,
-            visibility: GPUShaderStage.FRAGMENT,
-            texture: { sampleType: "float" as const },
-          },
-          {
-            binding: i * 2 + 1,
-            visibility: GPUShaderStage.FRAGMENT,
-            sampler: { type: "filtering" as const },
-          },
-        ],
-      ),
+      entries: [
+        ...textureRoles
+          .slice(0, 10)
+          .flatMap(
+            (
+              _,
+              i,
+            ) => /** Returns the ordered values needed by this operation. */ [
+              {
+                binding: i * 2,
+                visibility: GPUShaderStage.FRAGMENT,
+                texture: { sampleType: "float" as const },
+              },
+              {
+                binding: i * 2 + 1,
+                visibility: GPUShaderStage.FRAGMENT,
+                sampler: { type: "filtering" as const },
+              },
+            ],
+          ),
+        {
+          binding: 20,
+          visibility: GPUShaderStage.FRAGMENT,
+          texture: { sampleType: "float", viewDimension: "2d-array" },
+        },
+        {
+          binding: 21,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "filtering" },
+        },
+        {
+          binding: 22,
+          visibility: GPUShaderStage.FRAGMENT,
+          sampler: { type: "filtering" },
+        },
+      ],
     });
     this.white = this.pixel([255, 255, 255, 255]);
     this.flatNormal = this.pixel([128, 128, 255, 255]);
+    const volume = this.resources.textures.create({
+      label: "Volume map fallback",
+      size: [1, 1, 2],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    this.device.queue.writeTexture(
+      { texture: volume },
+      new Uint8Array([255, 255, 255, 255, 255, 255, 255, 255]),
+      { bytesPerRow: 4, rowsPerImage: 1 },
+      [1, 1, 2],
+    );
+    this.volumeWhite = volume.createView({ dimension: "2d-array" });
     this.fallback = this.group();
   }
   /** Creates a one-pixel fallback texture for an absent material texture role. */
@@ -84,24 +122,46 @@ export class MaterialTextures {
   private group(
     views?: GPUTextureView[],
     slots?: (RuntimeTextureSlot | undefined)[],
+    volumeView = this.volumeWhite,
   ): GPUBindGroup {
     return this.device.createBindGroup({
       layout: this.layout,
-      entries: textureRoles.flatMap(
-        (_, i) => /** Returns the ordered values needed by this operation. */ [
-          {
-            binding: i * 2,
-            resource:
-              views?.[i] ?? (i === 2 || i === 7 ? this.flatNormal : this.white),
-          },
-          {
-            binding: i * 2 + 1,
-            resource: this.resources.samplers.get(
-              samplerDescriptor(slots?.[i], this.maxAnisotropy),
-            ),
-          },
-        ],
-      ),
+      entries: [
+        ...textureRoles
+          .slice(0, 10)
+          .flatMap(
+            (
+              _,
+              i,
+            ) => /** Returns the ordered values needed by this operation. */ [
+              {
+                binding: i * 2,
+                resource:
+                  views?.[i] ??
+                  (i === 2 || i === 7 ? this.flatNormal : this.white),
+              },
+              {
+                binding: i * 2 + 1,
+                resource: this.resources.samplers.get(
+                  samplerDescriptor(slots?.[i], this.maxAnisotropy),
+                ),
+              },
+            ],
+          ),
+        { binding: 20, resource: volumeView },
+        {
+          binding: 21,
+          resource: this.resources.samplers.get(
+            samplerDescriptor(slots?.[10], this.maxAnisotropy),
+          ),
+        },
+        {
+          binding: 22,
+          resource: this.resources.samplers.get(
+            samplerDescriptor(slots?.[11], this.maxAnisotropy),
+          ),
+        },
+      ],
     });
   }
   /** Retained runtime definitions rebuild bindings after loss; callers count aliased stores only once. */
@@ -122,6 +182,8 @@ export class MaterialTextures {
     const owned = new Set<string>();
     const bitmaps = new Map<string, Promise<ImageBitmap>>();
     const pending: Promise<GPUTextureView>[] = [];
+    const sources = new Map<GPUTextureView, GPUTexture>();
+    const keys = new Map<GPUTextureView, string>();
     /** Creates a role-compatible texture view for material sampling. */
     const view = async (
       slot: RuntimeTextureSlot,
@@ -167,7 +229,11 @@ export class MaterialTextures {
           if (this.cache.get(key) === created) this.cache.delete(key);
         });
       }
-      return (await cached).createView();
+      const texture = await cached,
+        view = texture.createView();
+      sources.set(view, texture);
+      keys.set(view, key);
+      return view;
     };
     try {
       const groups = await Promise.all(
@@ -194,7 +260,41 @@ export class MaterialTextures {
             ),
           );
           if (this.disposed) throw new Error("Texture manager disposed");
-          return this.group(textures, slots);
+          let volumeView = this.volumeWhite;
+          if (slots[10] || slots[11]) {
+            const key = `volume:${keys.get(textures[10]!) ?? "white"}|${keys.get(textures[11]!) ?? "white"}:${JSON.stringify([samplerDescriptor(slots[10], this.maxAnisotropy), samplerDescriptor(slots[11], this.maxAnisotropy)])}`;
+            if (!owned.has(key)) {
+              owned.add(key);
+              this.references.set(key, (this.references.get(key) ?? 0) + 1);
+            }
+            let cached = this.cache.get(key);
+            if (cached) this.metrics.hits++;
+            else {
+              this.metrics.misses++;
+              this.volumePacker ??= new VolumeTexturePacker(
+                this.device,
+                this.resources,
+              );
+              cached = Promise.resolve(
+                this.volumePacker.pack(
+                  sources.get(textures[10]!),
+                  sources.get(textures[11]!),
+                  this.white,
+                  [
+                    this.resources.samplers.get(
+                      samplerDescriptor(slots[10], this.maxAnisotropy),
+                    ),
+                    this.resources.samplers.get(
+                      samplerDescriptor(slots[11], this.maxAnisotropy),
+                    ),
+                  ],
+                ),
+              );
+              this.cache.set(key, cached);
+            }
+            volumeView = (await cached).createView({ dimension: "2d-array" });
+          }
+          return this.group(textures, slots, volumeView);
         }),
       );
       this.ownership.set(groups, owned);

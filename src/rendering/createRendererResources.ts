@@ -1,3 +1,4 @@
+import type { ShadowTargetOptions } from "./shadows/ShadowBudget";
 import { createBootstrapMesh } from "./geometry/createBootstrapMesh";
 import { MESH_VERTEX_LAYOUT } from "./geometry/VertexLayout";
 import { GeometryOptimization } from "./geometry/GeometryOptimization";
@@ -32,6 +33,7 @@ export function createRendererResources(
   world: RenderWorld,
   materials: MaterialManager,
   lodGroups: LODGroups,
+  shadowOptions: ShadowTargetOptions = {},
 ) {
   const device = gpu.device;
   const resources = new Resources(device);
@@ -118,6 +120,7 @@ export function createRendererResources(
     materials,
     textures,
     MESH_VERTEX_LAYOUT,
+    shadowOptions,
   );
   const depthPrepass = new DepthPrepass(
     resources,

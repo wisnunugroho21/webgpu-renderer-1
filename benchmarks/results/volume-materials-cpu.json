@@ -1,0 +1,39 @@
+{
+  "files": [
+    {
+      "filepath": "/Users/nugrohodewantoro/Documents/Projects/Game/webgpu-renderer/tests/volume-materials.bench.ts",
+      "groups": [
+        {
+          "fullName": "tests/volume-materials.bench.ts",
+          "benchmarks": [
+            {
+              "id": "948553124_0",
+              "name": "1000 optical material validation and packing",
+              "rank": 1,
+              "rme": 5.416277601236645,
+              "samples": [],
+              "totalTime": 500.87908000000124,
+              "min": 1.944250000000011,
+              "max": 14.908500000000004,
+              "hz": 457.1961759712533,
+              "period": 2.1872448908296995,
+              "mean": 2.1872448908296995,
+              "variance": 0.8366041055599557,
+              "sd": 0.9146606504928239,
+              "sem": 0.06044247709500099,
+              "df": 228,
+              "critical": 1.96,
+              "moe": 0.11846725510620193,
+              "p75": 2.1152080000000524,
+              "p99": 3.335749999999962,
+              "p995": 6.108292000000006,
+              "p999": 14.908500000000004,
+              "sampleCount": 229,
+              "median": 2.0453749999999786
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

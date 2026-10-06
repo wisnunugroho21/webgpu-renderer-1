@@ -29,7 +29,7 @@ export async function rebuildDeviceResources(input: DeviceRebuildInput) {
   const previous = input.previous;
   if (!previous) throw new Error("Application is not initialized");
   await input.assets.quiesce();
-  await previous.streaming.quiesce();
+  await previous.streaming.quiesce(true);
   previous.meshes.assertRecoverable();
   input.gpu.dispose();
   let nextGPU: GPUContext | undefined, next: Renderer | undefined;
@@ -53,6 +53,7 @@ export async function rebuildDeviceResources(input: DeviceRebuildInput) {
       input.profiler,
       previous.camera,
       previous.particles,
+      { shadows: previous.shadows.targetOptions },
     );
     previous.meshes.rebuildInto(next.meshes);
     const remap = await previous.textures.rebuildInto(next.textures);

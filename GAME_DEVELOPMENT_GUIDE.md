@@ -513,10 +513,73 @@ See [AUTHORED_RENDERING.md](AUTHORED_RENDERING.md) for complete examples, textur
 
 Load authored glTF clearcoat, specular/IOR, emissive-strength, unlit and texture-transform extensions through the ordinary asset API. Factors are also available on `app.materials.create/set`: e.g. `{ roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.12, ior: 1.5, specular: 0.8 }`. Enable HDR/bloom for bright emission. Materials with `unlit: true` retain base/vertex/texture color and alpha while ignoring lighting and emission. Per-texture transforms support UV0/UV1, offset, scale and rotation, including alpha masks in depth/shadows. Full streaming snapshots restore these transforms and extra-map flags automatically. Scalar PBR settings remain separate from streamed replacement images.
 
-The fixed shared material stride is 448 bytes; core factor offsets and existing custom shader helper signatures remain stable. Five authored maps append to the five core maps with shared neutral fallbacks and no per-frame GPU creation. Absent extension maps skip their samples; clearcoat introduces an additional lobe only when its factor is nonzero. Custom shader families continue to determine their own lighting and receive transformed core samples and scaled emissive color. Run `pnpm build && pnpm validate:authored` while authoring these features, then `pnpm validate` before integration.
+The fixed shared material stride is 544 bytes; core factor offsets and existing custom shader helper signatures remain stable. Five authored surface maps and two optical map roles append to the five core maps with shared neutral fallbacks and no per-frame GPU creation. Absent extension maps skip their samples; clearcoat introduces an additional lobe only when its factor is nonzero. Custom shader families continue to determine their own lighting and receive transformed core samples and scaled emissive color. Run `pnpm build && pnpm validate:authored` while authoring these features, then `pnpm validate` before integration.
 
 ## 19. Render-graph lifetimes and pooled targets
 
 Inspect `renderer.graph.lifetimes` to see compiled first/last consumers and `renderer.resources.targets.stats` for active/quarantined/idle target memory and reuse. HDR/bloom/exposure resize targets reuse completed compatible pool entries automatically. Idle storage is still included in renderer memory; `renderer.resources.targets.clearIdle()` frees completed cache entries when memory pressure matters.
 
 For custom graphs, declare disposable textures with `graph.transient(name, { descriptor, initialization: "clear" })`, add producer/consumer passes, compile, then prepare a retained target set with `graph.prepareTargets(renderer.resources.targets)`. Prepare views/groups once and execute the graph normally each frame. Nonoverlapping exact-compatible versions can share physical storage; a pass input/output overlap never aliases. Keep cached shadows, temporal history and external cross-frame resources persistent/imported. Fully initialize pooled outputs, and dispose the target set only between submissions after its last use. Never retain unsubmitted encoders using released targets. See [RENDER_GRAPH.md](RENDER_GRAPH.md) for the ownership contract and examples.
+
+## Shadow memory and work budgets
+
+Choose physical shadow storage during application setup using the sixth constructor argument: `new Application(canvas, status, 16384, 16384, new ParticleSystem(), { shadows: { resolution: 512, layers: 8 } })`. Standalone Renderer accepts the same configuration as its seventh argument. Power-of-two resolutions range from 128 to 2048; layers range from one to sixteen. Default storage remains 1024×1024×16, 64 MiB of logical depth payload. Device recovery retains the chosen dimensions.
+
+After startup, configure `app.renderer.shadows.budget.configure({ maxLayers: 8, maxTexels: 4 * 1024 * 1024, minResolution: 128 })`, then set `budget.enabled = true`. The planner ranks importance from light intensity/range and camera distance with retention hysteresis. It reduces viewports or declines whole lower-priority lights under pressure: point lights always require six faces and are never partially allocated. Directional lights reserve all their configured cascades. Unselected lights still illuminate the scene without shadows. Inspect `shadowBudgetRejected` and `shadowBudgetTexels` alongside existing shadow draw/cache counters.
+
+Adaptive viewports reduce raster coverage, while startup dimensions reduce actual array payload. Full attachment clears still cover physical layers, so the texel setting is not a hard GPU time limit. Disable the planner to retain strict authored capacity behavior. Configure outside frame submission; normal frames only reuse scratch/resources and never resize shadow targets. See [benchmarks/REMAINING_IMPROVEMENTS_REPORT.md](benchmarks/REMAINING_IMPROVEMENTS_REPORT.md) for validation and measurements.
+
+## Automatic authored texture quality
+
+For automatic texture quality, register complete authored material texture tiers with `app.renderer.streaming.quality.register(materialId, tiers)` and enable `quality.enabled`. The controller uses conservative projected object size and global streaming budgets, retaining working textures until replacements are ready and restoring resident fallbacks under pressure. See [MEMORY_AND_STREAMING.md](MEMORY_AND_STREAMING.md) for required threshold/estimate/loader fields, immutable material-lifetime handling and cleanup.
+
+## Temporal anti-aliasing and motion
+
+```ts
+app.renderer.antialiasing = "taa";
+app.renderer.taa.feedback = 0.9; // 0–0.98; zero uses only the current sample
+app.renderer.taa.depthTolerance = 0.0001; // Standard-Z rejection threshold
+app.renderer.taa.jitter = true;
+// After an intentional cut/teleport:
+app.renderer.taa.reset();
+// Return to the existing alternatives:
+app.renderer.antialiasing = "fxaa"; // or "none"
+```
+
+TAA is opt-in and uses linear scene storage even with HDR exposure disabled. Shared motion rasterization follows model transforms, signed morph weights and four/eight-joint skinning. A fixed identity table matches entity/material lifetimes across compact extraction reorder; new or incompatible geometry rejects history. GPU copies retain shared palettes, without CPU deformation or readbacks. Stationary scenes upload 304 bytes of motion/resolve controls after warmup rather than rewriting object poses.
+
+Persistent color/depth histories use depth rejection, YCoCg neighborhood clipping, stable-grid subpixel accumulation, and bounded support at stationary silhouette edges. The opaque/composed-color difference rejects history where transparent meshes or effects contribute. Transparent coverage remains rendered at current-frame resolution. GPU-selected LOD objects conservatively reject history because CPU geometry does not establish the previous selected LOD; other opaque objects still accumulate. Standard-Z depth tolerance should match your authored near/far range. Call `reset()` on explicit cuts. Resize and recovery reset history automatically while preserving settings.
+
+`renderer.taa.motionTexture` exposes retained RGBA32F motion storage when enabled: RG is current-minus-previous normalized screen UV, B is previous projected depth, A marks valid matching geometry. This accessor performs no readback. Motion includes projection jitter; temporal accumulation removes that jitter component internally. Use a custom GPU pass to consume motion, and perform any diagnostic readback outside the normal frame path.
+
+Optional histories cost 48 bytes per pixel (motion, opaque snapshot, two color/depth pairs), in addition to linear scene/depth storage. Enabling TAA first checks combined object/joint/morph history storage against the device binding and buffer limits; unsupported capacity throws before allocating histories or changing presentation mode. Targets and pipelines remain retained for warm mode toggles and are released on renderer disposal. Use `temporalDrawCalls`/`temporalUploadBytes` and GPU profiler motion/resolve stages to assess the cost on your device. Default `none` and existing FXAA behavior remain available.
+
+## Glass, transmission and absorption
+
+```ts
+app.renderer.transmission.enabled = true;
+const glass = app.materials.create({
+  baseColor: [1, 1, 1, 1],
+  metallic: 0,
+  roughness: 0.08,
+  transmission: 1,
+  ior: 1.5,
+  thickness: 0.2,
+  attenuationColor: [0.8, 0.95, 1],
+  attenuationDistance: 2,
+});
+```
+
+Assign the material to a mesh using the ordinary mesh/material APIs. Optical transmission retains surface coverage and reflection; it is independent of `alphaMode`. A positive transmission factor schedules the mesh alongside other transparent meshes and effects. Set thickness to zero for a thin surface. Thickness is authored in mesh units and scales with the model; absorption distance uses world units. Omitted/infinite attenuation distance disables absorption. Volume boundaries ignore `doubleSided`; author closed geometry and baked thickness for volumetric objects.
+
+The loader imports `KHR_materials_transmission` and `KHR_materials_volume`, including linear R-channel transmission and G-channel thickness maps, UV0/UV1, affine transforms and samplers. See the [Khronos transmission specification](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_transmission/README.md) and [volume specification](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_volume/README.md) for authoring semantics.
+
+Rendering captures opaque linear radiance before transparency and prepares a roughness mip chain. Refraction samples a projected endpoint from the baked thickness; absorption follows the authored attenuation color/distance. Reflection and clearcoat remain visible. Custom surface shaders also receive the automatic transmission composition after returning their opaque radiance; custom reflected radiance uses a dielectric Fresnel approximation. Transmission is disabled by default, and capture work is skipped when no conservative visible candidate requests it.
+
+This is a screen-space approximation: it captures opaque geometry and skybox, clamps lookups to screen edges, and does not trace hidden/offscreen geometry, refract other transparent layers, or compute optical shadows. Baked thickness/model scale estimates the ray length; animated joint scale and actual nested volume boundaries are not traced. Roughness uses the captured color mip pyramid, rather than a full refractive microfacet convolution. Keep transmission disabled when these tradeoffs do not suit the game.
+
+Two optical maps use separate layers of one linear RGBA8 array, normalized to their common maximum dimensions. Their UVs and runtime samplers remain independent; cold GPU resampling supports compressed sources and authored nearest filtering. Original source textures and the packed array remain leased for sharing/recovery, so streaming estimates should include both. Complete memory diagnostics account for their mip chains/layers and the optional HDR capture. The maximum environment/material layout remains within sixteen sampled textures. The material ABI is now 136 floats/544 bytes with twelve UV roles; the surface shader function contract is unchanged. Legacy six/87-value texture-layout patches remain accepted; full extended layouts now contain 103 values.
+
+## Reproducible validation
+
+Use the shared software/hardware profiles in [GPU_VALIDATION.md](GPU_VALIDATION.md) to run the same production scenarios against an identified backend. The CI workflow uses frozen dependencies and bundled Chromium; the optional hardware job requires an explicitly provisioned runner. See [the improvements report](benchmarks/REMAINING_IMPROVEMENTS_REPORT.md) for feature costs, benchmarks and approximation limits.

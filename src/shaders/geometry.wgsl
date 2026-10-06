@@ -1,4 +1,4 @@
-// CPU ABI: Material is 448 bytes; Instance is 48 bytes (including padding).
+// CPU ABI: Material is 544 bytes; Instance is 48 bytes (including padding).
 // Instance offsets address shared palettes and morph arenas, never per-object buffers.
 struct Material {
   baseColor: vec4<f32>,
@@ -12,8 +12,10 @@ struct Material {
   // dielectric specular RGB, coat weight
   coat: vec4<f32>,
   // coat roughness, normal scale, reserved, map flags
+  transmission: vec4<f32>,
+  attenuation: vec4<f32>,
   textureTransforms: array<vec4<f32>,
-  20>
+  24>
 }
 
 struct Instance {

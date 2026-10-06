@@ -19,6 +19,8 @@ const checks = [
   "validate:hdr",
   "validate:quality",
   "validate:post",
+  "validate:temporal",
+  "validate:transmission",
   "validate:graph",
   "validate:recovery",
   "validate:environments",

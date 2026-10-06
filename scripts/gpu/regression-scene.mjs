@@ -4,6 +4,11 @@
 export const runRegressionScene = async () => {
   const app = window.rendererApp;
   app.stop();
+  const progress = (stage) => {
+    // Cold milestones identify expensive stress phases without changing render work or assertions.
+    console.info(`[GPU validation] ${stage}`);
+  };
+  progress("material/deformation scenarios");
   const gpu = app.gpu;
   gpu.device.pushErrorScope("validation");
   // Readback is confined to the regression harness, never the normal frame path.
@@ -1242,6 +1247,7 @@ export const runRegressionScene = async () => {
   gpu.device.createBindGroup = originalGroup;
   lightChecks.resourcesAfter = { ...renderer.resources.stats };
 
+  progress("many-light stress");
   const manyLights = [];
   for (let i = 0; i < 1024; i++) {
     const e = app.world.create();
@@ -1329,6 +1335,7 @@ export const runRegressionScene = async () => {
     }
     return { maxDifference, differingBytes };
   };
+  progress("clustered/brute-force comparison");
   const clusterResources = { ...renderer.resources.stats };
   renderer.clusters.mode = "off";
   const bruteImage = await captureClusters();
@@ -1749,6 +1756,7 @@ export const runRegressionScene = async () => {
   }
   renderer.gpuProfiler.enabled = false;
   const gpuTimings = await renderer.gpuProfiler.readSamples();
+  progress("profiling scenarios");
   const profilingChecks = {
     supported: renderer.gpuProfiler.supported,
     gpuTimings,
@@ -2196,6 +2204,7 @@ export const runRegressionScene = async () => {
   extractShadows();
   await captureClusters();
   const occlusionFlags = await readVisibility(renderer.gpuFrustum);
+  progress("occlusion scenarios");
   const occlusionChecks = {
     live: {
       ids: Array.from(rw.entityId.slice(0, rw.count)),
@@ -3004,6 +3013,8 @@ export const runRegressionScene = async () => {
   const temporalResources = { ...renderer.resources.stats };
   /** Measures visibility reuse with explicit diagnostic image capture and timing. */
   const measureTemporal = async (enabled) => {
+    // Log a cold benchmark boundary before the identical enabled/disabled workload.
+    progress("temporal occlusion scenarios");
     renderer.temporal.enabled = enabled;
     const timings = [];
     for (let f = 0; f < 10; f++) {

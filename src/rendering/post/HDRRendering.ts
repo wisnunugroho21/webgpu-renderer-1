@@ -5,7 +5,7 @@ import { GPUContext } from "../../gpu/GPUContext";
 import { Resources } from "../../gpu/Resources";
 import { GPUProfiler, GPUPass } from "../../profiling/GPUProfiler";
 
-export type Antialiasing = "none" | "fxaa";
+export type Antialiasing = "none" | "fxaa" | "taa";
 export type ToneMapping = "reinhard" | "clamp" | "filmic";
 
 /** Optional linear scene target. Setup occurs on enable/resize; steady frames only encode. */
@@ -16,6 +16,17 @@ export class HDRRendering {
   private postGroup?: GPUBindGroup;
   private postRevision = -1;
   private active = false;
+  private transmission = false;
+  /** Reserve linear scene storage for screen-space transmission independently of HDR exposure and AA. */
+  get transmissionEnabled(): boolean {
+    return this.transmission;
+  }
+  /** Prepare scene storage only at explicit transmission configuration boundaries. */
+  set transmissionEnabled(value: boolean) {
+    this.transmission = value;
+    this.dirty = true;
+    this.prepare();
+  }
   private aa: Antialiasing = "none";
   private stops = 0;
   private curve: ToneMapping = "reinhard";
@@ -27,6 +38,10 @@ export class HDRRendering {
   private group?: GPUBindGroup;
   private sceneTarget?: TargetLease;
   view?: GPUTextureView;
+  /** Expose retained linear storage to graph-owned copy/resolve stages. */
+  get sceneTexture(): GPUTexture | undefined {
+    return this.sceneTarget?.texture;
+  }
   private width = 0;
   private height = 0;
 
@@ -123,7 +138,7 @@ export class HDRRendering {
   }
   /** Selects none or FXAA; FXAA can prepare linear scene storage without enabling HDR exposure. */
   set antialiasing(value: Antialiasing) {
-    if (value !== "none" && value !== "fxaa")
+    if (value !== "none" && value !== "fxaa" && value !== "taa")
       throw new RangeError("Unknown anti-aliasing mode");
     this.aa = value;
     this.dirty = true;
@@ -131,7 +146,7 @@ export class HDRRendering {
   }
   /** FXAA can use linear scene storage without enabling HDR exposure/tone mapping. */
   get sceneEnabled(): boolean {
-    return this.active || this.aa !== "none";
+    return this.active || this.aa !== "none" || this.transmission;
   }
   /** Lazily prepares shared HDR color/presentation resources at a feature configuration boundary. */
   private prepare(): void {
@@ -196,7 +211,10 @@ export class HDRRendering {
       size: [width, height],
       format: "rgba16float",
       usage:
-        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+        GPUTextureUsage.RENDER_ATTACHMENT |
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_SRC |
+        GPUTextureUsage.COPY_DST,
     });
     this.view = this.sceneTarget.view;
     this.group = this.gpu.device.createBindGroup({

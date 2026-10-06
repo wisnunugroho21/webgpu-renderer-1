@@ -9,7 +9,7 @@ import {
   measureDrawBenchmark,
 } from "./gpu/smoke-checks.mjs";
 import { assertRegressionReport } from "./gpu/regression-assertions.mjs";
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import { mkdir, writeFile, readFile } from "node:fs/promises";
 import assert from "node:assert/strict";
 
@@ -22,7 +22,7 @@ const server = await startPreviewServer(
 let browser;
 try {
   await mkdir("artifacts", { recursive: true });
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({
     viewport: { width: 800, height: 600 },
     deviceScaleFactor: 2,

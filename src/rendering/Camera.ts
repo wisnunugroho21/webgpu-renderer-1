@@ -21,6 +21,17 @@ export class Camera {
   readonly projection = Mat4.create();
   readonly viewProjection = Mat4.create();
   private dirty = true;
+  private jitterX = 0;
+  private jitterY = 0;
+  /** Set normalized clip-space subpixel offsets while preserving authored camera settings. */
+  setJitter(x: number, y: number): void {
+    if (!Number.isFinite(x) || !Number.isFinite(y))
+      throw new Error("Invalid camera jitter");
+    if (x === this.jitterX && y === this.jitterY) return;
+    this.jitterX = x;
+    this.jitterY = y;
+    this.dirty = true;
+  }
   private aspect = 0;
   private fixedAspect?: number;
   private kind: "perspective" | "orthographic" = "perspective";
@@ -149,6 +160,10 @@ export class Camera {
         this.zNear,
         this.zFar,
       );
+    }
+    for (let c = 0; c < 4; c++) {
+      this.projection[c * 4]! += this.jitterX * this.projection[c * 4 + 3]!;
+      this.projection[c * 4 + 1]! += this.jitterY * this.projection[c * 4 + 3]!;
     }
     Mat4.multiply(this.viewProjection, this.projection, this.view);
     this.aspect = aspect;

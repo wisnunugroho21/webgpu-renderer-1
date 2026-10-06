@@ -104,10 +104,19 @@ export const measureLoadingChecks = async () => {
   const firstEntity = app.world.nextEntity,
     before = app.frames,
     start = performance.now();
+  let eventLoopTurns = 0;
+  const timer = setInterval(() => {
+    // Measure UI task progress independently of software GPU presentation speed.
+    eventLoopTurns++;
+  }, 1);
   const first = app.loadAsset(url),
     second = app.loadAsset(url);
   const loadingState = app.assetLoader.get(url).state;
-  await Promise.all([first, second]);
+  try {
+    await Promise.all([first, second]);
+  } finally {
+    clearInterval(timer);
+  }
   const elapsedMs = performance.now() - start,
     record = app.assetLoader.get(url);
   const loaded = { ...app.renderer.resources.stats },
@@ -130,6 +139,7 @@ export const measureLoadingChecks = async () => {
     cachedMs,
     timings: record.timings,
     framesDuringLoad: app.frames - before,
+    eventLoopTurns,
     loaded,
     cached,
   };
@@ -139,21 +149,38 @@ export const measureLoadingChecks = async () => {
 export const measureWorkerChecks = async () => {
   const app = window.rendererApp,
     url = new URL("/worker-large.glb", location.href).href;
+  const probe = () => {
+    // Macrotask progress measures responsiveness independently of GPU-bound presentation cadence.
+    let turns = 0;
+    const timer = setInterval(() => {
+      // Count actual main-thread task turns while decode/upload is pending.
+      turns++;
+    }, 1);
+    return () => {
+      // Stop the probe before later tasks can inflate the measured operation's responsiveness.
+      clearInterval(timer);
+      return turns;
+    };
+  };
   const mainJSON = await app.gltf.fetch(url),
     start = performance.now(),
     beforeMain = app.frames;
+  const mainProbe = probe();
   const reference = await app.gltf.parseJSON(mainJSON),
     mainDecodeMs = performance.now() - start;
-  const framesDuringMain = app.frames - beforeMain;
+  const framesDuringMain = app.frames - beforeMain,
+    mainEventLoopTurns = mainProbe();
   const workerJSON = await app.gltf.fetch(url),
     inputBuffers = Object.values(workerJSON.resources).map(
       (data) => /** Returns data buffer. */ data.buffer,
     ),
     beforeWorker = app.frames;
+  const workerProbe = probe();
   let t = performance.now();
   const asset = await app.assetDecoder.decode(workerJSON),
     coldWorkerMs = performance.now() - t;
-  const framesDuringWorker = app.frames - beforeWorker;
+  const framesDuringWorker = app.frames - beforeWorker,
+    workerEventLoopTurns = workerProbe();
   let mismatches = 0;
   for (const key of Object.keys(reference.meshes[0].primitives[0].attributes)) {
     const a = reference.meshes[0].primitives[0].attributes[key],
@@ -182,14 +209,18 @@ export const measureWorkerChecks = async () => {
   const uploadStart = performance.now(),
     beforeUploadFrames = app.frames;
   let instance;
+  const uploadProbe = probe();
+  let uploadEventLoopTurns;
   try {
     instance = await app.instantiateAsset(url);
   } finally {
     app.gpu.queue.writeBuffer = original;
+    uploadEventLoopTurns = uploadProbe();
   }
   const upload = {
     totalMs: performance.now() - uploadStart,
     framesDuring: app.frames - beforeUploadFrames,
+    eventLoopTurns: uploadEventLoopTurns,
     chunks: sizes.length,
     maxChunk: Math.max(...sizes),
   };
@@ -205,6 +236,8 @@ export const measureWorkerChecks = async () => {
     warmWorkerMedianMs: samples[1],
     framesDuringWorker,
     framesDuringMain,
+    mainEventLoopTurns,
+    workerEventLoopTurns,
     mismatches,
     inputDetached: inputBuffers.every(
       (b) =>

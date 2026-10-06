@@ -14,6 +14,8 @@ export function copyRendererSettings(
   target.visibilityMode = previous.visibilityMode;
   target.lodGroups.entries.push(...previous.lodGroups.entries);
   target.clusters.mode = previous.clusters.mode;
+  target.shadows.budget.configure(previous.shadows.budget.options);
+  target.shadows.budget.enabled = previous.shadows.budget.enabled;
   target.shadows.enabled = previous.shadows.enabled;
   target.shadows.cacheEnabled = previous.shadows.cacheEnabled;
   target.shadows.cullingEnabled = previous.shadows.cullingEnabled;
@@ -38,6 +40,10 @@ export function copyRendererSettings(
   target.hdr.exposureKey = previous.hdr.exposureKey;
   target.hdr.adaptationSpeed = previous.hdr.adaptationSpeed;
   target.hdr.autoExposure = previous.hdr.autoExposure;
+  target.taa.feedback = previous.taa.feedback;
+  target.taa.depthTolerance = previous.taa.depthTolerance;
+  target.taa.jitter = previous.taa.jitter;
   target.antialiasing = previous.antialiasing;
   target.hdr.enabled = previous.hdr.enabled;
+  target.transmission.enabled = previous.transmission.enabled;
 }

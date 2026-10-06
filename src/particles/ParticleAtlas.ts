@@ -5,6 +5,8 @@ export interface ParticleAtlasDefinition {
   rows: number;
   /** Top-down straight-alpha RGBA8 pixels; installation copies caller memory. */
   pixels: Uint8Array;
+  /** Opt-in tile-safe mipmaps; odd tile dimensions stop the chain before tile boundaries mix. */
+  mipmaps?: boolean;
   colorSpace?: "srgb" | "linear";
 }
 /** Validate a bounded evenly tiled atlas before any live definition or GPU owner changes. */
@@ -27,6 +29,7 @@ export function copyParticleAtlas(
     !(pixels instanceof Uint8Array) ||
     pixels.byteLength !== width * height * 4 ||
     pixels.byteLength > 64 * 1024 * 1024 ||
+    (value.mipmaps !== undefined && typeof value.mipmaps !== "boolean") ||
     (value.colorSpace !== undefined &&
       value.colorSpace !== "srgb" &&
       value.colorSpace !== "linear")
@@ -39,5 +42,22 @@ export function copyParticleAtlas(
     rows,
     pixels: pixels.slice(),
     colorSpace: value.colorSpace ?? "srgb",
+    mipmaps: value.mipmaps ?? false,
   };
+}
+
+/** Count only exact two-by-two reductions that keep every tile on integer texel boundaries. */
+export function particleAtlasMipLevels(
+  atlas: ParticleAtlasDefinition | null,
+): number {
+  if (!atlas?.mipmaps) return 1;
+  let width = atlas.width / atlas.columns,
+    height = atlas.height / atlas.rows,
+    levels = 1;
+  while (width > 1 && height > 1 && width % 2 === 0 && height % 2 === 0) {
+    width /= 2;
+    height /= 2;
+    levels++;
+  }
+  return levels;
 }

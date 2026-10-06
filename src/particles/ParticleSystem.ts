@@ -40,6 +40,7 @@ const {
 /** Fixed-capacity CPU provenance for GPU analytic billboards. No ECS traversal, per-particle objects or readback. */
 export class ParticleSystem {
   readonly records: Float32Array;
+  cullingEnabled = false;
   readonly curves = new ParticleCurves();
   readonly trails: ParticleTrails;
   private atlasDefinition: ParticleAtlasDefinition | null = null;

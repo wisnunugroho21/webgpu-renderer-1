@@ -1,6 +1,13 @@
 export class RendererStats {
+  transmissionMipPasses = 0;
+  temporalDrawCalls = 0;
+  temporalUploadBytes = 0;
   particleTrailSegments = 0;
   particleTrailUploadBytes = 0;
+  particleVisibleCount = 0;
+  particleTrailVisibleSegments = 0;
+  particleCulled = 0;
+  particleTrailCulled = 0;
   particleCount = 0;
   particleDrawCalls = 0;
   particleUploadBytes = 0;
@@ -20,6 +27,8 @@ export class RendererStats {
   depthPasses = 0;
   depthDrawCalls = 0;
   depthTriangles = 0;
+  shadowBudgetRejected = 0;
+  shadowBudgetTexels = 0;
   shadowPasses = 0;
   shadowDrawCalls = 0;
   shadowTriangles = 0;
@@ -58,6 +67,13 @@ export class RendererStats {
   bvhNodesTested = 0;
   /** Clears per-frame work counters while leaving long-lived configuration outside the statistics object. */
   reset(): void {
+    this.transmissionMipPasses = 0;
+    this.temporalDrawCalls = this.temporalUploadBytes = 0;
+    this.particleVisibleCount =
+      this.particleTrailVisibleSegments =
+      this.particleCulled =
+      this.particleTrailCulled =
+        0;
     this.particleTrailSegments = this.particleTrailUploadBytes = 0;
     this.particleCount =
       this.particleDrawCalls =
@@ -71,6 +87,7 @@ export class RendererStats {
         0;
     this.indirectDraws = this.indirectUploadBytes = 0;
     this.depthPasses = this.depthDrawCalls = this.depthTriangles = 0;
+    this.shadowBudgetRejected = this.shadowBudgetTexels = 0;
     this.shadowPasses =
       this.shadowDrawCalls =
       this.shadowTriangles =

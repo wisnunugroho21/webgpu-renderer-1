@@ -1,3 +1,4 @@
+import { TextureQualityStreaming } from "./TextureQualityStreaming";
 import { UploadedAsset } from "../assets/gltf/instantiate";
 import { RenderWorld } from "./RenderWorld";
 import {
@@ -21,6 +22,9 @@ type Resident =
   | { groups: GPUBindGroup[]; slots: RuntimeMaterial["textures"] };
 /** Bound slots own leases. Detach to a resident fallback before allowing eviction. */
 export class RendererStreaming {
+  readonly quality: TextureQualityStreaming;
+  private readonly materialRequests = new Map<number, number>();
+  private requestId = 0;
   private customMemory?: () => StreamMemory;
   readonly resources: Streaming<Resident>;
   private readonly lodSlots = new Map<
@@ -33,6 +37,8 @@ export class RendererStreaming {
       lease: StreamLease<Resident>;
       fallback: GPUBindGroup;
       layout: Float32Array;
+      generation: number;
+      published?: GPUBindGroup;
     }
   >();
   /** Initializes resident material/LOD replacements and conservative fallbacks. */
@@ -50,6 +56,7 @@ export class RendererStreaming {
       );
     },
   ) {
+    this.quality = new TextureQualityStreaming(this, materials.capacity);
     this.resources = new Streaming(
       () =>
         /** Delegates this operation to this.queue.onSubmittedWorkDone. */ this.queue.onSubmittedWorkDone(),
@@ -76,7 +83,9 @@ export class RendererStreaming {
     );
   }
   /** Drains pending streaming publication before replacing device ownership. */
-  async quiesce(): Promise<void> {
+  async quiesce(suspendQuality = false): Promise<void> {
+    if (suspendQuality) await this.quality.suspend();
+    else await this.quality.wait();
     await Promise.allSettled(
       Array.from(
         this.resources.records.values(),
@@ -119,6 +128,7 @@ export class RendererStreaming {
     this.textures = textures;
     this.frame = frame;
     this.memory = memory;
+    this.quality.resume();
   }
   /** Loads a replacement authored LOD while keeping its resident fallback available until publication. */
   async bindLOD(
@@ -205,26 +215,123 @@ export class RendererStreaming {
       lease,
       fallback,
       layout: this.materials.textureLayout(material, true),
+      generation: this.materials.generations[material]!,
     });
     try {
       const resident = await lease.ready;
-      if (this.materialSlots.get(material)?.lease !== lease) return;
+      const slot = this.materialSlots.get(material);
+      if (slot?.lease !== lease) return;
+      if (slot.generation !== this.qualityGeneration(material)) {
+        this.releaseMaterial(material);
+        return;
+      }
       if (!("groups" in resident))
         throw new Error("Streaming resource kind mismatch");
       this.materials.setTextureSlots(material, resident.slots);
       this.textures.groups[material] = resident.groups[0]!;
+      slot.published = resident.groups[0]!;
     } catch (error) {
       if (this.materialSlots.get(material)?.lease === lease)
         this.releaseMaterial(material);
       throw error;
     }
   }
+  /** Return live material identity so recycled numeric slots cannot receive a retired quality profile. */
+  qualityGeneration(material: number): number {
+    return this.materials.alive[material]
+      ? this.materials.generations[material]!
+      : 0;
+  }
+
+  /** Report admission inputs only on the cold quality-maintenance path. */
+  qualityMemory() {
+    return this.resources.diagnostics;
+  }
+
+  /** Prepare a replacement while retaining current textures; publish only the latest live request. */
+  async replaceMaterial(
+    material: number,
+    key: string,
+    load: () => Promise<RuntimeAsset>,
+    request: StreamRequest = {},
+  ): Promise<boolean> {
+    if (
+      !Number.isInteger(material) ||
+      material < 0 ||
+      material >= this.materials.count ||
+      !this.materials.alive[material]
+    )
+      throw new Error("Unknown streamed material");
+    const generation = this.qualityGeneration(material);
+    const token = ++this.requestId;
+    this.materialRequests.set(material, token);
+    const lease = this.resources.acquire(
+      `texture:${key}`,
+      this.frame(),
+      async () => {
+        // Shared cold preparation may serve several material leases; publication checks each consumer token.
+        const asset = await load();
+        if (asset.materials.length !== 1)
+          throw new Error("Streamed texture asset must contain one material");
+        return {
+          groups: await this.textures.prepare(asset),
+          slots: asset.materials[0]!.textures,
+        };
+      },
+      async (resident) => {
+        // GPU completion and texture retirement stay in the shared streaming owner.
+        if ("groups" in resident) await this.textures.release(resident.groups);
+      },
+      request,
+    );
+    try {
+      const resident = await lease.ready;
+      if (
+        this.materialRequests.get(material) !== token ||
+        this.qualityGeneration(material) !== generation
+      ) {
+        lease.release();
+        return false;
+      }
+      if (!("groups" in resident))
+        throw new Error("Streaming resource kind mismatch");
+      const old = this.materialSlots.get(material);
+      const fallback =
+        old?.fallback ??
+        this.textures.groups[material] ??
+        this.textures.fallback;
+      const layout =
+        old?.layout ?? this.materials.textureLayout(material, true);
+      this.materials.setTextureSlots(material, resident.slots);
+      this.textures.groups[material] = resident.groups[0]!;
+      this.materialSlots.set(material, {
+        lease,
+        fallback,
+        layout,
+        generation,
+        published: resident.groups[0]!,
+      });
+      old?.lease.release();
+      this.materialRequests.delete(material);
+      return true;
+    } catch (error) {
+      lease.release();
+      if (this.materialRequests.get(material) === token)
+        this.materialRequests.delete(material);
+      throw error;
+    }
+  }
   /** Releases streamed texture ownership and restores the resident material slots. */
   releaseMaterial(material: number): void {
+    this.materialRequests.delete(material);
     const slot = this.materialSlots.get(material);
     if (!slot) return;
-    this.materials.setTextureLayout(material, slot.layout);
-    this.textures.groups[material] = slot.fallback;
+    if (slot.generation === this.qualityGeneration(material)) {
+      this.materials.setTextureLayout(material, slot.layout);
+      this.textures.groups[material] = slot.fallback;
+    } else if (this.textures.groups[material] === slot.published) {
+      this.textures.groups[material] = this.textures.fallback;
+    }
     this.materialSlots.delete(material);
     slot.lease.release();
   }

@@ -472,7 +472,10 @@ export function assertRegressionReport(
       "gpu-compaction",
       "gpu-indirect",
       "color",
+      "motion",
+      "transmission-capture",
       "particles",
+      "temporal-resolve",
       "post-processing",
       "tone-mapping",
       "hiz-debug",
@@ -701,13 +704,24 @@ export function assertRegressionReport(
   assert.equal(workerChecks.vertices, 100000);
   assert.equal(workerChecks.mismatches, 0);
   assert.equal(workerChecks.inputDetached, true);
-  assert.ok(workerChecks.framesDuringWorker >= 1);
+  assert.equal(
+    workerChecks.mainEventLoopTurns,
+    0,
+    "synchronous reference blocks macrotasks",
+  );
+  assert.ok(
+    workerChecks.workerEventLoopTurns >= 1,
+    "worker decode leaves the main event loop responsive",
+  );
   assert.equal(workerChecks.metrics.workerJobs, 4);
   assert.ok(workerChecks.metrics.transferredInputBytes >= 1000000);
   assert.equal(workerChecks.prepared, true);
   assert.ok(workerChecks.upload.chunks > 2);
   assert.ok(workerChecks.upload.maxChunk <= 1024 * 1024);
-  assert.ok(workerChecks.upload.framesDuring >= 1);
+  assert.ok(
+    workerChecks.upload.eventLoopTurns >= 1,
+    "chunked upload yields to main-thread tasks",
+  );
   assert.equal(workerChecks.upload.buffersRestored, true);
   assert.ok(workerChecks.metrics.transferredOutputBytes >= 1000000);
   assert.equal(report.streamingChecks.lod.indexCount, 3);
@@ -737,7 +751,10 @@ export function assertRegressionReport(
     "Uploading",
     "Ready",
   ]);
-  assert.ok(loadingChecks.framesDuringLoad >= 3);
+  assert.ok(
+    loadingChecks.eventLoopTurns >= 3,
+    "async loading leaves the main event loop responsive",
+  );
   assert.deepEqual(loadingChecks.loaded, loadingChecks.cached);
   assert.deepEqual(report.temporalChecks.firstFlags, [1, 1]);
   assert.deepEqual(report.temporalChecks.freshFlags, [1, 0]);

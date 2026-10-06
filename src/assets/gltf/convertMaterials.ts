@@ -1,5 +1,7 @@
 import type {
   Clearcoat,
+  Transmission,
+  Volume,
   IOR,
   Specular,
   EmissiveStrength,
@@ -45,7 +47,11 @@ export function convertMaterials(
 
     const bindings: Record<string, RuntimeTextureSlot> = {},
       coat = material.getExtension<Clearcoat>("KHR_materials_clearcoat"),
-      spec = material.getExtension<Specular>("KHR_materials_specular");
+      spec = material.getExtension<Specular>("KHR_materials_specular"),
+      transmission = material.getExtension<Transmission>(
+        "KHR_materials_transmission",
+      ),
+      volume = material.getExtension<Volume>("KHR_materials_volume");
     for (const [name, texture, info] of [
       [
         "baseColor",
@@ -88,6 +94,16 @@ export function convertMaterials(
         coat?.getClearcoatNormalTexture(),
         coat?.getClearcoatNormalTextureInfo(),
       ],
+      [
+        "transmission",
+        transmission?.getTransmissionTexture(),
+        transmission?.getTransmissionTextureInfo(),
+      ],
+      [
+        "thickness",
+        volume?.getThicknessTexture(),
+        volume?.getThicknessTextureInfo(),
+      ],
       ["specular", spec?.getSpecularTexture(), spec?.getSpecularTextureInfo()],
       [
         "specularColor",
@@ -99,6 +115,10 @@ export function convertMaterials(
       if (binding) bindings[name] = binding;
     }
     return {
+      transmission: transmission?.getTransmissionFactor(),
+      thickness: volume?.getThicknessFactor(),
+      attenuationDistance: volume?.getAttenuationDistance(),
+      attenuationColor: volume?.getAttenuationColor(),
       ior: material.getExtension<IOR>("KHR_materials_ior")?.getIOR(),
       specular: spec?.getSpecularFactor(),
       specularColor: spec?.getSpecularColorFactor(),

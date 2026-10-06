@@ -3,6 +3,8 @@ import { JSONDocument, WebIO } from "@gltf-transform/core";
 /** Decoder dependencies are loader-owned and lazy; failed Draco startup remains retryable. */
 export class GLTFCodecs {
   /** Applies [ "KHR_draco_mesh_compression", "EXT_meshopt_compression", "KHR_texture_basisu", "KHR_mesh_quantization",
+        "KHR_materials_transmission",
+        "KHR_materials_volume",
         "KHR_materials_clearcoat", "KHR_materials_ior", "KHR_materials_specular", "KHR_materials_emissive_strength", "KHR_materials_unlit", "KHR_texture_transform", ].some, import, names.has to prepare. */
   async prepare(io: WebIO, document: JSONDocument): Promise<void> {
     const names = new Set(document.json.extensionsUsed ?? []);
@@ -12,6 +14,8 @@ export class GLTFCodecs {
         "EXT_meshopt_compression",
         "KHR_texture_basisu",
         "KHR_mesh_quantization",
+        "KHR_materials_transmission",
+        "KHR_materials_volume",
         "KHR_materials_clearcoat",
         "KHR_materials_ior",
         "KHR_materials_specular",
@@ -26,6 +30,8 @@ export class GLTFCodecs {
     const extensions = await import("@gltf-transform/extensions");
     const registered = [];
     for (const [name, extension] of [
+      ["KHR_materials_transmission", extensions.KHRMaterialsTransmission],
+      ["KHR_materials_volume", extensions.KHRMaterialsVolume],
       ["KHR_materials_clearcoat", extensions.KHRMaterialsClearcoat],
       ["KHR_materials_ior", extensions.KHRMaterialsIOR],
       ["KHR_materials_specular", extensions.KHRMaterialsSpecular],

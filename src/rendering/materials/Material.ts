@@ -32,5 +32,13 @@ export interface Material {
   emissiveStrength?: number;
   /** Built-in unlit ignores lighting, AO, normal maps and emission, preserving base/vertex color and alpha. */
   unlit?: boolean;
+  /** Fraction of dielectric diffuse energy transmitted through the surface. */
+  transmission?: number;
+  /** Mesh-local baked thickness; zero is a thin surface. */
+  thickness?: number;
+  /** World-space absorption distance; omitted/Infinity disables absorption. */
+  attenuationDistance?: number;
+  /** Linear color remaining after one attenuation distance. */
+  attenuationColor?: ArrayLike<number>;
   textures?: Record<string, MaterialTextureSlot>;
 }

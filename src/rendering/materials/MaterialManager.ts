@@ -19,6 +19,7 @@ export class MaterialManager {
   readonly doubleSided: Uint8Array;
   count = 0;
   readonly alive: Uint8Array;
+  readonly generations: Float64Array;
   private readonly free: number[] = [];
   /** Computes the this.capacity - this.count + this.free.length result. */
   get available(): number {
@@ -31,6 +32,7 @@ export class MaterialManager {
   /** Initializes packed PBR parameters, material IDs and dirty uploads. */
   constructor(readonly capacity = 2048) {
     this.alive = new Uint8Array(capacity);
+    this.generations = new Float64Array(capacity);
     this.shaderIds = new Uint16Array(capacity);
     this.customParameters = new MaterialShaderParameters(capacity);
     this.shaderParameters = this.customParameters.data;
@@ -43,10 +45,13 @@ export class MaterialManager {
   create(material: Material = {}): number {
     if (!this.available) throw new Error("Material capacity exceeded");
     const id = this.free.at(-1) ?? this.count;
+    if (this.generations[id] === Number.MAX_SAFE_INTEGER)
+      throw new Error("Material generation exhausted");
     this.set(id, material, true);
     if (id === this.count) this.count++;
     else this.free.pop();
     this.alive[id] = 1;
+    this.generations[id]!++;
     return id;
   }
   /** Caller must detach references and fence GPU work before making a slot reusable. */
@@ -148,6 +153,27 @@ export class MaterialManager {
       coatRoughness > 1
     )
       throw new Error("Invalid authored PBR properties");
+    const transmission = material.transmission ?? 0,
+      thickness = material.thickness ?? 0,
+      attenuationDistance = material.attenuationDistance ?? Infinity,
+      attenuationColor = material.attenuationColor ?? [1, 1, 1];
+    if (
+      !Number.isFinite(Math.fround(transmission)) ||
+      transmission < 0 ||
+      transmission > 1 ||
+      !Number.isFinite(Math.fround(thickness)) ||
+      thickness < 0 ||
+      attenuationColor.length !== 3 ||
+      Array.from(attenuationColor).some((v) => {
+        // Absorption must never amplify transmitted radiance or publish nonfinite factors.
+        return !Number.isFinite(Math.fround(v)) || v < 0 || v > 1;
+      }) ||
+      (attenuationDistance !== Infinity &&
+        (!Number.isFinite(Math.fround(attenuationDistance)) ||
+          Math.fround(attenuationDistance) <= 0)) ||
+      (material.unlit && transmission > 0)
+    )
+      throw new Error("Invalid transmission/volume properties");
     /** Read the validated UV index for legacy metadata fields. */
     const uv = (role: string) => material.textures?.[role]?.texCoord ?? 0;
     this.shaderIds[id] = shaderId;
@@ -163,7 +189,7 @@ export class MaterialManager {
         occlusion,
         uv("emissive"),
         material.textures?.normal ? 1 : 0,
-        material.doubleSided ? 1 : 0,
+        material.doubleSided && thickness === 0 ? 1 : 0,
       ],
       offset + 12,
     );
@@ -180,15 +206,27 @@ export class MaterialManager {
       offset + 24,
     );
     this.data.set(
-      [coatRoughness, coatNormalScale, 0, layout[86]!],
+      [coatRoughness, coatNormalScale, 0, layout[102]!],
       offset + 28,
     );
-    this.data.set(layout.subarray(6, 86), offset + 32);
-    this.alphaMode[id] = alpha;
-    this.doubleSided[id] = material.doubleSided ? 1 : 0;
+    this.data.set(layout.subarray(6, 102), offset + 40);
+    this.data.set([transmission, thickness, 0, 0], offset + 32);
+    this.data.set(
+      [
+        attenuationColor[0]!,
+        attenuationColor[1]!,
+        attenuationColor[2]!,
+        attenuationDistance === Infinity ? 0 : attenuationDistance,
+      ],
+      offset + 36,
+    );
+    this.alphaMode[id] = transmission > 0 ? 2 : alpha;
+    this.doubleSided[id] = material.doubleSided && thickness === 0 ? 1 : 0;
     this.flags[id] =
       (alpha === 1 ? MaterialFlags.ALPHA_MASK : 0) |
-      (material.doubleSided ? MaterialFlags.DOUBLE_SIDED : 0);
+      (material.doubleSided && thickness === 0
+        ? MaterialFlags.DOUBLE_SIDED
+        : 0);
     this.revision++;
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);
@@ -248,46 +286,50 @@ export class MaterialManager {
       this.data[o + 19]!,
     ]);
     if (!extended) return layout;
-    const complete = new Float32Array(87);
+    const complete = new Float32Array(103);
     complete.set(layout);
-    complete.set(this.data.subarray(o + 32, o + 112), 6);
-    complete[86] = this.data[o + 31]!;
+    complete.set(this.data.subarray(o + 40, o + 136), 6);
+    complete[102] = this.data[o + 31]!;
     return complete;
   }
   /** Updates texture-coordinate/normal-map metadata and invalidates the packed material state. */
   setTextureLayout(id: number, layout: ArrayLike<number>): void {
     if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
-    if (layout.length !== 6 && layout.length !== 87)
+    if (![6, 87, 103].includes(layout.length))
       throw new Error("Invalid texture layout");
     for (let i = 0; i < 6; i++)
       if (layout[i] !== 0 && layout[i] !== 1)
         throw new Error("Only TEXCOORD_0/1 are supported");
-    if (layout.length === 87) {
-      for (let i = 6; i < 87; i++)
+    if (layout.length > 6) {
+      for (let i = 6; i < layout.length - 1; i++)
         if (!Number.isFinite(Math.fround(layout[i]!)))
-          throw new Error("Invalid texture layout");
-      for (let i = 0; i < 10; i++) {
-        const uv = layout[9 + i * 8],
-          transformed = layout[13 + i * 8];
-        if ((uv !== 0 && uv !== 1) || (transformed !== 0 && transformed !== 1))
-          throw new Error("Invalid texture layout");
-      }
-      if (!Number.isInteger(layout[86]) || layout[86]! < 0 || layout[86]! > 31)
+          throw new Error("Invalid texture transform");
+      const flags = layout[layout.length - 1]!;
+      if (
+        !Number.isInteger(flags) ||
+        flags < 0 ||
+        flags > (layout.length === 87 ? 31 : 127)
+      )
         throw new Error("Invalid texture flags");
+      for (let i = 6; i < layout.length - 1; i += 8)
+        if (
+          (layout[i + 3] !== 0 && layout[i + 3] !== 1) ||
+          (layout[i + 7] !== 0 && layout[i + 7] !== 1)
+        )
+          throw new Error("Invalid texture transform");
     }
     const o = id * MATERIAL_WORDS;
-    if (layout.length === 87) {
-      this.data.set(Array.from(layout).slice(6, 86), o + 32);
-      this.data[o + 31] = layout[86]!;
-    } else {
-      // Legacy six-word callers still update the matching affine-row UV selectors.
-      for (let i = 0; i < 5; i++)
-        this.data[o + 35 + i * 8] = layout[i === 4 ? 0 : i + 2]!;
-    }
     this.data[o + 13] = layout[0]!;
     this.data[o + 14] = layout[1]!;
-    for (let i = 2; i < 6; i++) this.data[o + 14 + i] = layout[i]!;
+    for (let i = 0; i < 4; i++) this.data[o + 16 + i] = layout[i + 2]!;
+    if (layout.length > 6) {
+      this.data.set(Array.from(layout).slice(6, -1), o + 40);
+      this.data[o + 31] =
+        layout.length === 103
+          ? layout[102]!
+          : (this.data[o + 31]! & 96) | layout[86]!;
+    }
     this.revision++;
     this.dirtyStart = Math.min(this.dirtyStart, id);
     this.dirtyEnd = Math.max(this.dirtyEnd, id + 1);

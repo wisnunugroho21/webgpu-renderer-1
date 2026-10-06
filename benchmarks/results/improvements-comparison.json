@@ -1,0 +1,3209 @@
+{
+  "compared": 2857,
+  "acceptedDeltas": [
+    {
+      "path": "materials.0.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.0.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.0.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.0.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.0.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.0.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.0.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.0.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.0.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.0.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.1.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.1.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.1.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.1.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.1.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.1.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.1.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.1.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.1.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.1.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.2.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.2.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.2.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.2.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.2.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.2.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.2.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.2.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.2.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.2.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.3.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.3.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.3.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.3.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.3.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.3.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.3.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.3.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.3.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.3.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.4.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.4.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.4.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.4.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.4.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.4.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.4.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.4.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.4.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.4.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.5.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.5.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.5.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.5.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.5.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.5.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.5.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.5.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.5.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.5.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.6.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.6.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.6.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.6.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.6.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.6.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.6.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.6.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.6.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.6.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.7.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.7.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.7.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.7.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.7.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.7.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.7.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.7.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.7.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.7.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.8.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.8.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.8.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.8.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.8.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "materials.8.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "materials.8.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "materials.8.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "materials.8.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "materials.8.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.0.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.0.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.0.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.0.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.0.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.0.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.0.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.0.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.0.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.0.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.1.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.1.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.1.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.1.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.1.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.1.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.1.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.1.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.1.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.1.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.2.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.2.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.2.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.2.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.2.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.2.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.2.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.2.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.2.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.2.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.3.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.3.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.3.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.3.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.3.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "animation.3.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "animation.3.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "animation.3.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "animation.3.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "animation.3.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.0.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.0.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.0.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.0.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.0.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.0.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.0.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.0.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.0.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.0.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.1.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.1.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.1.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.1.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.1.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.1.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.1.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.1.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.1.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.1.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.2.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.2.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.2.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.2.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.2.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.2.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.2.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.2.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.2.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.2.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.3.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.3.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.3.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.3.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.3.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.3.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.3.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.3.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.3.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.3.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.4.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.4.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.4.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.4.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.4.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "morph.4.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "morph.4.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "morph.4.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "morph.4.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "morph.4.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "combined.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "combined.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "combined.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "combined.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "combined.resourcesBefore.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "combined.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "combined.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "combined.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "combined.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "combined.resourcesAfter.cacheHits",
+      "baseline": 64,
+      "current": 68,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "occlusion.0.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.0.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "occlusion.0.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.0.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "occlusion.0.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "occlusion.0.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.0.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "occlusion.0.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.0.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "occlusion.0.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "occlusion.1.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.1.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "occlusion.1.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.1.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "occlusion.1.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "occlusion.1.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.1.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "occlusion.1.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "occlusion.1.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "occlusion.1.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.0.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.1.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.2.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesBefore.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesBefore.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesBefore.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesBefore.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesBefore.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesAfter.textureCreations",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesAfter.textureBytes",
+      "delta": 8
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesAfter.textures",
+      "delta": 1
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesAfter.bufferBytes",
+      "delta": 196608
+    },
+    {
+      "path": "geometry.benchmarks.3.resourcesAfter.cacheHits",
+      "baseline": 54,
+      "current": 56,
+      "reason": "optical sampler lookups"
+    }
+  ],
+  "timings": [
+    {
+      "path": "materials.0.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.5,
+        "completion": 1.7000000178813934
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.2999999523162842,
+        "cpuFrame": 0.5,
+        "completion": 1.800000011920929
+      }
+    },
+    {
+      "path": "materials.0.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.458752
+      },
+      "current": {
+        "2": 0.479
+      }
+    },
+    {
+      "path": "materials.0.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.0.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.0.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.1.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.20000001788139343,
+        "encoding": 0.19999998807907104,
+        "cpuFrame": 0.4000000059604645,
+        "completion": 1.600000023841858
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.3999999761581421,
+        "cpuFrame": 0.5,
+        "completion": 1.899999976158142
+      }
+    },
+    {
+      "path": "materials.1.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.458752
+      },
+      "current": {
+        "2": 0.483083
+      }
+    },
+    {
+      "path": "materials.1.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.1.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.1.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.2.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.19999998807907104,
+        "cpuFrame": 0.4000000059604645,
+        "completion": 1.399999976158142
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.19999998807907104,
+        "cpuFrame": 0.40000003576278687,
+        "completion": 1.5
+      }
+    },
+    {
+      "path": "materials.2.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.458752
+      },
+      "current": {
+        "2": 0.465792
+      }
+    },
+    {
+      "path": "materials.2.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.2.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.2.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.3.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.5,
+        "completion": 1.7999999821186066
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.5999999642372131,
+        "completion": 2
+      }
+    },
+    {
+      "path": "materials.3.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.524288
+      },
+      "current": {
+        "2": 0.468033
+      }
+    },
+    {
+      "path": "materials.3.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.3.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.3.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.4.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.4000000059604645,
+        "cpuFrame": 0.5999999940395355,
+        "completion": 1.699999988079071
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.10000002384185791,
+        "encoding": 0.40000003576278687,
+        "cpuFrame": 0.6000000238418579,
+        "completion": 2
+      }
+    },
+    {
+      "path": "materials.4.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.458752
+      },
+      "current": {
+        "2": 0.485823
+      }
+    },
+    {
+      "path": "materials.4.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.4.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.4.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.5.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.20000001788139343,
+        "encoding": 0.19999998807907104,
+        "cpuFrame": 0.4000000059604645,
+        "completion": 1.5
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.3999999761581421,
+        "cpuFrame": 0.5999999642372131,
+        "completion": 1.899999976158142
+      }
+    },
+    {
+      "path": "materials.5.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.458752
+      },
+      "current": {
+        "2": 0.469116
+      }
+    },
+    {
+      "path": "materials.5.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.5.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.5.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.6.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.5,
+        "completion": 1.800000011920929
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.5,
+        "completion": 1.800000011920929
+      }
+    },
+    {
+      "path": "materials.6.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.458752
+      },
+      "current": {
+        "2": 0.475074
+      }
+    },
+    {
+      "path": "materials.6.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.6.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.6.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.7.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.10000002384185791,
+        "encoding": 0.20000001788139343,
+        "cpuFrame": 0.4000000059604645,
+        "completion": 1.7999999821186066
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.10000002384185791,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.6000000238418579,
+        "completion": 2.100000023841858
+      }
+    },
+    {
+      "path": "materials.7.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.524288
+      },
+      "current": {
+        "2": 0.48349
+      }
+    },
+    {
+      "path": "materials.7.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.7.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.7.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.8.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.20000001788139343,
+        "cpuFrame": 0.4000000059604645,
+        "completion": 1.800000011920929
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.5,
+        "completion": 2.100000023841858
+      }
+    },
+    {
+      "path": "materials.8.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.524288
+      },
+      "current": {
+        "2": 0.489429
+      }
+    },
+    {
+      "path": "materials.8.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.8.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "materials.8.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.0.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0,
+        "cpuFrame": 0.09999999403953552,
+        "completion": 0.699999988079071
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0.09999996423721313,
+        "cpuFrame": 0.19999998807907104,
+        "completion": 0.800000011920929
+      }
+    },
+    {
+      "path": "animation.0.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.131072
+      },
+      "current": {
+        "2": 0.120325
+      }
+    },
+    {
+      "path": "animation.0.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.0.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.0.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.1.cpuMedianMs",
+      "baseline": {
+        "animation": 0.9000000059604645,
+        "transforms": 0.5,
+        "skeletons": 0.5999999940395355,
+        "bounds": 0.19999998807907104,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.20000001788139343,
+        "cpuFrame": 2.5,
+        "completion": 3.9000000059604645
+      },
+      "current": {
+        "animation": 0.9000000357627869,
+        "transforms": 0.40000003576278687,
+        "skeletons": 0.5,
+        "bounds": 0.19999998807907104,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.19999998807907104,
+        "cpuFrame": 2.599999964237213,
+        "completion": 3.800000011920929
+      }
+    },
+    {
+      "path": "animation.1.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.393216
+      },
+      "current": {
+        "2": 0.40453
+      }
+    },
+    {
+      "path": "animation.1.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.1.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.1.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.2.cpuMedianMs",
+      "baseline": {
+        "animation": 6.0999999940395355,
+        "transforms": 2.0999999940395355,
+        "skeletons": 2.7000000178813934,
+        "bounds": 0.800000011920929,
+        "extraction": 0.9000000059604645,
+        "encoding": 0.9000000059604645,
+        "cpuFrame": 13.599999994039536,
+        "completion": 16.099999994039536
+      },
+      "current": {
+        "animation": 5.699999988079071,
+        "transforms": 2.099999964237213,
+        "skeletons": 2.699999988079071,
+        "bounds": 0.8999999761581421,
+        "extraction": 0.8999999761581421,
+        "encoding": 0.8999999761581421,
+        "cpuFrame": 13.199999988079071,
+        "completion": 15.600000023841858
+      }
+    },
+    {
+      "path": "animation.2.gpuPassMedianMs",
+      "baseline": {
+        "2": 1.376256
+      },
+      "current": {
+        "2": 1.316438
+      }
+    },
+    {
+      "path": "animation.2.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.2.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.2.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.3.cpuMedianMs",
+      "baseline": {
+        "animation": 9.5,
+        "transforms": 4.0999999940395355,
+        "skeletons": 5.4000000059604645,
+        "bounds": 2,
+        "extraction": 2,
+        "encoding": 1.699999988079071,
+        "cpuFrame": 24.600000023841858,
+        "completion": 28.80000001192093
+      },
+      "current": {
+        "animation": 11.400000035762787,
+        "transforms": 4.100000023841858,
+        "skeletons": 5.399999976158142,
+        "bounds": 1.899999976158142,
+        "extraction": 2,
+        "encoding": 1.699999988079071,
+        "cpuFrame": 26.5,
+        "completion": 30.69999998807907
+      }
+    },
+    {
+      "path": "animation.3.gpuPassMedianMs",
+      "baseline": {
+        "2": 2.555904
+      },
+      "current": {
+        "2": 2.50642
+      }
+    },
+    {
+      "path": "animation.3.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.3.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "animation.3.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.0.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.20000001788139343,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.20000001788139343,
+        "cpuFrame": 0.7000000178813934,
+        "completion": 4.5
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.2999999523162842,
+        "extraction": 0.20000004768371582,
+        "encoding": 0.19999998807907104,
+        "cpuFrame": 0.699999988079071,
+        "completion": 4.5
+      }
+    },
+    {
+      "path": "morph.0.gpuPassMedianMs",
+      "baseline": {
+        "2": 3.080192
+      },
+      "current": {
+        "2": 3.079625
+      }
+    },
+    {
+      "path": "morph.0.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.0.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.0.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.1.cpuMedianMs",
+      "baseline": {
+        "animation": 0.09999999403953552,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.19999998807907104,
+        "extraction": 0.29999998211860657,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 1,
+        "completion": 5.800000011920929
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.30000001192092896,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.3999999761581421,
+        "cpuFrame": 0.8999999761581421,
+        "completion": 5.699999988079071
+      }
+    },
+    {
+      "path": "morph.1.gpuPassMedianMs",
+      "baseline": {
+        "2": 3.080192
+      },
+      "current": {
+        "2": 3.16137
+      }
+    },
+    {
+      "path": "morph.1.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.1.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.1.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.2.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.30000001192092896,
+        "extraction": 0.19999998807907104,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.9000000059604645,
+        "completion": 6.199999988079071
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.30000001192092896,
+        "extraction": 0.30000001192092896,
+        "encoding": 0.3999999761581421,
+        "cpuFrame": 0.9000000357627869,
+        "completion": 5.899999976158142
+      }
+    },
+    {
+      "path": "morph.2.gpuPassMedianMs",
+      "baseline": {
+        "2": 3.342336
+      },
+      "current": {
+        "2": 3.357766
+      }
+    },
+    {
+      "path": "morph.2.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.2.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.2.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.3.cpuMedianMs",
+      "baseline": {
+        "animation": 0.09999999403953552,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.29999998211860657,
+        "extraction": 0.20000001788139343,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 1,
+        "completion": 6.200000017881393
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.3999999761581421,
+        "extraction": 0.30000001192092896,
+        "encoding": 0.5,
+        "cpuFrame": 1.100000023841858,
+        "completion": 6.300000011920929
+      }
+    },
+    {
+      "path": "morph.3.gpuPassMedianMs",
+      "baseline": {
+        "2": 3.538944
+      },
+      "current": {
+        "2": 3.600863
+      }
+    },
+    {
+      "path": "morph.3.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.3.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.3.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.4.cpuMedianMs",
+      "baseline": {
+        "animation": 0.09999999403953552,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.20000001788139343,
+        "extraction": 0.29999998211860657,
+        "encoding": 0.30000001192092896,
+        "cpuFrame": 0.9000000059604645,
+        "completion": 5.200000017881393
+      },
+      "current": {
+        "animation": 0.09999996423721313,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.40000003576278687,
+        "extraction": 0.3999999761581421,
+        "encoding": 0.3999999761581421,
+        "cpuFrame": 1.2000000476837158,
+        "completion": 5.799999952316284
+      }
+    },
+    {
+      "path": "morph.4.gpuPassMedianMs",
+      "baseline": {
+        "2": 3.670016
+      },
+      "current": {
+        "2": 3.753328
+      }
+    },
+    {
+      "path": "morph.4.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.4.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "morph.4.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "combined.cpuMedianMs",
+      "baseline": {
+        "animation": 12.800000011920929,
+        "transforms": 4.199999988079071,
+        "skeletons": 5.4000000059604645,
+        "bounds": 2.300000011920929,
+        "extraction": 2.0999999940395355,
+        "encoding": 1.800000011920929,
+        "cpuFrame": 28.700000017881393,
+        "completion": 34.70000001788139
+      },
+      "current": {
+        "animation": 13,
+        "transforms": 4.199999988079071,
+        "skeletons": 5.399999976158142,
+        "bounds": 2.400000035762787,
+        "extraction": 2.300000011920929,
+        "encoding": 1.800000011920929,
+        "cpuFrame": 29.100000023841858,
+        "completion": 35.30000001192093
+      }
+    },
+    {
+      "path": "combined.gpuPassMedianMs",
+      "baseline": {
+        "2": 3.801088
+      },
+      "current": {
+        "2": 3.788827
+      }
+    },
+    {
+      "path": "combined.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "combined.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "combined.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "occlusion.0.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 1.7000000178813934,
+        "encoding": 3.4000000059604645,
+        "cpuFrame": 5.0999999940395355,
+        "completion": 8.5
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.10000002384185791,
+        "extraction": 1.699999988079071,
+        "encoding": 3.199999988079071,
+        "cpuFrame": 5,
+        "completion": 8.099999964237213
+      }
+    },
+    {
+      "path": "occlusion.0.gpuPassMedianMs",
+      "baseline": {
+        "2": 1.835008,
+        "5": 0.065536,
+        "7": 0,
+        "8": 0.065536,
+        "9": 0
+      },
+      "current": {
+        "2": 1.853959,
+        "5": 0.018789,
+        "7": 0.005583,
+        "8": 0.036125,
+        "9": 0.011292
+      }
+    },
+    {
+      "path": "occlusion.0.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "occlusion.0.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "occlusion.0.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "occlusion.1.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0.09999999403953552,
+        "extraction": 1.7000000178813934,
+        "encoding": 3.2999999821186066,
+        "cpuFrame": 5.0999999940395355,
+        "completion": 8
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 1.699999988079071,
+        "encoding": 3.300000011920929,
+        "cpuFrame": 5,
+        "completion": 8.199999988079071
+      }
+    },
+    {
+      "path": "occlusion.1.gpuPassMedianMs",
+      "baseline": {
+        "2": 0.917504,
+        "3": 0.589824,
+        "4": 0,
+        "5": 0,
+        "6": 0,
+        "7": 0,
+        "8": 0,
+        "9": 0
+      },
+      "current": {
+        "2": 0.922777,
+        "3": 0.540525,
+        "4": 0.007665,
+        "5": 0.027914,
+        "6": 0.020164,
+        "7": 0.004582,
+        "8": 0.014457,
+        "9": 0.00854
+      }
+    },
+    {
+      "path": "occlusion.1.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "occlusion.1.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "occlusion.1.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.0.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0,
+        "cpuFrame": 0,
+        "completion": 2.699999988079071
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0.09999996423721313,
+        "cpuFrame": 0.10000002384185791,
+        "completion": 3.199999988079071
+      }
+    },
+    {
+      "path": "geometry.benchmarks.0.gpuPassMedianMs",
+      "baseline": {
+        "2": 1.900544
+      },
+      "current": {
+        "2": 2.315295
+      }
+    },
+    {
+      "path": "geometry.benchmarks.0.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.0.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.0.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.1.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0.19999998807907104,
+        "cpuFrame": 0.19999998807907104,
+        "completion": 2.9000000059604645
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0.10000002384185791,
+        "cpuFrame": 0.10000002384185791,
+        "completion": 3.300000011920929
+      }
+    },
+    {
+      "path": "geometry.benchmarks.1.gpuPassMedianMs",
+      "baseline": {
+        "2": 1.703936,
+        "10": 0
+      },
+      "current": {
+        "2": 2.207847,
+        "10": 0.009041
+      }
+    },
+    {
+      "path": "geometry.benchmarks.1.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.1.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.1.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.2.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0.09999999403953552,
+        "cpuFrame": 0.10000002384185791,
+        "completion": 2.699999988079071
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0,
+        "cpuFrame": 0,
+        "completion": 2.300000011920929
+      }
+    },
+    {
+      "path": "geometry.benchmarks.2.gpuPassMedianMs",
+      "baseline": {
+        "2": 2.031616
+      },
+      "current": {
+        "2": 1.539627
+      }
+    },
+    {
+      "path": "geometry.benchmarks.2.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.2.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.2.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.3.cpuMedianMs",
+      "baseline": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0.09999999403953552,
+        "cpuFrame": 0.09999999403953552,
+        "completion": 2.800000011920929
+      },
+      "current": {
+        "animation": 0,
+        "transforms": 0,
+        "skeletons": 0,
+        "bounds": 0,
+        "extraction": 0,
+        "encoding": 0.09999996423721313,
+        "cpuFrame": 0.09999996423721313,
+        "completion": 3
+      }
+    },
+    {
+      "path": "geometry.benchmarks.3.gpuPassMedianMs",
+      "baseline": {
+        "2": 2.031616,
+        "10": 0
+      },
+      "current": {
+        "2": 1.995004,
+        "10": 0.007167
+      }
+    },
+    {
+      "path": "geometry.benchmarks.3.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.3.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.benchmarks.3.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.0.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.0.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.0.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.1.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.1.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.1.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.2.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.2.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.2.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.3.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.3.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.3.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.4.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.4.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.4.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.5.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.5.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.5.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.6.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.6.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.6.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.7.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.7.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.7.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.8.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.8.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.8.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.9.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.9.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.9.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.10.stats.fps",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.10.stats.frameTimeMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.checks.10.stats.cpuFrameMs",
+      "baseline": 0,
+      "current": 0
+    },
+    {
+      "path": "geometry.assetPreparationMs",
+      "baseline": 32.5,
+      "current": 32.10000002384186
+    }
+  ],
+  "environment": {
+    "browser": "153.0.8010.12",
+    "timestamp": "2026-10-06T14:47:59.282Z",
+    "mode": "production-preview",
+    "gpu": {
+      "profile": "hardware",
+      "adapters": [
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        },
+        {
+          "vendor": "apple",
+          "architecture": "metal-3",
+          "device": "",
+          "description": "",
+          "isFallbackAdapter": false,
+          "features": [
+            "bgra8unorm-storage",
+            "chromium-experimental-subgroup-matrix",
+            "clip-distances",
+            "core-features-and-limits",
+            "depth-clip-control",
+            "depth32float-stencil8",
+            "dual-source-blending",
+            "float32-blendable",
+            "float32-filterable",
+            "indirect-first-instance",
+            "primitive-index",
+            "rg11b10ufloat-renderable",
+            "shader-f16",
+            "subgroup-size-control",
+            "subgroups",
+            "texture-component-swizzle",
+            "texture-compression-astc",
+            "texture-compression-astc-sliced-3d",
+            "texture-compression-bc",
+            "texture-compression-bc-sliced-3d",
+            "texture-compression-etc2",
+            "texture-compression-unaligned",
+            "texture-formats-tier1",
+            "texture-formats-tier2",
+            "timestamp-query"
+          ],
+          "limits": {
+            "maxTextureDimension1D": 16384,
+            "maxTextureDimension2D": 16384,
+            "maxTextureDimension3D": 2048,
+            "maxTextureArrayLayers": 2048,
+            "maxBindGroups": 4,
+            "maxBindGroupsPlusVertexBuffers": 24,
+            "maxBindingsPerBindGroup": 1000,
+            "maxDynamicUniformBuffersPerPipelineLayout": 10,
+            "maxDynamicStorageBuffersPerPipelineLayout": 8,
+            "maxSampledTexturesPerShaderStage": 48,
+            "maxSamplersPerShaderStage": 16,
+            "maxStorageBuffersPerShaderStage": 10,
+            "maxStorageTexturesPerShaderStage": 8,
+            "maxUniformBuffersPerShaderStage": 12,
+            "maxUniformBufferBindingSize": 65536,
+            "maxStorageBufferBindingSize": 4294967292,
+            "minUniformBufferOffsetAlignment": 256,
+            "minStorageBufferOffsetAlignment": 256,
+            "maxVertexBuffers": 8,
+            "maxBufferSize": 4294967292,
+            "maxVertexAttributes": 30,
+            "maxVertexBufferArrayStride": 2048,
+            "maxInterStageShaderVariables": 28,
+            "maxColorAttachments": 8,
+            "maxColorAttachmentBytesPerSample": 128,
+            "maxComputeWorkgroupStorageSize": 32768,
+            "maxComputeInvocationsPerWorkgroup": 1024,
+            "maxComputeWorkgroupSizeX": 1024,
+            "maxComputeWorkgroupSizeY": 1024,
+            "maxComputeWorkgroupSizeZ": 64,
+            "maxComputeWorkgroupsPerDimension": 65535,
+            "maxImmediateSize": 64,
+            "maxStorageBuffersInFragmentStage": 10,
+            "maxStorageTexturesInFragmentStage": 8,
+            "maxStorageBuffersInVertexStage": 10,
+            "maxStorageTexturesInVertexStage": 8
+          }
+        }
+      ],
+      "failures": []
+    }
+  }
+}

@@ -16,6 +16,7 @@ export class ParticleCurves {
   readonly records = new Float32Array(
     PARTICLE_CURVE_WORDS * PARTICLE_CURVE_CAPACITY,
   );
+  readonly maxSizes = new Float32Array(PARTICLE_CURVE_CAPACITY);
   count = 0;
   /** Install profile zero as identity; CPU storage does not allocate GPU resources. */
   constructor() {
@@ -78,6 +79,8 @@ export class ParticleCurves {
       throw new Error("Particle curve capacity exceeded");
     const id = this.count++;
     this.records.set(row, id * PARTICLE_CURVE_WORDS);
+    for (let key = 0; key < keys.length; key++)
+      this.maxSizes[id] = Math.max(this.maxSizes[id]!, row[5 + key * 8]!);
     return id;
   }
   /** Reject unknown profile IDs before publishing emitter or burst settings. */

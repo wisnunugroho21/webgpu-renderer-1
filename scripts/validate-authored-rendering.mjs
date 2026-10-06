@@ -1,5 +1,5 @@
 import { authoredFixture } from "./gpu/authored-fixture.mjs";
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { startPreviewServer } from "./gpu/preview-server.mjs";
@@ -8,7 +8,7 @@ await authoredFixture("dist/regression/authored.glb");
 const server = await startPreviewServer(5198, true);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
   page.on("pageerror", (error) =>
@@ -29,10 +29,11 @@ try {
       r = app.renderer,
       w = app.world,
       device = app.gpu.device;
+    const materialWords = app.materials.data.length / app.materials.capacity;
     app.stop();
     device.pushErrorScope("validation");
     /** Prepares the current scene, submits GPU work and reads pixels only for this diagnostic scenario. */
-    const draw = async () => {
+    const draw = async (owner = r) => {
       app.transformSystem.update(w.transforms);
       app.skeletonSystem.update(w, app.skeletons);
       app.animatedBounds.update(
@@ -49,7 +50,10 @@ try {
       );
       const texture = app.gpu.context.getCurrentTexture(),
         encoder = device.createCommandEncoder();
-      r.encode(encoder, texture.createView({ format: app.gpu.renderFormat }));
+      owner.encode(
+        encoder,
+        texture.createView({ format: app.gpu.renderFormat }),
+      );
       const bytesPerRow = Math.ceil((texture.width * 4) / 256) * 256;
       const buffer = device.createBuffer({
         size: bytesPerRow * texture.height,
@@ -169,6 +173,77 @@ try {
       r.shadows.cacheEnabled = true;
     }
 
+    // Compare a reduced viewport against an independent physically smaller shadow array.
+    r.shadows.budget.configure({ maxLayers: 6, maxTexels: 6 * 256 * 256 });
+    r.shadows.budget.enabled = true;
+    const budgetImage = await draw();
+    const budget = {
+      passes: r.stats.shadowPasses,
+      texels: r.stats.shadowBudgetTexels,
+      scale: r.shadows.data[19],
+    };
+    const independent = new r.constructor(
+      app.gpu,
+      app.renderWorld,
+      app.materials,
+      app.profiler,
+      undefined,
+      app.particles,
+      { shadows: { resolution: 256, layers: 6 } },
+    );
+    r.meshes.rebuildInto(independent.meshes);
+    independent.camera.copyFrom(r.camera);
+    app.renderWorld.lightDirty.fill(1); // The diagnostic second owner needs an initial shared-light upload.
+    const independentImage = await draw(independent);
+    budget.independentDifference = difference(budgetImage, independentImage);
+    budget.targetBytes =
+      independent.shadows.texture.width *
+      independent.shadows.texture.height *
+      independent.shadows.texture.depthOrArrayLayers *
+      4;
+    await app.gpu.queue.onSubmittedWorkDone();
+    independent.dispose();
+    const budgetResources = { ...r.resources.stats };
+    await draw();
+    await draw();
+    budget.cacheHits = r.stats.shadowCacheHits;
+    budget.warmResources = { ...r.resources.stats };
+    budget.resourcesBefore = budgetResources;
+    r.shadows.cacheEnabled = false;
+    const budgetTimings = [];
+    for (let frame = 0; frame < 30; frame++) {
+      const start = performance.now(),
+        encoder = device.createCommandEncoder();
+      r.encode(
+        encoder,
+        app.gpu.context
+          .getCurrentTexture()
+          .createView({ format: app.gpu.renderFormat }),
+      );
+      app.gpu.queue.submit([encoder.finish()]);
+      const cpu = performance.now() - start;
+      await app.gpu.queue.onSubmittedWorkDone();
+      if (frame >= 10)
+        budgetTimings.push({ cpu, completion: performance.now() - start });
+    }
+    budget.cpuMedianMs = budgetTimings
+      .map(
+        (row) =>
+          /** Select CPU durations without diagnostic image copies. */ row.cpu,
+      )
+      .sort((a, b) => /** Order warmed CPU samples. */ a - b)[10];
+    budget.completionMedianMs = budgetTimings
+      .map(
+        (row) =>
+          /** Include GPU completion in diagnostic durations. */ row.completion,
+      )
+      .sort((a, b) => /** Order warmed completion samples. */ a - b)[10];
+    r.shadows.cacheEnabled = true;
+    r.shadows.budget.configure({ maxLayers: 5 });
+    await draw();
+    budget.rejected = r.stats.shadowBudgetRejected;
+    budget.rejectedPasses = r.stats.shadowPasses;
+    r.shadows.budget.enabled = false;
     // Factor-only materials isolate Fresnel, coat layering, emission and unlit behavior.
     r.shadows.enabled = false;
     const factors = {};
@@ -214,8 +289,8 @@ try {
     const authored = await draw(),
       authoredId = app.renderWorld.materialId[0],
       original = r.materials.data.slice(
-        authoredId * 112,
-        (authoredId + 1) * 112,
+        authoredId * materialWords,
+        (authoredId + 1) * materialWords,
       );
     const authoredMaps = {};
     // Compare each authored map against its neutral fallback while retaining factors and UV rows.
@@ -228,7 +303,7 @@ try {
       "specularColor",
     ].entries()) {
       const disabled = layout.slice();
-      disabled[86] &= ~(1 << index);
+      disabled[disabled.length - 1] &= ~(1 << index);
       app.materials.setTextureLayout(authoredId, disabled);
       authoredMaps[name] = difference(authored, await draw());
     }
@@ -237,10 +312,10 @@ try {
 
     // Compare textured lobes against equivalent factor-only values to catch incorrect channels or sRGB decoding.
     const saved = app.materials.data.slice(
-      authoredId * 112,
-      (authoredId + 1) * 112,
+      authoredId * materialWords,
+      (authoredId + 1) * materialWords,
     );
-    const o = authoredId * 112;
+    const o = authoredId * materialWords;
     const linear = (x) => {
       // Convert encoded sRGB bytes to the linear reference used by the shader.
 
@@ -253,7 +328,7 @@ try {
     for (let i = 0; i < 3; i++)
       app.materials.data[o + 24 + i] *= linear([128, 192, 255][i]);
     const equivalent = layout.slice();
-    equivalent[86] = 4;
+    equivalent[equivalent.length - 1] = 4;
     app.materials.setTextureLayout(authoredId, equivalent);
     const channelReference = await draw();
     factors.channelReferenceDifference = difference(authored, channelReference);
@@ -373,12 +448,15 @@ try {
     factors.recoveryMaterialDifference = difference(
       new Uint8Array(original.buffer),
       new Uint8Array(
-        next.materials.data.slice(authoredId * 112, (authoredId + 1) * 112)
-          .buffer,
+        next.materials.data.slice(
+          authoredId * materialWords,
+          (authoredId + 1) * materialWords,
+        ).buffer,
       ),
     );
     return {
       results,
+      budget,
       factors,
       authoredMaps,
       modeImages,
@@ -386,6 +464,15 @@ try {
       errors: [...oldErrors, ...app.gpu.errors],
     };
   });
+  assert.equal(report.budget.passes, 6);
+  assert.equal(report.budget.texels, 6 * 256 * 256);
+  assert.equal(report.budget.scale, 0.25);
+  assert.equal(report.budget.independentDifference, 0);
+  assert.equal(report.budget.targetBytes, 256 * 256 * 6 * 4);
+  assert.equal(report.budget.cacheHits, 6);
+  assert.equal(report.budget.rejected, 1);
+  assert.equal(report.budget.rejectedPasses, 0);
+  assert.deepEqual(report.budget.resourcesBefore, report.budget.warmResources);
   for (const [type, row] of Object.entries(report.results)) {
     assert.ok(row.difference > 100, type);
     assert.equal(row.passes, type === "point" ? 6 : 1);
@@ -441,6 +528,9 @@ try {
   );
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  await browser?.close();
-  server.kill("SIGTERM");
+  try {
+    await browser?.close();
+  } finally {
+    server.kill("SIGTERM");
+  }
 }

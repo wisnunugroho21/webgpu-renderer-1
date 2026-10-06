@@ -1,0 +1,51 @@
+{
+  "loadingState": "Loading",
+  "history": [
+    "Unloaded",
+    "Loading",
+    "Decoded",
+    "Uploading",
+    "Ready"
+  ],
+  "elapsedMs": 221.19999998807907,
+  "cachedMs": 0.09999996423721313,
+  "timings": {
+    "networkMs": 216.80000001192093,
+    "decodeMs": 2.800000011920929,
+    "uploadMs": 0.699999988079071
+  },
+  "framesDuringLoad": 8,
+  "eventLoopTurns": 59,
+  "loaded": {
+    "pipelineCreations": 52,
+    "shaderModules": 13,
+    "bufferCreations": 41,
+    "textureCreations": 6,
+    "textureBytes": 85028636,
+    "textureMipBytes": 2559756,
+    "compressedTextureBytes": 0,
+    "renderTargetBytes": 85028620,
+    "samplerCreations": 2,
+    "buffers": 41,
+    "textures": 6,
+    "bufferBytes": 66492436,
+    "cacheHits": 68,
+    "cacheMisses": 67
+  },
+  "cached": {
+    "pipelineCreations": 52,
+    "shaderModules": 13,
+    "bufferCreations": 41,
+    "textureCreations": 6,
+    "textureBytes": 85028636,
+    "textureMipBytes": 2559756,
+    "compressedTextureBytes": 0,
+    "renderTargetBytes": 85028620,
+    "samplerCreations": 2,
+    "buffers": 41,
+    "textures": 6,
+    "bufferBytes": 66492436,
+    "cacheHits": 68,
+    "cacheMisses": 67
+  }
+}

@@ -1,3 +1,8 @@
+import {
+  ShadowBudget,
+  shadowTargetOptions,
+  type ShadowTargetOptions,
+} from "./ShadowBudget";
 import { createShadowResources } from "./createShadowResources";
 import { GPUProfiler, GPUPass } from "../../profiling/GPUProfiler";
 import { ShadowSceneCache } from "./ShadowSceneCache";
@@ -18,8 +23,11 @@ import { InstanceManager } from "../InstanceManager";
 import { ShadowCamera } from "./ShadowCamera";
 /** Cold fixed resources, compact numeric shadow metadata, shared caster instance pool. */
 export class ShadowManager {
-  readonly resolution = 1024;
-  readonly capacity = 16;
+  readonly resolution: number;
+  readonly capacity: number;
+  readonly targetOptions: Readonly<Required<ShadowTargetOptions>>;
+  readonly budget: ShadowBudget;
+  private readonly layerResolution = new Uint16Array(16);
   readonly texture: GPUTexture;
   readonly view: GPUTextureView;
   readonly sampler: GPUSampler;
@@ -81,7 +89,16 @@ export class ShadowManager {
     private readonly materials: MaterialManager,
     private readonly textures: MaterialTextures,
     vertexBuffers: GPUVertexBufferLayout[],
+    options: ShadowTargetOptions = {},
   ) {
+    this.targetOptions = shadowTargetOptions(options);
+    this.resolution = this.targetOptions.resolution;
+    this.capacity = this.targetOptions.layers;
+    this.budget = new ShadowBudget(
+      world.lightCapacity,
+      this.resolution,
+      this.capacity,
+    );
     this.sceneCache = new ShadowSceneCache(world);
     this.culler = new FrustumCuller(world.capacity);
     this.visible = new Uint8Array(world.capacity);
@@ -120,7 +137,7 @@ export class ShadowManager {
         type = world.lightData[o + 11]!;
       if (!type) {
         if (Math.min(camera.far, this.shadowDistance) <= camera.near) continue;
-        if (++directional > 4)
+        if (++directional > 4 && !this.budget?.enabled)
           throw new Error("Directional shadow light capacity exceeded (4)");
         layers += this.cascades;
       } else {
@@ -139,7 +156,7 @@ export class ShadowManager {
         layers += type === 1 ? 6 : 1;
       }
     }
-    if (layers > this.capacity)
+    if (layers > this.capacity && !this.budget?.enabled)
       throw new Error("Shared shadow layer capacity exceeded (16)");
   }
   /** Selects light projections/casters, compares cached scene state and packs changed shadow parameters. */
@@ -150,6 +167,9 @@ export class ShadowManager {
     stats: RendererStats,
   ): void {
     this.validateLights(world, camera);
+    this.budget.select(world, camera, this.cascades, this.shadowDistance);
+    stats.shadowBudgetRejected = this.enabled ? this.budget.rejectedLights : 0;
+    stats.shadowBudgetTexels = this.enabled ? this.budget.selectedTexels : 0;
     this.layerCount = 0;
     for (let light = 0; light < world.lightCount; light++) {
       const offset = light * 16,
@@ -157,6 +177,7 @@ export class ShadowManager {
         cast =
           this.enabled &&
           world.lightShadow[light] !== 0 &&
+          this.budget.resolutions[light] !== 0 &&
           (type !== 0 ||
             Math.min(camera.far, this.shadowDistance) > camera.near);
       const first = cast ? this.layerCount + 1 : 0,
@@ -184,7 +205,14 @@ export class ShadowManager {
               )
             : world.lightData[offset + 3] || this.shadowDistance;
         if (type === 0)
-          this.camera.fit(camera, world, light, near, far, this.resolution);
+          this.camera.fit(
+            camera,
+            world,
+            light,
+            near,
+            far,
+            this.budget.resolutions[light]!,
+          );
         else this.camera.fitLocal(world, light, cascade - 1, near, far);
         const layer = this.layerCount++,
           o = layer * 20;
@@ -192,7 +220,10 @@ export class ShadowManager {
         this.data[o + 16] = far;
         this.data[o + 17] = world.lightShadowSettings[light * 3 + 1] ?? 0.0001;
         this.data[o + 18] = world.lightShadowSettings[light * 3 + 2] ?? 0.005;
-        this.data[o + 19] = 0;
+        this.layerResolution[layer] = this.budget.resolutions[light]!;
+        this.data[o + 19] = this.budget.enabled
+          ? this.layerResolution[layer]! / this.resolution
+          : 0;
         this.uniforms.set(this.camera.matrix, layer * 64);
         let changed = false;
         for (let k = 0; k < 20; k++)
@@ -274,6 +305,14 @@ export class ShadowManager {
           depthStoreOp: "store",
         },
       });
+      pass.setViewport(
+        0,
+        0,
+        this.layerResolution[layer]!,
+        this.layerResolution[layer]!,
+        0,
+        1,
+      );
       pass.setBindGroup(0, this.groups[this.dynamic.frameSlot]!, [
         this.instanceOffset,
       ]);

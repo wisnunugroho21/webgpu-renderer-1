@@ -1,3 +1,4 @@
+import type { RendererOptions } from "../rendering/Renderer";
 import type { StreamBudget } from "../assets/StreamingBudget";
 import { retainedMemory } from "../assets/retainedMemory";
 import { ParticleSystem } from "../particles/ParticleSystem";
@@ -105,6 +106,7 @@ export class Application {
     entityCapacity = 16384,
     renderCapacity = entityCapacity,
     readonly particles = new ParticleSystem(),
+    readonly rendererOptions: RendererOptions = {},
   ) {
     this.world = new World(entityCapacity);
     this.transformSystem = new TransformSystem(entityCapacity);
@@ -236,6 +238,7 @@ export class Application {
       this.profiler,
       undefined,
       this.particles,
+      this.rendererOptions,
     );
     this.observer = new ResizeObserver(() =>
       /** Resize the current recovered GPU context when the canvas layout changes. */ this.gpu.resize(),
@@ -519,6 +522,7 @@ export class Application {
     try {
       await this.assetLoader.dispose();
     } finally {
+      await this.renderer?.streaming.quiesce(true);
       this.renderer?.dispose();
       this.gpu?.dispose();
     }

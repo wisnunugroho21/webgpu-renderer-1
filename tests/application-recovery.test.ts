@@ -19,7 +19,14 @@ function fixture() {
     {} as HTMLOutputElement,
     8,
   );
-  const previous = { dispose: vi.fn() } as unknown as Renderer;
+  const previous = {
+    dispose: vi.fn(),
+    streaming: {
+      quiesce: vi.fn(async () => {
+        /* Simulate a drained old owner. */
+      }),
+    },
+  } as unknown as Renderer;
   const gpu = { dispose: vi.fn(), lost: false } as unknown as GPUContext;
   app.renderer = previous;
   app.gpu = gpu;
@@ -27,6 +34,11 @@ function fixture() {
     renderer: {
       dispose: vi.fn(),
       restoreStreaming: vi.fn(),
+      streaming: {
+        quiesce: vi.fn(async () => {
+          /* Simulate a drained replacement owner. */
+        }),
+      },
     } as unknown as Renderer,
     gpu: { dispose: vi.fn(), lost: false } as unknown as GPUContext,
     textureRemap: new Map<GPUBindGroup[], GPUBindGroup[]>(),

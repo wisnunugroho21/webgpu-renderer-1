@@ -1,3 +1,6 @@
+import { TransmissionRendering } from "../post/TransmissionRendering";
+import { halfFloatClearColor } from "../post/halfFloatClearColor";
+import { createColorFrameGroups } from "../pipelines/createColorBindings";
 import type { UnifiedTransparency } from "../UnifiedTransparency";
 import type { ParticleRenderer } from "../particles/ParticleRenderer";
 import type { ColorResources } from "../pipelines/ColorResources";
@@ -41,11 +44,15 @@ export class ColorPass {
   readonly environment: EnvironmentLighting;
   readonly skybox: EnvironmentSkybox;
   readonly hdr: HDRRendering;
+  readonly transmission: TransmissionRendering;
+  private transmissionColor?: ColorResources;
+  private transmissionEnvironmentColor?: ColorResources;
   private hdrColor?: ColorResources;
   private hdrEnvironmentColor?: ColorResources;
   private environmentColor?: ColorResources;
   private environmentLayout?: GPUBindGroupLayout;
   private readonly customShaders: CustomMaterialShaders;
+  private readonly linearClear = [0, 0, 0, 1];
   /** Initializes bounded PBR pipeline variants and state-cached batch drawing. */
   constructor(private readonly scene: ColorPassScene) {
     this.base = createColorResources(this.scene);
@@ -60,6 +67,15 @@ export class ColorPass {
       this.prepareHDREnvironment();
       this.customShaders.prepareHDR();
     });
+    this.transmission = new TransmissionRendering(
+      this.scene.resources,
+      this.hdr,
+      this.scene.textures.mipmaps,
+      () => {
+        // Feature setup and capture resize refresh bounded color variants before frame encoding.
+        this.prepareTransmission();
+      },
+    );
     this.skybox = new EnvironmentSkybox(
       this.scene.gpu,
       this.scene.resources,
@@ -72,6 +88,7 @@ export class ColorPass {
         // Prepares shared environment color/skybox variants after an environment layout becomes available.
 
         this.environmentLayout = environmentLayout;
+        if (this.transmission.enabled) this.prepareTransmission();
         if (this.skybox.enabled) this.skybox.prepare(environmentLayout);
         // Prepare retained HDR variants even when the feature is temporarily disabled.
         if (this.hdrColor) this.prepareHDREnvironment();
@@ -102,6 +119,34 @@ export class ColorPass {
       });
   }
 
+  /** Prepare/rebind linear transmission families without changing pipeline identities on capture resize. */
+  private prepareTransmission(): void {
+    const transmission = this.transmission.inputs!;
+    this.transmissionColor ??= createColorResources({
+      ...this.scene,
+      colorFormat: "rgba16float",
+      transmission,
+    });
+    if (this.environmentLayout)
+      this.transmissionEnvironmentColor ??= createColorResources({
+        ...this.scene,
+        colorFormat: "rgba16float",
+        environmentLayout: this.environmentLayout,
+        transmission,
+      });
+    for (const color of [
+      this.transmissionColor,
+      this.transmissionEnvironmentColor,
+    ])
+      if (color) {
+        const groups = createColorFrameGroups(
+          { ...this.scene, transmission },
+          color.pipeline.getBindGroupLayout(0),
+        );
+        color.frameGroups.splice(0, color.frameGroups.length, ...groups);
+      }
+    this.customShaders.prepareTransmission(transmission);
+  }
   /** Draw opaque/masked batches, or a shared alpha schedule with read-only depth and restored mesh state. */
   encode(
     encoder: GPUCommandEncoder,
@@ -121,7 +166,9 @@ export class ColorPass {
       colorAttachments: [
         {
           view: this.hdr.sceneEnabled ? this.hdr.view! : view,
-          clearValue: clearColor,
+          clearValue: this.hdr.sceneEnabled
+            ? halfFloatClearColor(clearColor, this.linearClear)
+            : clearColor,
           loadOp: schedule ? "load" : "clear",
           storeOp: "store",
         },
@@ -142,20 +189,28 @@ export class ColorPass {
         this.hdr.sceneEnabled ? "rgba16float" : scene.gpu.renderFormat,
       );
     const environment = this.environment.active;
-    const colors = this.hdr.sceneEnabled
+    const colors = this.transmission.enabled
       ? environment
-        ? this.hdrEnvironmentColor!
-        : this.hdrColor!
-      : environment
-        ? this.environmentColor!
-        : undefined;
-    const customFamilies = this.hdr.sceneEnabled
+        ? this.transmissionEnvironmentColor!
+        : this.transmissionColor!
+      : this.hdr.sceneEnabled
+        ? environment
+          ? this.hdrEnvironmentColor!
+          : this.hdrColor!
+        : environment
+          ? this.environmentColor!
+          : undefined;
+    const customFamilies = this.transmission.enabled
       ? environment
-        ? this.customShaders.hdrEnvironmentFamilies
-        : this.customShaders.hdrFamilies
-      : environment
-        ? this.customShaders.environmentFamilies
-        : this.customShaders.families;
+        ? this.customShaders.transmissionEnvironmentFamilies
+        : this.customShaders.transmissionFamilies
+      : this.hdr.sceneEnabled
+        ? environment
+          ? this.customShaders.hdrEnvironmentFamilies
+          : this.customShaders.hdrFamilies
+        : environment
+          ? this.customShaders.environmentFamilies
+          : this.customShaders.families;
     const pipelines = colors?.pipelines ?? this.base.pipelines;
     const frameGroups = colors?.frameGroups ?? this.base.frameGroups;
     if (environment) pass.setBindGroup(2, this.environment.group!);

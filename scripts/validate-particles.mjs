@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import { startPreviewServer } from "./gpu/preview-server.mjs";
 const server = await startPreviewServer(5209, true);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
   page.on("pageerror", (error) => {
@@ -131,6 +131,141 @@ try {
       JSON.stringify(app.renderer.resources.stats)
     )
       throw new Error("Warm particles created GPU resources");
+    // Conservative culling must preserve edge coverage and immutable GPU spawn rows on camera re-entry.
+    particles.clear();
+    particles.burst({ ...options, position: [0, 0, 0] }, 1);
+    particles.burst(
+      {
+        ...options,
+        position: [2.8, 0, 0],
+        startSize: 2,
+        endSize: 2,
+        rotation: 0.7,
+      },
+      1,
+    );
+    particles.burst({ ...options, position: [100, 0, 0] }, 20);
+    const crossing = particles.createTrail({
+      width: 0.2,
+      lifetime: 10,
+      color: [0, 1, 0, 1],
+    });
+    crossing.addPoint(-5, 0, 0);
+    crossing.addPoint(5, 0, 0);
+    const hidden = particles.createTrail({
+      width: 0.2,
+      lifetime: 10,
+      color: [0, 0, 1, 1],
+    });
+    hidden.addPoint(100, 0, 0);
+    hidden.addPoint(101, 0, 0);
+    const unculled = await draw();
+    particles.cullingEnabled = true;
+    const culled = await draw();
+    const cullingDifference = difference(unculled.pixels, culled.pixels);
+    if (
+      cullingDifference ||
+      app.renderer.stats.particleVisibleCount !== 2 ||
+      app.renderer.stats.particleTrailVisibleSegments !== 1
+    )
+      throw new Error(
+        "Particle culling lost visible billboard/ribbon coverage",
+      );
+    app.renderer.camera.setPosition(100, 0, 5);
+    app.renderer.camera.setTarget(100, 0, 0);
+    await draw();
+    if (
+      app.renderer.stats.particleVisibleCount !== 20 ||
+      app.renderer.stats.particleRecordUploadBytes !== 0
+    )
+      throw new Error("Culled spawn records were lost on camera re-entry");
+    app.renderer.camera.setPosition(0, 0, 5);
+    app.renderer.camera.setTarget(0, 0, 0);
+    particles.cullingEnabled = false;
+    particles.clear();
+    // A heavily minified atlas must retain the selected frame and ignore invisible neighbor RGB.
+    const mipPixels = new Uint8Array(16 * 8 * 4);
+    for (let y = 0; y < 8; y++)
+      for (let x = 0; x < 16; x++) {
+        const o = (y * 16 + x) * 4;
+        if (x < 8) {
+          mipPixels[o] = 255;
+          mipPixels[o + 3] = 255;
+        } else {
+          mipPixels[o + 1] = 255;
+          mipPixels[o + 3] = 255;
+        }
+      }
+    particles.setAtlas({
+      width: 16,
+      height: 8,
+      columns: 2,
+      rows: 1,
+      pixels: mipPixels,
+      mipmaps: true,
+      colorSpace: "linear",
+    });
+    particles.burst(
+      {
+        ...options,
+        startColor: [1, 1, 1, 1],
+        endColor: [1, 1, 1, 1],
+        startSize: 0.025,
+        endSize: 0.025,
+        sprite: { frameCount: 2, fps: 0 },
+      },
+      1,
+    );
+    const mipRed = await draw();
+    if (mipRed.pixel[0] < 250 || mipRed.pixel[1] > 1)
+      throw new Error("Atlas mip filtering crossed frame boundaries");
+    particles.clear();
+    for (let y = 0; y < 8; y++)
+      for (let x = 0; x < 8; x++) {
+        const o = (y * 16 + x) * 4;
+        const opaque = (x + y) % 2 === 0;
+        mipPixels[o] = opaque ? 255 : 0;
+        mipPixels[o + 1] = opaque ? 0 : 255;
+        mipPixels[o + 3] = opaque ? 255 : 0;
+      }
+    particles.setAtlas({
+      width: 16,
+      height: 8,
+      columns: 2,
+      rows: 1,
+      pixels: mipPixels,
+      mipmaps: true,
+      colorSpace: "linear",
+    });
+    particles.burst(
+      {
+        ...options,
+        startColor: [1, 1, 1, 1],
+        endColor: [1, 1, 1, 1],
+        startSize: 0.025,
+        endSize: 0.025,
+        sprite: { frameCount: 2, fps: 0 },
+      },
+      1,
+    );
+    const mipAlpha = await draw();
+    if (
+      mipAlpha.pixel[0] < 185 ||
+      mipAlpha.pixel[0] > 191 ||
+      mipAlpha.pixel[1] > background.pixel[1]
+    )
+      throw new Error(
+        "Straight-alpha mip filter introduced transparent RGB halos: " +
+          JSON.stringify(mipAlpha.pixel),
+      );
+    const mipResources = { ...app.renderer.resources.stats };
+    await draw();
+    if (
+      JSON.stringify(mipResources) !==
+      JSON.stringify(app.renderer.resources.stats)
+    )
+      throw new Error("Warm mipmapped particles allocated resources");
+    particles.clear();
     // Authoring extensions retain the same blend groups and do not rebuild pipelines.
     const white = {
       ...options,
@@ -612,12 +747,49 @@ try {
         uploadBytes: app.renderer.stats.particleUploadBytes,
       });
     }
+    const cullingTimings = [];
+    world.meshes.remove(app.sceneEntity);
+    particles.clear();
+    particles.burst(
+      { ...options, position: [100, 0, 0], startSize: 0.04, endSize: 0.04 },
+      4000,
+    );
+    for (const enabled of [false, true]) {
+      particles.cullingEnabled = enabled;
+      await draw(false);
+      const before = { ...app.renderer.resources.stats },
+        samples = [];
+      for (let frame = 0; frame < 40; frame++) {
+        const sample = await draw(false);
+        samples.push(sample);
+      }
+      samples.sort((a, b) => {
+        /* Compare encoded CPU times in the benchmark only. */ return (
+          a.cpu - b.cpu
+        );
+      });
+      cullingTimings.push({
+        enabled,
+        cpuMedianMs: samples[20].cpu,
+        completionMedianMs: samples[20].completion,
+        visible: app.renderer.stats.particleVisibleCount,
+        draws: app.renderer.stats.particleDrawCalls,
+      });
+      if (
+        JSON.stringify(before) !== JSON.stringify(app.renderer.resources.stats)
+      )
+        throw new Error("Culling benchmark allocated GPU resources");
+    }
+    particles.cullingEnabled = false;
     world.meshes.remove(app.sceneEntity);
     particles.clear();
     await draw();
     const resources = app.renderer.resources;
     await app.dispose();
     return {
+      cullingTimings,
+      cullingDifference,
+      atlasMips: [mipRed.pixel, mipAlpha.pixel],
       vfxTimings,
       ribbonTiming,
       ribbonPixels: [ribbonStart.pixel, ribbonAged.pixel, mixedRibbons.pixel],
@@ -672,6 +844,9 @@ try {
   await writeFile("artifacts/particles.json", JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  await browser?.close();
-  server.kill("SIGTERM");
+  try {
+    await browser?.close();
+  } finally {
+    server.kill("SIGTERM");
+  }
 }

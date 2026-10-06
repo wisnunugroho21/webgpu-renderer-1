@@ -1,3 +1,4 @@
+import type { TransmissionInputs } from "../post/TransmissionRendering";
 import type { RegisteredMaterialShader } from "../materials/MaterialShaderRegistry";
 import type { GPUContext } from "../../gpu/GPUContext";
 import type { RenderWorld } from "../RenderWorld";
@@ -19,6 +20,7 @@ export interface ColorResourcesInput {
   shader?: RegisteredMaterialShader;
   shaderParameterBuffer?: GPUBuffer;
   environmentLayout?: GPUBindGroupLayout;
+  transmission?: TransmissionInputs;
   colorFormat?: GPUTextureFormat;
   gpu: GPUContext;
   world: RenderWorld;

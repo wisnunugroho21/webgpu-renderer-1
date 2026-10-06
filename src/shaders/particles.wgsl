@@ -169,6 +169,15 @@ fn ribbonOffset(previous: vec3<f32>, current: vec3<f32>, next: vec3<f32>) -> vec
   return output;
 }
 
+// Clamp each filtered mip independently within its selected atlas tile.
+fn atlasMip(uv: vec2<f32>, level: f32) -> vec4<f32> {
+  let grid = frame.atlas.xy;
+  let tile = floor(uv * grid);
+  let inset = 0.5 / (vec2<f32>(textureDimensions(atlas, i32(level))) / grid);
+  let local = clamp(fract(uv * grid), inset, vec2<f32>(1.0) - inset);
+  return textureSampleLevel(atlas, atlasSampler, (tile + local) / grid, level);
+}
+
 // Convert procedural coverage and lifetime alpha into premultiplied linear radiance.
 // Alpha uses one/one-minus-src-alpha; additive uses one/one. Render state tests depth without writing it.
 @fragment fn fs(input: VertexOutput) -> @location(0) vec4<f32> {
@@ -186,9 +195,20 @@ fn ribbonOffset(previous: vec3<f32>, current: vec3<f32>, next: vec3<f32>) -> vec
   if input.shape == 4u {
     coverage = 1.0 - smoothstep(0.75, 1.0, abs(input.uv.y));
   }
+  var lod = 0.0;
+  // Uniform feature branch keeps derivatives valid for all fragments, including procedural shapes.
+  if frame.clock.y > 1.0 {
+    let dimensions = vec2<f32>(textureDimensions(atlas));
+    let footprint = max(length(dpdx(input.spriteUV) * dimensions), length(dpdy(input.spriteUV) * dimensions));
+    lod = clamp(log2(max(footprint, 1.0)), 0.0, frame.clock.y - 1.0);
+  }
   var texel = vec4<f32>(1.0);
   if input.effects.y > 0.0 {
-    texel = textureSampleLevel(atlas, atlasSampler, input.spriteUV, 0.0);
+    if frame.clock.y > 1.0 {
+      texel = mix(atlasMip(input.spriteUV, floor(lod)), atlasMip(input.spriteUV, ceil(lod)), fract(lod));
+    } else {
+      texel = textureSampleLevel(atlas, atlasSampler, input.spriteUV, 0.0);
+    }
   }
   var fade = 1.0;
   if input.effects.x > 0.0 {

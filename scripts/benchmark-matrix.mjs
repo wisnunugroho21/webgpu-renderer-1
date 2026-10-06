@@ -1,12 +1,12 @@
 import { startPreviewServer } from "./gpu/preview-server.mjs";
 import { runBenchmarkMatrix } from "./gpu/benchmark-scene.mjs";
 import { assertBenchmarkReport } from "./gpu/matrix-assertions.mjs";
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 const server = await startPreviewServer(5188, true);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({
       viewport: { width: 800, height: 600 },
       deviceScaleFactor: 2,
@@ -27,6 +27,10 @@ try {
     browser: await browser.version(),
     timestamp: new Date().toISOString(),
     mode: "production-preview",
+    gpu: await page.evaluate(() => {
+      // Bind timing evidence to the verified backend rather than only a browser version.
+      return globalThis.__gpuValidation;
+    }),
   };
   report.pageErrors = errors;
   await mkdir("artifacts", { recursive: true });

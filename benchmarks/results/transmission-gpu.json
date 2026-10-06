@@ -1,0 +1,178 @@
+{
+  "refracted": [
+    176,
+    0,
+    0,
+    255
+  ],
+  "unrefracted": [
+    184,
+    0,
+    0,
+    255
+  ],
+  "transformed": [
+    117,
+    137,
+    225,
+    255
+  ],
+  "volume": [
+    99,
+    99,
+    225,
+    255
+  ],
+  "thin": [
+    137,
+    188,
+    225,
+    255
+  ],
+  "scaled": [
+    71,
+    49,
+    225,
+    255
+  ],
+  "mapped": [
+    91,
+    105,
+    168,
+    255
+  ],
+  "temporal": [
+    91,
+    105,
+    168,
+    255
+  ],
+  "recoveryDifference": 0,
+  "mips": 9,
+  "backgroundBaseBytes": 2457600,
+  "timings": [
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 1.9000000357627869
+    },
+    {
+      "cpuMs": 0.09999996423721313,
+      "completionMs": 1.7999999523162842
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.19999998807907104,
+      "completionMs": 1.899999976158142
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.09999996423721313,
+      "completionMs": 1.699999988079071
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.19999998807907104,
+      "completionMs": 2.199999988079071
+    },
+    {
+      "cpuMs": 0.09999996423721313,
+      "completionMs": 2.099999964237213
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.699999988079071
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 2
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 1.9000000357627869
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 2
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 2
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 2.199999988079071
+    },
+    {
+      "cpuMs": 0.09999996423721313,
+      "completionMs": 1.899999976158142
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.899999976158142
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.699999988079071
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.9000000357627869
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.09999996423721313,
+      "completionMs": 1.699999988079071
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.10000002384185791,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0,
+      "completionMs": 1.800000011920929
+    },
+    {
+      "cpuMs": 0.09999996423721313,
+      "completionMs": 2.199999988079071
+    },
+    {
+      "cpuMs": 0.09999996423721313,
+      "completionMs": 1.899999976158142
+    }
+  ],
+  "errors": [],
+  "finalBuffers": 0,
+  "finalTextures": 0
+}

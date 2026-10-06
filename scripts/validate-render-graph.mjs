@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { startPreviewServer } from "./gpu/preview-server.mjs";
 const server = await startPreviewServer(5213, true);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } }),
     errors = [];
   page.on("pageerror", (error) => {
@@ -231,6 +231,9 @@ try {
   );
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  await browser?.close();
-  server.kill("SIGTERM");
+  try {
+    await browser?.close();
+  } finally {
+    server.kill("SIGTERM");
+  }
 }

@@ -18,6 +18,20 @@ export function createColorBindGroupLayout(
     ? undefined
     : device.createBindGroupLayout({
         entries: [
+          ...(input.transmission
+            ? [
+                {
+                  binding: 18,
+                  visibility: GPUShaderStage.FRAGMENT,
+                  texture: { sampleType: "float" as const },
+                },
+                {
+                  binding: 19,
+                  visibility: GPUShaderStage.FRAGMENT,
+                  sampler: { type: "filtering" as const },
+                },
+              ]
+            : []),
           ...(input.shader
             ? [
                 {
@@ -138,6 +152,12 @@ export function createColorFrameGroups(
         {
           layout: groupLayout!,
           entries: [
+            ...(input.transmission
+              ? [
+                  { binding: 18, resource: input.transmission.background },
+                  { binding: 19, resource: input.transmission.sampler },
+                ]
+              : []),
             ...(input.shader
               ? [
                   {

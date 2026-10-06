@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { startPreviewServer } from "./gpu/preview-server.mjs";
@@ -6,7 +6,7 @@ await mkdir("artifacts", { recursive: true });
 const server = await startPreviewServer(5195, true);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } }),
     errors = [];
   page.on("pageerror", (e) =>
@@ -174,20 +174,28 @@ try {
     const old = app.gpu;
     old.device.destroy();
     await old.device.lost;
-    for (
-      let i = 0;
-      i < 200 && (app.gpu === old || app.deviceState !== "ready");
-      i++
+    const allowance =
+      window.__gpuValidation?.profile === "software" ? 120_000 : 30_000;
+    const recoveryDeadline = performance.now() + allowance;
+    while (
+      performance.now() < recoveryDeadline &&
+      (app.gpu === old || app.deviceState !== "ready")
     )
-      await new Promise((r) =>
-        /** Delegates this operation to setTimeout. */ setTimeout(r, 10),
-      );
+      await new Promise((resolve) => {
+        // Poll actual recovery completion rather than assuming a two-second adapter rebuild.
+        setTimeout(resolve, 10);
+      });
     if (app.gpu === old || app.deviceState !== "ready")
-      throw new Error("Automatic recovery failed");
+      throw new Error(
+        `Automatic recovery timed out in state ${app.deviceState}`,
+      );
     const frames = app.frames;
-    await new Promise((r) =>
-      /** Delegates this operation to setTimeout. */ setTimeout(r, 100),
-    );
+    const resumeDeadline = performance.now() + allowance;
+    while (app.frames <= frames && performance.now() < resumeDeadline)
+      await new Promise((resolve) => {
+        // Require a real resumed frame without assuming software presentation finishes in 100 ms.
+        setTimeout(resolve, 10);
+      });
     if (app.frames <= frames) throw new Error("Recovered loop did not resume");
     app.stop();
     if (instance.disposed || instance.animator !== animator)
@@ -230,6 +238,9 @@ try {
   );
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  await browser?.close();
-  server.kill("SIGTERM");
+  try {
+    await browser?.close();
+  } finally {
+    server.kill("SIGTERM");
+  }
 }

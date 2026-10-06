@@ -96,7 +96,7 @@ Family zero is PBR. Up to 16 custom families can be registered per material mana
 
 Shader compilation and bounded pipeline variants are prepared during registration/setup, not draw encoding. Compatible custom families share layouts/frame bind groups; shader modules and pipelines use the existing caches. Opaque sorting and instancing include family identity. Mixed shader families can add batches/pipeline switches; many materials sharing one shader/mesh can still be instanced normally.
 
-PBR retains its existing 448-byte GPU material ABI. The custom GPU parameter buffer is allocated only when a custom family is prepared (128 KiB at the default 2,048-material capacity). CPU material state retains the parameter table and family IDs for recovery. Queue/batch IDs use 16-bit storage so custom family indices cannot wrap at 255.
+PBR retains its shared 544-byte GPU material ABI. The custom GPU parameter buffer is allocated only when a custom family is prepared (128 KiB at the default 2,048-material capacity). CPU material state retains the parameter table and family IDs for recovery. Queue/batch IDs use 16-bit storage so custom family indices cannot wrap at 255.
 
 Register shaders before gameplay begins, preload textures, reuse parameter arrays and avoid unnecessary family/material diversity. Your WGSL's texture sampling, loops and lighting work determine its GPU cost; arbitrary custom shading cannot guarantee a universal performance improvement.
 
@@ -111,3 +111,5 @@ pnpm run benchmark:gpu
 The material scenario runs against the production build. It checks registration failure/deduplication, analytic color, alpha modes, direct/indirect drawing, depth, HDR/environment setup, textured/skinned/morphed PBR-equivalent references, shadows, recovery, disposal and warm resource stability. It also measures 1,000 instanced objects with PBR, equivalent custom PBR and unlit shading; GPU waits/readbacks occur only in this diagnostic script. Results are written to `artifacts/material-shaders.json`.
 
 Authored PBR factors use the expanded shared material record. Custom families still own their lighting; built-in coat/specular/unlit branches do not replace `shadeMaterial`. Core texture transforms and emissive strength apply to its input surface. See [AUTHORED_RENDERING.md](AUTHORED_RENDERING.md).
+
+When `renderer.transmission.enabled` is selected, custom families gain bounded linear transmission variants automatically. Existing surface signatures remain valid. The engine approximates transmitted energy using the returned opaque radiance and dielectric Fresnel, then samples the shared opaque background; it cannot reconstruct arbitrary custom BRDF reflection/transmission lobes. See [optical material authoring](GAME_DEVELOPMENT_GUIDE.md#glass-transmission-and-absorption).

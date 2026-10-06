@@ -1,3 +1,5 @@
+import type { TransmissionInputs } from "../post/TransmissionRendering";
+import { createColorFrameGroups } from "../pipelines/createColorBindings";
 import type { MaterialManager } from "./MaterialManager";
 import type {
   MaterialShaderDefinition,
@@ -17,6 +19,9 @@ interface CustomMaterialShaderContext extends ColorResourcesInput {
 /** Owns cold shader registration, family variants and shared parameters; color drawing reads prepared tables. */
 export class CustomMaterialShaders {
   private environmentLayout?: GPUBindGroupLayout;
+  private transmission?: TransmissionInputs;
+  readonly transmissionFamilies: ColorResources[] = [];
+  readonly transmissionEnvironmentFamilies: ColorResources[] = [];
   private hdrPrepared = false;
   private parameterBuffer?: GPUBuffer;
   readonly families: Array<ColorResources> = [];
@@ -43,6 +48,58 @@ export class CustomMaterialShaders {
   prepareEnvironment(layout: GPUBindGroupLayout): void {
     this.environmentLayout = layout;
     this.prepareEnvironmentFamilies();
+    if (this.transmission) this.prepareTransmission(this.transmission);
+  }
+  /** Prepare bounded linear transmission variants and refresh shared background groups at cold resize. */
+  prepareTransmission(
+    inputs: TransmissionInputs,
+    candidate?: RegisteredMaterialShader,
+  ): void {
+    this.transmission = inputs;
+    const definitions = candidate
+      ? [candidate]
+      : this.scene.materials.shaders.definitions;
+    for (const shader of definitions) {
+      this.transmissionFamilies[shader.id] ??= createColorResources({
+        ...this.scene,
+        shader,
+        colorFormat: "rgba16float",
+        shaderParameterBuffer: this.ensureParameterBuffer(),
+        transmission: inputs,
+        sharedBindings: this.transmissionFamilies[1]?.bindings,
+      });
+      if (this.environmentLayout)
+        this.transmissionEnvironmentFamilies[shader.id] ??=
+          createColorResources({
+            ...this.scene,
+            shader,
+            colorFormat: "rgba16float",
+            shaderParameterBuffer: this.ensureParameterBuffer(),
+            transmission: inputs,
+            environmentLayout: this.environmentLayout,
+            sharedBindings: this.transmissionEnvironmentFamilies[1]?.bindings,
+          });
+    }
+    const refreshed = new Set<GPUBindGroup[]>();
+    for (const table of [
+      this.transmissionFamilies,
+      this.transmissionEnvironmentFamilies,
+    ])
+      for (const shader of definitions) {
+        const color = table[shader.id];
+        if (!color || refreshed.has(color.frameGroups)) continue;
+        refreshed.add(color.frameGroups);
+        const groups = createColorFrameGroups(
+          {
+            ...this.scene,
+            shader,
+            shaderParameterBuffer: this.ensureParameterBuffer(),
+            transmission: inputs,
+          },
+          color.pipeline.getBindGroupLayout(0),
+        );
+        color.frameGroups.splice(0, color.frameGroups.length, ...groups);
+      }
   }
   /** Allocates the single shared parameter table only on the first custom-family setup. */
   private ensureParameterBuffer(): GPUBuffer {
@@ -165,6 +222,8 @@ export class CustomMaterialShaders {
             shaderParameterBuffer: this.ensureParameterBuffer(),
           });
       }
+      if (this.transmission)
+        this.prepareTransmission(this.transmission, shader);
     } catch (error) {
       failure = error;
     }
@@ -174,6 +233,8 @@ export class CustomMaterialShaders {
       delete this.hdrFamilies[shader.id];
       delete this.environmentFamilies[shader.id];
       delete this.hdrEnvironmentFamilies[shader.id];
+      delete this.transmissionFamilies[shader.id];
+      delete this.transmissionEnvironmentFamilies[shader.id];
       throw (
         failure ?? new Error(validation?.message ?? "GPU device unavailable")
       );

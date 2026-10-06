@@ -1,0 +1,30 @@
+{
+  "upload": {
+    "totalMs": 192.69999998807907,
+    "framesDuring": 11,
+    "eventLoopTurns": 51,
+    "chunks": 11,
+    "maxChunk": 1048576,
+    "buffersRestored": true
+  },
+  "prepared": true,
+  "mainDecodeMs": 20.900000035762787,
+  "coldWorkerMs": 76.5,
+  "warmWorkerMedianMs": 58.10000002384186,
+  "framesDuringWorker": 4,
+  "framesDuringMain": 0,
+  "mainEventLoopTurns": 0,
+  "workerEventLoopTurns": 23,
+  "mismatches": 0,
+  "inputDetached": true,
+  "vertices": 100000,
+  "metrics": {
+    "workerJobs": 4,
+    "mainJobs": 0,
+    "transferredInputBytes": 11202992,
+    "transferredOutputBytes": 54421456,
+    "lastWorkerDecodeMs": 31.80000001192093,
+    "lastWorkerPrepareMs": 12.799999952316284,
+    "preparedMeshes": 4
+  }
+}

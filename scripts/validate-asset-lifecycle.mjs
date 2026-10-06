@@ -1,5 +1,5 @@
 import { NodeIO } from "@gltf-transform/core";
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { startPreviewServer } from "./gpu/preview-server.mjs";
@@ -20,7 +20,7 @@ const invalid = await io.writeBinary(document);
 const server = await startPreviewServer(5191, true);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
   page.on("pageerror", (error) =>
@@ -386,6 +386,9 @@ try {
     ),
   );
 } finally {
-  await browser?.close();
-  server.kill("SIGTERM");
+  try {
+    await browser?.close();
+  } finally {
+    server.kill("SIGTERM");
+  }
 }

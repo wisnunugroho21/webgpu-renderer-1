@@ -1,0 +1,97 @@
+{
+  "base": {
+    "gpuBytes": 136468144,
+    "bufferBytes": 66492112,
+    "textureBytes": 69976032,
+    "mipBytes": 409552,
+    "compressedBytes": 0,
+    "renderTargetBytes": 69976016,
+    "recoveryBytes": 2468208,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "resident": {
+    "gpuBytes": 136473604,
+    "bufferBytes": 66492112,
+    "textureBytes": 69981492,
+    "mipBytes": 410916,
+    "compressedBytes": 0,
+    "renderTargetBytes": 69976016,
+    "recoveryBytes": 2468349,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "recovered": {
+    "gpuBytes": 136473604,
+    "bufferBytes": 66492112,
+    "textureBytes": 69981492,
+    "mipBytes": 410916,
+    "compressedBytes": 0,
+    "renderTargetBytes": 69976016,
+    "recoveryBytes": 2468351,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "hdr": {
+    "gpuBytes": 138925760,
+    "bufferBytes": 66492128,
+    "textureBytes": 72433632,
+    "mipBytes": 409552,
+    "compressedBytes": 0,
+    "renderTargetBytes": 72433616,
+    "recoveryBytes": 2468208,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "resized": {
+    "gpuBytes": 137389760,
+    "bufferBytes": 66492128,
+    "textureBytes": 70897632,
+    "mipBytes": 102352,
+    "compressedBytes": 0,
+    "renderTargetBytes": 70897616,
+    "recoveryBytes": 2468208,
+    "environmentCacheBytes": 0,
+    "decodedCacheBytes": 0
+  },
+  "compressedBytes": 24,
+  "actualRejected": true,
+  "qualityReport": {
+    "high": [
+      0,
+      105,
+      0,
+      255
+    ],
+    "medium": [
+      124,
+      0,
+      0,
+      255
+    ],
+    "duringDowngrade": [
+      0,
+      105,
+      0,
+      255
+    ],
+    "recoveredQuality": [
+      124,
+      0,
+      0,
+      255
+    ],
+    "fallback": [
+      124,
+      211,
+      255,
+      255
+    ],
+    "failures": 0,
+    "transitions": 3
+  },
+  "gpuErrors": [],
+  "finalGPUBytes": 0,
+  "finalTextureBytes": 0,
+  "finalRenderTargetBytes": 0
+}

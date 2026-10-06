@@ -29,6 +29,7 @@ struct Output {
   @location(4) uv0: vec2<f32>,
   @location(5) tangent: vec4<f32>,
   @location(6) uv1: vec2<f32>,
+  // VOLUME_VARYING
 }
 
 struct VisibleRecord {
@@ -51,6 +52,7 @@ fn vertexOutput(p: vec3<f32>, color: vec4<f32>, normal: vec3<f32>, uv0: vec2<f32
   out.tangent = vertex.tangent;
   out.uv0 = uv0;
   out.uv1 = uv1;
+  // VOLUME_SCALE
   return out;
 }
 
@@ -107,6 +109,7 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
   let authoredUV9 = materialUV(m, input.uv0, input.uv1, 9u);
   let ax9 = dpdx(authoredUV9);
   let ay9 = dpdy(authoredUV9);
+  // VOLUME_FACTORS
   if m.surface.z == 1.0 && base.a < m.surface.w {
     discard;
   }
@@ -188,6 +191,7 @@ fn coords(input: Output, index: f32) -> vec2<f32> {
     let lobes = AuthoredLobes(f0, mix(specularWeight, 1.0, metallic), coatNormal, clamp(coatRoughness, 0.045, 1.0), coatWeight, extended);
     let coatF = coatWeight * (0.04 + 0.96 * pow(1.0 - clamp(dot(coatNormal, v), 0.0, 1.0), 5.0));
     result = authoredDirectLighting(base.rgb, metallic, roughness, n, v, input.world, input.position.xy, lobes) + authoredAmbientLighting(base.rgb, metallic, roughness, n, v, ao, lobes) + emissive * (1.0 - coatF);
+    // TRANSMISSION_COLOR
   }
   return vec4<f32>(result, select(1.0, base.a, m.surface.z == 2.0));
 }

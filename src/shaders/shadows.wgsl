@@ -52,10 +52,15 @@ fn shadowVisibility(light: Light, world: vec3<f32>, normal: vec3<f32>) -> f32 {
     return 1.0;
   }
   let texel = 1.0 / vec2<f32>(textureDimensions(shadowMaps));
+  let scale = select(1.0, data.settings.w, data.settings.w > 0.0);
   var visible = 0.0;
   for (var y = - 1; y <= 1; y++) {
     for (var x = - 1; x <= 1; x++) {
-      visible += textureSampleCompareLevel(shadowMaps, shadowSampler, uv + vec2<f32>(f32(x), f32(y)) * texel, i32(layer), ndc.z - data.settings.y);
+      var sampleUV = uv * scale + vec2<f32>(f32(x), f32(y)) * texel;
+      if scale < 1.0 {
+        sampleUV = clamp(sampleUV, texel * 0.5, vec2<f32>(scale) - texel * 0.5);
+      }
+      visible += textureSampleCompareLevel(shadowMaps, shadowSampler, sampleUV, i32(layer), ndc.z - data.settings.y);
     }
   }
   return visible / 9.0;

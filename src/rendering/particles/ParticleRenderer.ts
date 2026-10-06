@@ -1,3 +1,6 @@
+import { ParticleVisibility } from "./ParticleVisibility";
+import { particleAtlasMipLevels } from "../../particles/ParticleAtlas";
+import { MipGenerator } from "../materials/MipGenerator";
 import { UnifiedTransparency } from "../UnifiedTransparency";
 import { RenderQueue } from "../RenderQueue";
 import { BatchBuilder } from "../BatchBuilder";
@@ -31,6 +34,10 @@ export class ParticleRenderer {
   readonly transparency: UnifiedTransparency;
   private readonly emptyQueue = new RenderQueue(0);
   private readonly emptyBatches = new BatchBuilder(0);
+  private readonly visibility = new ParticleVisibility();
+  private readonly billboardVisible: Uint8Array;
+  private readonly ribbonVisible: Uint8Array;
+  private atlasLevels = 1;
   drawCalls = 0;
   uploadBytes = 0;
   recordUploadBytes = 0;
@@ -74,10 +81,13 @@ export class ParticleRenderer {
     private readonly resources: Resources,
     readonly system: ParticleSystem,
     meshCapacity = 0,
+    private mipmaps?: MipGenerator,
   ) {
     this.transparency = new UnifiedTransparency(
       meshCapacity * 8 + system.capacity + system.trails.segmentCapacity,
     );
+    this.billboardVisible = new Uint8Array(system.capacity);
+    this.ribbonVisible = new Uint8Array(system.trails.segmentCapacity);
     this.order = new Uint32Array(system.capacity);
     this.previousOrder = new Uint32Array(system.capacity);
     this.depths = new Float32Array(system.capacity);
@@ -147,11 +157,16 @@ export class ParticleRenderer {
     if (!this.prepared || this.atlasRevision === this.system.atlasRevision)
       return;
     const atlas = this.system.atlas;
+    this.atlasLevels = particleAtlasMipLevels(atlas);
     const texture = this.resources.textures.create({
       label: "Particle atlas",
+      mipLevelCount: this.atlasLevels,
       size: [atlas?.width ?? 1, atlas?.height ?? 1],
       format: atlas?.colorSpace === "linear" ? "rgba8unorm" : "rgba8unorm-srgb",
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        (this.atlasLevels > 1 ? GPUTextureUsage.RENDER_ATTACHMENT : 0),
     });
     this.gpu.queue.writeTexture(
       { texture },
@@ -159,6 +174,10 @@ export class ParticleRenderer {
       { bytesPerRow: (atlas?.width ?? 1) * 4 },
       [atlas?.width ?? 1, atlas?.height ?? 1],
     );
+    if (this.atlasLevels > 1) {
+      this.mipmaps ??= new MipGenerator(this.gpu.device, this.resources);
+      this.mipmaps.generate(texture, true);
+    }
     if (this.atlasTexture) this.resources.textures.destroy(this.atlasTexture);
     this.atlasTexture = texture;
     this.atlasRevision = this.system.atlasRevision;
@@ -226,6 +245,13 @@ export class ParticleRenderer {
     if (!system.enabled || !this.buffer) return;
     system.trails.prepare();
     if (!system.count && !system.trails.count) return;
+    if (system.cullingEnabled) {
+      this.visibility.prepare(camera.viewProjection);
+      for (let i = 0; i < system.count; i++)
+        this.billboardVisible[i] = this.visibility.billboard(system, i) ? 1 : 0;
+      for (let i = 0; i < system.trails.count; i++)
+        this.ribbonVisible[i] = this.visibility.ribbon(system, i) ? 1 : 0;
+    }
     const full = this.uploaded < 0;
     if (full || this.uploaded !== system.revision) {
       const start = full ? 0 : Math.min(system.count, system.dirtyStart);
@@ -246,14 +272,20 @@ export class ParticleRenderer {
     }
     let alphaCount = 0;
     for (let i = 0; i < system.count; i++)
-      if (system.records[i * PARTICLE_WORDS + PARTICLE_BLEND] === 0) {
+      if (
+        system.records[i * PARTICLE_WORDS + PARTICLE_BLEND] === 0 &&
+        (!system.cullingEnabled || this.billboardVisible[i])
+      ) {
         this.depths[i] = this.depth(i, camera.view);
         this.order[alphaCount++] = i;
       }
     this.depthSorter.sort(this.order, alphaCount);
     let end = alphaCount;
     for (let i = 0; i < system.count; i++)
-      if (system.records[i * PARTICLE_WORDS + PARTICLE_BLEND] === 1)
+      if (
+        system.records[i * PARTICLE_WORDS + PARTICLE_BLEND] === 1 &&
+        (!system.cullingEnabled || this.billboardVisible[i])
+      )
         this.order[end++] = i;
     let changed = this.previousCount !== end;
     for (let i = 0; i < end && !changed; i++)
@@ -294,6 +326,7 @@ export class ParticleRenderer {
     this.frame[21] = view[5]!;
     this.frame[22] = view[9]!;
     this.frame[24] = system.time;
+    this.frame[25] = this.atlasLevels;
     this.frame[28] = camera.projection[10]!;
     this.frame[29] = camera.projection[14]!;
     this.frame[30] = camera.projectionType === "orthographic" ? 1 : 0;
@@ -306,7 +339,6 @@ export class ParticleRenderer {
     this.uploadTrails(camera);
     this.alphaCount = alphaCount;
     this.billboardCount = end;
-    this.ribbonCount = system.trails.count;
   }
 
   /** Preserve standalone effect composition using the same merged alpha schedule as the renderer. */
@@ -408,7 +440,10 @@ export class ParticleRenderer {
     const r = t.records,
       view = camera.view;
     for (let i = 0; i < t.count; i++)
-      if (r[i * PARTICLE_WORDS + PARTICLE_BLEND] === 0) {
+      if (
+        r[i * PARTICLE_WORDS + PARTICLE_BLEND] === 0 &&
+        (!this.system.cullingEnabled || this.ribbonVisible[i])
+      ) {
         const o = i * PARTICLE_WORDS;
         let z = view[14]!;
         for (let axis = 0; axis < 3; axis++)
@@ -419,7 +454,10 @@ export class ParticleRenderer {
     this.trailSorter.sort(this.trailOrder, alpha);
     let end = alpha;
     for (let i = 0; i < t.count; i++)
-      if (r[i * PARTICLE_WORDS + PARTICLE_BLEND] === 1)
+      if (
+        r[i * PARTICLE_WORDS + PARTICLE_BLEND] === 1 &&
+        (!this.system.cullingEnabled || this.ribbonVisible[i])
+      )
         this.trailOrder[end++] = i;
     let changed = this.previousTrailCount !== end;
     for (let i = 0; i < end && !changed; i++)
@@ -438,6 +476,7 @@ export class ParticleRenderer {
       this.trailUploadBytes += end * 4;
     }
     this.trailAlphaCount = alpha;
+    this.ribbonCount = end;
     this.uploadBytes += this.trailUploadBytes;
   }
   /** Detach setup notifications; the shared Resources owner destroys GPU storage at renderer disposal. */

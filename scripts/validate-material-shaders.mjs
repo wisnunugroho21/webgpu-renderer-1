@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import { startPreviewServer } from "./gpu/preview-server.mjs";
 
 const server = await startPreviewServer(5201, true);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = [];
   page.on("pageerror", (error) => {
@@ -404,6 +404,9 @@ fn shadeMaterial(s: MaterialSurface, p: MaterialShaderParameters) -> vec3<f32> {
   );
   console.log(JSON.stringify(report, null, 2));
 } finally {
-  await browser?.close();
-  server.kill("SIGTERM");
+  try {
+    await browser?.close();
+  } finally {
+    server.kill("SIGTERM");
+  }
 }

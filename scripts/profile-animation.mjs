@@ -1,4 +1,4 @@
-import { chromium } from "playwright";
+import { launchValidationBrowser } from "./gpu/validation-browser.mjs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { startPreviewServer } from "./gpu/preview-server.mjs";
 
@@ -6,7 +6,7 @@ import { startPreviewServer } from "./gpu/preview-server.mjs";
 const server = await startPreviewServer(5190);
 let browser;
 try {
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await launchValidationBrowser();
   const page = await browser.newPage();
   await page.goto("http://127.0.0.1:5190");
   await page.waitForFunction(

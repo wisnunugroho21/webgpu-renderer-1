@@ -8,6 +8,9 @@ interface RenderCallbacks {
   geometryClusters: Execute;
   color: Execute;
   particles?: Execute;
+  motion?: Execute;
+  transmission?: Execute;
+  temporalResolve?: Execute;
   postProcessing: Execute;
   toneMapping: Execute;
   hiz: Execute;
@@ -79,11 +82,34 @@ export function configureRenderGraph(
     writes: ["mainDepth", "sceneColor"],
     execute: callbacks.color,
   });
+  if (callbacks.motion)
+    graph.add({
+      name: "motion",
+      reads: [
+        "mainDepth",
+        "sceneColor",
+        "geometry",
+        "deformation",
+        "materials",
+        "frame",
+      ],
+      writes: ["motionVectors"],
+      execute: callbacks.motion,
+    });
+  if (callbacks.transmission)
+    graph.add({
+      name: "transmission-capture",
+      reads: ["sceneColor", "mainDepth"],
+      writes: ["transmissionBackground"],
+      execute: callbacks.transmission,
+    });
   graph.add({
     name: "particles",
     // Legacy stage name is retained; this stage now draws transparent meshes and effects together.
     reads: [
       "sceneColor",
+      ...(callbacks.motion ? ["motionVectors"] : []),
+      ...(callbacks.transmission ? ["transmissionBackground"] : []),
       "mainDepth",
       "frame",
       "geometry",
@@ -103,9 +129,18 @@ export function configureRenderGraph(
         // Legacy callback sets retain scene color unchanged through the optional composition stage.
       }),
   });
+  if (callbacks.temporalResolve)
+    graph.add({
+      name: "temporal-resolve",
+      reads: ["particleSceneColor", "motionVectors", "mainDepth"],
+      writes: ["temporalSceneColor"],
+      execute: callbacks.temporalResolve,
+    });
   graph.add({
     name: "post-processing",
-    reads: ["particleSceneColor"],
+    reads: [
+      callbacks.temporalResolve ? "temporalSceneColor" : "particleSceneColor",
+    ],
     writes: ["processedSceneColor"],
     execute: callbacks.postProcessing,
   });

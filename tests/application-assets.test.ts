@@ -73,6 +73,8 @@ function fixture() {
     camera: new Camera(),
     lodGroups: { entries: [] },
     streaming: {
+      /** Drain the mock streaming owner before disposing its GPU resources. */
+      quiesce: async () => {},
       /** Returns false. */
       referencesAsset: () => false,
     },

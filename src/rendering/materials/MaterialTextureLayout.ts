@@ -78,3 +78,30 @@ export function packTextureLayout(
   }
   return result;
 }
+
+/** Validate legacy/extended patches completely before updating any shared material metadata. */
+export function validateTextureLayout(layout: ArrayLike<number>): void {
+  if (![6, 87, 103].includes(layout.length))
+    throw new Error("Invalid texture layout");
+  for (let i = 0; i < 6; i++)
+    if (layout[i] !== 0 && layout[i] !== 1)
+      throw new Error("Only TEXCOORD_0/1 are supported");
+  if (layout.length > 6) {
+    for (let i = 6; i < layout.length - 1; i++)
+      if (!Number.isFinite(Math.fround(layout[i]!)))
+        throw new Error("Invalid texture transform");
+    const flags = layout[layout.length - 1]!;
+    if (
+      !Number.isInteger(flags) ||
+      flags < 0 ||
+      flags > (layout.length === 87 ? 31 : 127)
+    )
+      throw new Error("Invalid texture flags");
+    for (let i = 6; i < layout.length - 1; i += 8)
+      if (
+        (layout[i + 3] !== 0 && layout[i + 3] !== 1) ||
+        (layout[i + 7] !== 0 && layout[i + 7] !== 1)
+      )
+        throw new Error("Invalid texture transform");
+  }
+}

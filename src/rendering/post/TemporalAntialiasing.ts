@@ -1,14 +1,23 @@
+import * as temporalLayout from "./TemporalLayout";
+import { createTemporalResources } from "./createTemporalResources";
+import { prepareTemporalTargets } from "./prepareTemporalTargets";
 import { Mat4 } from "../../math/Mat4";
 import { GPUPass } from "../../profiling/GPUProfiler";
 import type { Renderer } from "../Renderer";
 import type { TargetLease } from "../../gpu/TransientTargetPool";
 import { MotionHistory } from "./MotionHistory";
-import { createMotionShader } from "./createMotionShader";
-import { MESH_VERTEX_LAYOUT } from "../geometry/VertexLayout";
-import resolveShader from "../../shaders/temporal-resolve.wgsl?raw";
+// Resolve immutable ABI widths once, outside object packing/upload loops.
+const {
+  MOTION_OBJECT_WORDS,
+  MOTION_OBJECT_BYTES,
+  MOTION_FRAME_WORDS,
+  MOTION_FRAME_BYTES,
+  TEMPORAL_SETTINGS_WORDS,
+  TEMPORAL_SETTINGS_BYTES,
+} = temporalLayout;
 /** Opt-in shared motion raster and persistent ping-pong color/depth; configuration owns all GPU setup. */
-const jitterX = [0, -0.25, 0.25, -0.375, 0.125, -0.125, 0.375, -0.4375];
-const jitterY = [
+const HALTON_JITTER_X = [0, -0.25, 0.25, -0.375, 0.125, -0.125, 0.375, -0.4375];
+const HALTON_JITTER_Y = [
   -1 / 6,
   1 / 6,
   -7 / 18,
@@ -46,10 +55,10 @@ export class TemporalAntialiasing {
   jitter = true;
   uploadBytes = 0;
   drawCalls = 0;
-  private readonly frame = new Float32Array(36);
+  private readonly frame = new Float32Array(MOTION_FRAME_WORDS);
   private readonly words = new Uint32Array(this.frame.buffer);
   private readonly previousCamera = new Float32Array(16);
-  private readonly settings = new Float32Array(40);
+  private readonly settings = new Float32Array(TEMPORAL_SETTINGS_WORDS);
   private jitterX = 0;
   private jitterY = 0;
   private oldJitterX = 0;
@@ -112,7 +121,7 @@ export class TemporalAntialiasing {
   /** Reject combined previous-pose storage before optional mode changes allocate CPU or GPU histories. */
   preflight(): void {
     const { world, gpu } = this.renderer;
-    const currentBytes = world.capacity * 28 * 4;
+    const currentBytes = world.capacity * MOTION_OBJECT_WORDS * 4;
     const previousBytes =
       currentBytes +
       world.jointCapacity * 16 * 4 +
@@ -130,131 +139,18 @@ export class TemporalAntialiasing {
   private prepare(): void {
     if (this.history) return;
     this.preflight();
-    const r = this.renderer,
-      d = r.gpu.device,
-      res = r.resources,
-      w = r.world;
-    this.history = new MotionHistory(
-      w.capacity,
-      w.jointCapacity,
-      w.morphCapacity,
-    );
-    const create = (size: number, label: string) => {
-      // All pose buffers are shared fixed pools, never one allocation per actor.
-      return res.buffers.create({
-        size: Math.max(16, size),
-        label,
-        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-      });
-    };
-    this.uploadedCurrent = new Uint32Array(w.capacity * 28);
-    this.uploadedPrevious = new Uint32Array(w.capacity * 28);
-    this.current = create(
-      this.history.current.byteLength,
-      "Current motion objects",
-    );
-    this.previous = create(
-      this.history.previous.byteLength,
-      "Previous motion pose",
-    );
-    this.frameBuffer = res.buffers.create({
-      size: 144,
-      label: "Motion frame",
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    this.settingsBuffer = res.buffers.create({
-      size: 160,
-      label: "Temporal resolve controls",
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    });
-    const entries: GPUBindGroupLayoutEntry[] = [];
-    for (let binding = 0; binding < 8; binding++)
-      entries.push({
-        binding,
-        visibility:
-          binding === 2 ? GPUShaderStage.FRAGMENT : GPUShaderStage.VERTEX,
-        buffer: { type: binding === 0 ? "uniform" : "read-only-storage" },
-      });
-    const layout = d.createBindGroupLayout({ entries });
-    const buffers = [
-      this.frameBuffer,
-      this.current,
-      r.materialBuffer,
-      this.previous,
-      r.joints.buffer,
-      r.morphWeights.buffer,
-      r.morphDeltas.position,
-      r.morphDeltas.tangent,
-    ];
-    this.motionGroup = d.createBindGroup({
-      layout,
-      entries: buffers.map((buffer, binding) => {
-        // Bind retained current arenas and a single packed previous arena.
-        return { binding, resource: { buffer } };
-      }),
-    });
-    const module = res.shaders.get(createMotionShader(), "Temporal motion");
-    const pipelineLayout = d.createPipelineLayout({
-      bindGroupLayouts: [layout, r.textures.layout],
-    });
-    for (const doubleSided of [false, true])
-      for (const topology of [
-        "triangle-list",
-        "line-list",
-        "point-list",
-      ] as const)
-        this.pipelines.push(
-          res.pipelines.get({
-            label: "Temporal motion",
-            layout: pipelineLayout,
-            vertex: { module, entryPoint: "vs", buffers: MESH_VERTEX_LAYOUT },
-            fragment: {
-              module,
-              entryPoint: "fs",
-              targets: [{ format: "rgba32float" }],
-            },
-            primitive: { topology, cullMode: doubleSided ? "none" : "back" },
-            depthStencil: {
-              format: "depth24plus",
-              depthWriteEnabled: false,
-              depthCompare: "less-equal",
-            },
-          }),
-        );
-    this.resolveLayout = d.createBindGroupLayout({
-      entries: Array.from({ length: 7 }, (_, binding) => {
-        // Explicit unfilterable layouts support exact float history/depth texture loads.
-        return binding === 6
-          ? {
-              binding,
-              visibility: GPUShaderStage.FRAGMENT,
-              buffer: { type: "uniform" as const },
-            }
-          : {
-              binding,
-              visibility: GPUShaderStage.FRAGMENT,
-              texture: {
-                sampleType:
-                  binding === 3
-                    ? ("depth" as const)
-                    : ("unfilterable-float" as const),
-              },
-            };
-      }),
-    });
-    const resolve = res.shaders.get(resolveShader, "Temporal resolve");
-    this.resolvePipeline = res.pipelines.get({
-      layout: d.createPipelineLayout({
-        bindGroupLayouts: [this.resolveLayout],
-      }),
-      vertex: { module: resolve, entryPoint: "vs" },
-      fragment: {
-        module: resolve,
-        entryPoint: "fs",
-        targets: [{ format: "rgba16float" }, { format: "r32float" }],
-      },
-      primitive: { topology: "triangle-list" },
-    });
+    const prepared = createTemporalResources(this.renderer);
+    this.history = prepared.history;
+    this.uploadedCurrent = prepared.uploadedCurrent;
+    this.uploadedPrevious = prepared.uploadedPrevious;
+    this.current = prepared.current;
+    this.previous = prepared.previous;
+    this.frameBuffer = prepared.frameBuffer;
+    this.settingsBuffer = prepared.settingsBuffer;
+    this.motionGroup = prepared.motionGroup;
+    this.resolveLayout = prepared.resolveLayout;
+    this.resolvePipeline = prepared.resolvePipeline;
+    this.pipelines = prepared.pipelines;
   }
   /** Rebuild persistent histories and groups at enable/resize boundaries, excluding them from graph aliasing. */
   resize(
@@ -269,54 +165,16 @@ export class TemporalAntialiasing {
     this.width = scene.width;
     this.height = scene.height;
     this.targets = [];
-    for (const format of [
-      "rgba32float",
-      "rgba16float",
-      "rgba16float",
-      "r32float",
-      "rgba16float",
-      "r32float",
-    ] as const)
-      this.targets.push(
-        this.renderer.resources.targets.acquire({
-          label: "Persistent temporal history",
-          size: [this.width, this.height],
-          format,
-          usage:
-            GPUTextureUsage.RENDER_ATTACHMENT |
-            GPUTextureUsage.TEXTURE_BINDING |
-            GPUTextureUsage.COPY_SRC |
-            GPUTextureUsage.COPY_DST,
-        }),
-      );
     this.groups = [];
-    const sceneView = scene.createView();
-    for (let index = 0; index < 2; index++)
-      this.groups.push(
-        this.renderer.gpu.device.createBindGroup({
-          layout: this.resolveLayout!,
-          entries: [
-            sceneView,
-            this.targets[1]!.view,
-            this.targets[0]!.view,
-            depth,
-            this.targets[2 + index * 2]!.view,
-            this.targets[3 + index * 2]!.view,
-          ]
-            .map((resource, binding): GPUBindGroupEntry => {
-              // Each immutable group reads one history pair; the opposite pair receives this frame.
-              return { binding, resource };
-            })
-            .concat([
-              {
-                binding: 6,
-                resource: {
-                  buffer: this.settingsBuffer!,
-                },
-              },
-            ]),
-        }),
-      );
+    prepareTemporalTargets(
+      this.renderer,
+      scene,
+      depth,
+      this.resolveLayout!,
+      this.settingsBuffer!,
+      this.targets,
+      this.groups,
+    );
     this.index = 0;
     this.reset();
   }
@@ -327,8 +185,8 @@ export class TemporalAntialiasing {
       return;
     }
     const sample = this.stamp % 8;
-    this.jitterX = this.jitter ? jitterX[sample]! / this.width : 0;
-    this.jitterY = this.jitter ? -jitterY[sample]! / this.height : 0;
+    this.jitterX = this.jitter ? HALTON_JITTER_X[sample]! / this.width : 0;
+    this.jitterY = this.jitter ? -HALTON_JITTER_Y[sample]! / this.height : 0;
     this.renderer.camera.setJitter(this.jitterX * 2, -this.jitterY * 2);
   }
   /** Coalesce changed packed rows; stationary scenes transfer camera controls rather than full object pools. */
@@ -343,7 +201,11 @@ export class TemporalAntialiasing {
     for (let object = 0; object <= count; object++) {
       let dirty = object < count && object >= this.uploadedCount;
       if (object < count)
-        for (let word = object * 28; word < (object + 1) * 28; word++) {
+        for (
+          let word = object * MOTION_OBJECT_WORDS;
+          word < (object + 1) * MOTION_OBJECT_WORDS;
+          word++
+        ) {
           if (words[word] !== uploaded[word]) dirty = true;
           uploaded[word] = words[word]!;
         }
@@ -352,8 +214,8 @@ export class TemporalAntialiasing {
         continue;
       }
       if (first < 0) continue;
-      const offset = first * 112,
-        size = (object - first) * 112;
+      const offset = first * MOTION_OBJECT_BYTES,
+        size = (object - first) * MOTION_OBJECT_BYTES;
       this.renderer.gpu.queue.writeBuffer(
         buffer,
         offset,
@@ -376,7 +238,7 @@ export class TemporalAntialiasing {
     h.prepare(w, r.materials);
     for (let i = 0; i < w.count; i++) {
       const mesh = r.meshes.get(w.meshId[i]!),
-        o = i * 28;
+        o = i * MOTION_OBJECT_WORDS;
       h.currentWords[o + 24] = mesh.morphOffset ?? 0;
       h.currentWords[o + 25] = mesh.deformationVertexCount ?? 0;
       // GPU-selected LOD geometry may differ from the CPU snapshot; conservatively reject its history.
@@ -402,7 +264,7 @@ export class TemporalAntialiasing {
       );
     this.uploadedCount = w.count;
     r.gpu.queue.writeBuffer(this.frameBuffer!, 0, this.frame);
-    this.uploadBytes += 144;
+    this.uploadBytes += MOTION_FRAME_BYTES;
     const pass = encoder.beginRenderPass({
       label: "Temporal motion",
       timestampWrites: r.gpuProfiler.writes(GPUPass.motion),
@@ -490,7 +352,7 @@ export class TemporalAntialiasing {
     this.settings[36] = this.deltaX;
     this.settings[37] = this.deltaY;
     this.renderer.gpu.queue.writeBuffer(this.settingsBuffer!, 0, this.settings);
-    this.uploadBytes += 160;
+    this.uploadBytes += TEMPORAL_SETTINGS_BYTES;
     const pass = encoder.beginRenderPass({
       label: "Temporal resolve",
       timestampWrites: this.renderer.gpuProfiler.writes(

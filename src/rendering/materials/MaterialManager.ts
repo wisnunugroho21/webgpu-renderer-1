@@ -1,4 +1,11 @@
-import { packTextureLayout } from "./MaterialTextureLayout";
+import {
+  prepareMaterialFactors,
+  writeMaterialFactors,
+} from "./MaterialFactors";
+import {
+  packTextureLayout,
+  validateTextureLayout,
+} from "./MaterialTextureLayout";
 import { MATERIAL_PIPELINE_VARIANTS } from "../pipelines/ColorPipelineLayout";
 import { MaterialShaderRegistry } from "./MaterialShaderRegistry";
 import { MaterialShaderParameters } from "./MaterialShaderParameters";
@@ -21,7 +28,7 @@ export class MaterialManager {
   readonly alive: Uint8Array;
   readonly generations: Float64Array;
   private readonly free: number[] = [];
-  /** Computes the this.capacity - this.count + this.free.length result. */
+  /** Count never-issued slots plus released slots available for safe material reuse. */
   get available(): number {
     return this.capacity - this.count + this.free.length;
   }
@@ -86,140 +93,11 @@ export class MaterialManager {
         "Unknown material shader; register it before creating a material",
       );
     this.customParameters.validate(material.shaderParameters);
-    const baseColor = material.baseColor ?? [1, 1, 1, 1],
-      metallic = material.metallic ?? 0,
-      roughness = material.roughness ?? 1,
-      cutoff = material.alphaCutoff ?? 0.5;
-    if (
-      baseColor.length !== 4 ||
-      [...baseColor, metallic, roughness, cutoff].some(
-        (v) =>
-          /** Evaluates the !Number.isFinite(v) || v < 0 condition. */ !Number.isFinite(
-            v,
-          ) || v < 0,
-      ) ||
-      metallic > 1 ||
-      roughness > 1 ||
-      baseColor[3] > 1 ||
-      cutoff > 1
-    )
-      throw new Error("Invalid material values");
-    const mode = material.alphaMode ?? "OPAQUE",
-      alpha =
-        mode === "OPAQUE" ? 0 : mode === "MASK" ? 1 : mode === "BLEND" ? 2 : -1;
-    if (alpha < 0) throw new Error("Invalid alpha mode");
-    const offset = id * MATERIAL_WORDS;
-    const emissive = material.emissive ?? [0, 0, 0],
-      normalScale = material.normalScale ?? 1,
-      occlusion = material.occlusionStrength ?? 1;
-    if (
-      [emissive[0], emissive[1], emissive[2], normalScale, occlusion].some(
-        (v) =>
-          /** Evaluates the v === undefined || !Number.isFinite(v) || v < 0 condition. */ v ===
-            undefined ||
-          !Number.isFinite(v) ||
-          v < 0,
-      ) ||
-      occlusion > 1
-    )
-      throw new Error("Invalid PBR properties");
-    const layout = packTextureLayout(material.textures),
-      ior = material.ior ?? 1.5,
-      specular = material.specular ?? 1,
-      specularColor = material.specularColor ?? [1, 1, 1],
-      clearcoat = material.clearcoat ?? 0,
-      coatRoughness = material.clearcoatRoughness ?? 0,
-      coatNormalScale = material.clearcoatNormalScale ?? 1,
-      strength = material.emissiveStrength ?? 1;
-    if (
-      specularColor.length !== 3 ||
-      [
-        ior,
-        specular,
-        ...Array.from(specularColor),
-        clearcoat,
-        coatRoughness,
-        coatNormalScale,
-        strength,
-      ].some(
-        (v) =>
-          /** Reject invalid or unrepresentable authored factors before any record mutation. */ !Number.isFinite(
-            Math.fround(v),
-          ) || v < 0,
-      ) ||
-      (ior !== 0 && ior < 1) ||
-      specular > 1 ||
-      clearcoat > 1 ||
-      coatRoughness > 1
-    )
-      throw new Error("Invalid authored PBR properties");
-    const transmission = material.transmission ?? 0,
-      thickness = material.thickness ?? 0,
-      attenuationDistance = material.attenuationDistance ?? Infinity,
-      attenuationColor = material.attenuationColor ?? [1, 1, 1];
-    if (
-      !Number.isFinite(Math.fround(transmission)) ||
-      transmission < 0 ||
-      transmission > 1 ||
-      !Number.isFinite(Math.fround(thickness)) ||
-      thickness < 0 ||
-      attenuationColor.length !== 3 ||
-      Array.from(attenuationColor).some((v) => {
-        // Absorption must never amplify transmitted radiance or publish nonfinite factors.
-        return !Number.isFinite(Math.fround(v)) || v < 0 || v > 1;
-      }) ||
-      (attenuationDistance !== Infinity &&
-        (!Number.isFinite(Math.fround(attenuationDistance)) ||
-          Math.fround(attenuationDistance) <= 0)) ||
-      (material.unlit && transmission > 0)
-    )
-      throw new Error("Invalid transmission/volume properties");
-    /** Read the validated UV index for legacy metadata fields. */
-    const uv = (role: string) => material.textures?.[role]?.texCoord ?? 0;
+    const prepared = prepareMaterialFactors(material);
+    const { alpha, transmission, thickness } = prepared;
     this.shaderIds[id] = shaderId;
     this.customParameters.write(id, material.shaderParameters);
-    this.data.set(baseColor, offset);
-    this.data.set([metallic, roughness, alpha, cutoff], offset + 4);
-    this.data.set(
-      [emissive[0]!, emissive[1]!, emissive[2]!, normalScale],
-      offset + 8,
-    );
-    this.data.set(
-      [
-        occlusion,
-        uv("emissive"),
-        material.textures?.normal ? 1 : 0,
-        material.doubleSided && thickness === 0 ? 1 : 0,
-      ],
-      offset + 12,
-    );
-    this.data.set(
-      [uv("baseColor"), uv("metallicRoughness"), uv("normal"), uv("occlusion")],
-      offset + 16,
-    );
-    this.data.set(
-      [ior, specular, strength, material.unlit ? 1 : 0],
-      offset + 20,
-    );
-    this.data.set(
-      [specularColor[0]!, specularColor[1]!, specularColor[2]!, clearcoat],
-      offset + 24,
-    );
-    this.data.set(
-      [coatRoughness, coatNormalScale, 0, layout[102]!],
-      offset + 28,
-    );
-    this.data.set(layout.subarray(6, 102), offset + 40);
-    this.data.set([transmission, thickness, 0, 0], offset + 32);
-    this.data.set(
-      [
-        attenuationColor[0]!,
-        attenuationColor[1]!,
-        attenuationColor[2]!,
-        attenuationDistance === Infinity ? 0 : attenuationDistance,
-      ],
-      offset + 36,
-    );
+    writeMaterialFactors(this.data, id * MATERIAL_WORDS, material, prepared);
     this.alphaMode[id] = transmission > 0 ? 2 : alpha;
     this.doubleSided[id] = material.doubleSided && thickness === 0 ? 1 : 0;
     this.flags[id] =
@@ -296,29 +174,7 @@ export class MaterialManager {
   setTextureLayout(id: number, layout: ArrayLike<number>): void {
     if (!Number.isInteger(id) || id < 0 || id >= this.count || !this.alive[id])
       throw new Error("Unknown material");
-    if (![6, 87, 103].includes(layout.length))
-      throw new Error("Invalid texture layout");
-    for (let i = 0; i < 6; i++)
-      if (layout[i] !== 0 && layout[i] !== 1)
-        throw new Error("Only TEXCOORD_0/1 are supported");
-    if (layout.length > 6) {
-      for (let i = 6; i < layout.length - 1; i++)
-        if (!Number.isFinite(Math.fround(layout[i]!)))
-          throw new Error("Invalid texture transform");
-      const flags = layout[layout.length - 1]!;
-      if (
-        !Number.isInteger(flags) ||
-        flags < 0 ||
-        flags > (layout.length === 87 ? 31 : 127)
-      )
-        throw new Error("Invalid texture flags");
-      for (let i = 6; i < layout.length - 1; i += 8)
-        if (
-          (layout[i + 3] !== 0 && layout[i + 3] !== 1) ||
-          (layout[i + 7] !== 0 && layout[i + 7] !== 1)
-        )
-          throw new Error("Invalid texture transform");
-    }
+    validateTextureLayout(layout);
     const o = id * MATERIAL_WORDS;
     this.data[o + 13] = layout[0]!;
     this.data[o + 14] = layout[1]!;

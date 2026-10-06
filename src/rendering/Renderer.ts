@@ -1,12 +1,7 @@
 import type { TransmissionRendering } from "./post/TransmissionRendering";
-import {
-  shadowTargetOptions,
-  type ShadowTargetOptions,
-} from "./shadows/ShadowBudget";
-
-export interface RendererOptions {
-  shadows?: ShadowTargetOptions;
-}
+import { shadowTargetOptions } from "./shadows/ShadowBudget";
+import type { RendererOptions } from "./RendererOptions";
+export type { RendererOptions } from "./RendererOptions";
 import type { UnifiedTransparency } from "./UnifiedTransparency";
 import { retainedMemory } from "../assets/retainedMemory";
 import { copyRendererSettings } from "./copyRendererSettings";
@@ -19,15 +14,9 @@ import { TemporalAntialiasing } from "./post/TemporalAntialiasing";
 import { HDRRendering } from "./post/HDRRendering";
 import { EnvironmentData } from "./environment/EnvironmentData";
 import { EnvironmentLighting } from "./environment/EnvironmentLighting";
-import { FrameUniforms } from "./FrameUniforms";
-import {
-  FRAME_BYTES,
-  MATRIX_BYTES,
-  MATRIX_WORDS,
-  MATERIAL_WORDS,
-  INSTANCE_BYTES,
-  INSTANCE_WORDS,
-} from "./layouts";
+import { RendererUploads } from "./RendererUploads";
+import { RendererVisibility } from "./RendererVisibility";
+import { MATERIAL_WORDS } from "./layouts";
 import { configureRenderGraph } from "./graph/configureRenderGraph";
 import { GeometryOptimization } from "./geometry/GeometryOptimization";
 import { RendererStreaming } from "./RendererStreaming";
@@ -108,7 +97,6 @@ export class Renderer {
   streaming: RendererStreaming;
   private ownsStreaming = true;
   visibilityMode: "linear" | "bvh" = "linear";
-  private bvhRevision = -1;
   readonly resources: Resources;
   readonly dynamic: DynamicBufferAllocator;
   readonly materialBuffer: GPUBuffer;
@@ -137,10 +125,13 @@ export class Renderer {
     "lights",
     "deformation",
   ]);
-  private colorInstanceOffset = 0;
-  private readonly frameUniforms = new FrameUniforms();
+  private readonly uploads: RendererUploads;
+  private readonly visibility: RendererVisibility;
   readonly pipelines: readonly GPURenderPipeline[];
-  private frameNumber = 0;
+  /** Share the upload coordinator clock with streaming/recovery callbacks. */
+  private get frameNumber(): number {
+    return this.uploads.frameNumber;
+  }
   readonly frameBuffer: GPUBuffer;
   readonly vertexBuffer: GPUBuffer;
   readonly indexBuffer: GPUBuffer;
@@ -295,6 +286,8 @@ export class Renderer {
       this.textures.mipmaps,
     );
     this.transparency = this.particleRenderer.transparency;
+    this.uploads = new RendererUploads(this, this.colorPass);
+    this.visibility = new RendererVisibility(this);
     this.configurePasses();
     this.resize();
   }
@@ -321,7 +314,7 @@ export class Renderer {
           encoder,
           this.depthView!,
           this.dynamic.frameSlot,
-          this.colorInstanceOffset,
+          this.uploads.instanceOffset,
           this.batches,
           this.stats,
           this.gpuProfiler,
@@ -331,7 +324,7 @@ export class Renderer {
         this.geometryOptimization.encode(
           encoder,
           this.dynamic.frameSlot,
-          this.colorInstanceOffset,
+          this.uploads.instanceOffset,
           this.gpuProfiler,
         ),
       /** Draw the sorted scene into the current direct or linear scene target. */
@@ -340,7 +333,7 @@ export class Renderer {
           encoder,
           view,
           this.depthView!,
-          this.colorInstanceOffset,
+          this.uploads.instanceOffset,
           this.clearColor,
         ),
       /** Merge all alpha streams after opaque depth is final, then composite additive effects. */
@@ -361,7 +354,7 @@ export class Renderer {
           encoder,
           view,
           this.depthView!,
-          this.colorInstanceOffset,
+          this.uploads.instanceOffset,
           this.clearColor,
           this.transparency,
           this.particleRenderer,
@@ -428,7 +421,7 @@ export class Renderer {
 
   /** Cold device recovery: preserve CPU controls, never transfer old-device GPU objects. */
   restoreSettings(previous: Renderer): void {
-    this.frameNumber = previous.frameNumber;
+    this.uploads.frameNumber = previous.frameNumber;
     copyRendererSettings(this, previous);
   }
   /** Rebinds resident streaming ownership to recovered GPU owners while retaining its CPU records. */
@@ -487,10 +480,10 @@ export class Renderer {
     this.resize();
     const indirect = this.submissionMode === "gpu-indirect";
     this.taa.begin();
-    this.configureFeatureDependencies(indirect);
-    const visible = this.prepareVisibility(indirect);
-    this.prepareBatches(indirect, visible);
-    this.uploadFrameState(indirect);
+    this.visibility.configureDependencies(indirect);
+    const visible = this.visibility.prepare(indirect, this.width, this.height);
+    this.visibility.prepareBatches(indirect, visible);
+    this.uploads.upload(indirect, this.width, this.height);
     this.streaming.touch(this.frameNumber);
     this.streaming.quality.update(
       this.world,
@@ -575,248 +568,6 @@ export class Renderer {
   /** Cold asynchronous upload/replacement; null removes the environment. */
   setEnvironment(data: EnvironmentData | null): Promise<void> {
     return this.environment.set(data);
-  }
-
-  /** Optional GPU paths enable their prerequisites before any visibility work. */
-  private configureFeatureDependencies(indirect: boolean): void {
-    if (this.gpuOcclusion.enabled) {
-      this.gpuFrustum.enabled = true;
-      this.hiz.enabled = true;
-    }
-    if (this.gpuCompaction.enabled) this.gpuFrustum.enabled = true;
-    this.gpuDraws.enabled = indirect;
-    if (indirect) {
-      if (!this.gpuDraws.supported)
-        throw new Error("GPU indirect mode requires indirect-first-instance");
-      this.gpuFrustum.enabled =
-        this.gpuCompaction.enabled =
-        this.gpuLOD.enabled =
-          true;
-      for (let i = 0; i < this.world.count; i++)
-        if (this.world.lodGroup[i]! >= 0)
-          this.world.meshId[i] =
-            this.lodGroups.entries[this.world.lodGroup[i]!]!.meshes[0]!;
-    }
-    this.depthPrepass.skipLOD = indirect;
-    if (this.gpuLOD.enabled) this.gpuFrustum.enabled = true;
-    if (this.hiz.enabled || this.hiz.debugEnabled || this.gpuOcclusion.enabled)
-      this.depthPrepass.enabled = true;
-  }
-
-  /** CPU culling and LOD produce the queue input; indirect mode leaves selection to the GPU. */
-  private prepareVisibility(indirect: boolean): number {
-    this.camera.update(this.width / this.height);
-    this.stats.reset();
-    this.profiler.start(CPUStage.culling);
-    this.frustum.setFromMatrix(this.camera.viewProjection);
-    if (
-      this.visibilityMode === "bvh" &&
-      this.bvhRevision !== this.world.staticRevision
-    ) {
-      this.bvh.build(this.world);
-      this.bvhRevision = this.world.staticRevision;
-    }
-    const frustumVisible =
-      this.cullingEnabled && !indirect
-        ? this.visibilityMode === "bvh"
-          ? this.bvh.cull(this.world, this.frustum, this.culler)
-          : this.culler.cull(this.world, this.frustum)
-        : this.world.count;
-    this.stats.totalRenderables = this.world.count;
-    this.stats.frustumTested =
-      this.cullingEnabled && !indirect
-        ? this.visibilityMode === "bvh"
-          ? this.bvh.objectsTested
-          : this.world.count
-        : 0;
-    this.stats.bvhNodesTested =
-      this.cullingEnabled && this.visibilityMode === "bvh"
-        ? this.bvh.nodesTested
-        : 0;
-    const input =
-      this.cullingEnabled && !indirect
-        ? this.visibilityMode === "bvh"
-          ? this.bvh.visible
-          : this.culler.visible
-        : undefined;
-    const visible = indirect
-      ? this.world.count
-      : this.lodSelector.select(
-          this.world,
-          this.camera,
-          this.gpu.canvas.height,
-          input,
-          frustumVisible,
-        );
-    this.stats.lod0 = this.lodSelector.distribution[0]!;
-    this.stats.lod1 = this.lodSelector.distribution[1]!;
-    this.stats.lod2 = this.lodSelector.distribution[2]!;
-    this.stats.lodOther = 0;
-    for (let level = 3; level < 8; level++)
-      this.stats.lodOther += this.lodSelector.distribution[level]!;
-    this.stats.lodCulled = this.lodSelector.culled;
-    this.stats.visibleObjects = visible;
-    this.stats.culledObjects = this.world.count - visible;
-    this.stats.frustumRejected = this.world.count - frustumVisible;
-    this.profiler.end(CPUStage.culling);
-    return visible;
-  }
-
-  /** Sorting establishes stable pipeline/material/mesh runs before shared instance packing. */
-  private prepareBatches(indirect: boolean, visible: number): void {
-    this.profiler.start(CPUStage.sorting);
-    this.queue.build(
-      this.world,
-      this.materials,
-      this.camera.view,
-      indirect ? undefined : this.lodSelector.visible,
-      visible,
-    );
-    for (let i = 0; i < this.world.count; i++)
-      this.queue.pipeline[i] = this.materials.colorPipelineIndex(
-        this.world.materialId[i]!,
-        this.meshes.get(this.world.meshId[i]!).topology,
-      );
-    this.sorter.lodAware = indirect;
-    this.sorter.sort(
-      this.queue,
-      this.world,
-      this.submissionMode !== "individual",
-    );
-    this.batches.build(
-      this.queue,
-      this.world,
-      this.submissionMode === "instanced" || indirect,
-      indirect,
-    );
-    this.profiler.end(CPUStage.sorting);
-  }
-
-  /** Reuse arena slots and persistent staging arrays. No GPU objects are created here. */
-  private uploadFrameState(indirect: boolean): void {
-    this.profiler.start(CPUStage.encoding);
-    this.environment.flush(this.skybox.enabled);
-    this.skybox.update(this.camera);
-    this.gpuProfiler.beginFrame(this.frameNumber);
-    this.dynamic.beginFrame(this.frameNumber++);
-    const clustered = this.clusters.choose(this.world);
-    this.frameUniforms.update(
-      this.camera,
-      this.world.lightCount,
-      this.clusters,
-      clustered,
-      this.width,
-      this.height,
-    );
-    this.dynamic.write(
-      this.dynamic.allocate(FRAME_BYTES),
-      this.frameUniforms.data,
-    );
-    this.dynamic.write(
-      this.dynamic.allocate(
-        Math.max(MATRIX_BYTES, this.world.count * MATRIX_BYTES),
-      ),
-      this.world.matrices.subarray(
-        0,
-        Math.max(MATRIX_WORDS, this.world.count * MATRIX_WORDS),
-      ),
-    );
-    this.instances.update(this.queue, this.world, this.meshes);
-    const instanceOffset = this.dynamic.allocate(
-      Math.max(INSTANCE_BYTES, this.queue.count * INSTANCE_BYTES),
-      this.gpu.device.limits.minStorageBufferOffsetAlignment,
-    );
-    this.dynamic.write(
-      instanceOffset,
-      this.instances.data.subarray(
-        0,
-        Math.max(INSTANCE_WORDS, this.queue.count * INSTANCE_WORDS),
-      ),
-    );
-    this.shadows.prepare(this.world, this.camera, this.gpu.queue, this.stats);
-    this.dynamic.flush(this.gpu.queue);
-    this.materials.upload(this.gpu.queue, this.materialBuffer);
-    this.colorPass.uploadParameters();
-    this.joints.upload(this.gpu.queue, this.world);
-    this.morphWeights.upload(this.gpu.queue, this.world);
-    this.lights.upload(this.gpu.queue, this.world);
-    this.prepareGPUPaths(indirect);
-    this.recordUploadStats(clustered);
-    this.colorInstanceOffset = instanceOffset;
-  }
-
-  /** Prepare optional compute inputs after all shared frame writes; the graph performs actual dispatches. */
-  private prepareGPUPaths(indirect: boolean): void {
-    this.gpuFrustum.update(this.world, this.gpu.queue);
-    const temporalEnabled = this.temporal.enabled;
-    if (!this.gpuOcclusion.enabled) this.temporal.enabled = false;
-    this.temporal.prepare(
-      this.world,
-      this.camera,
-      this.materials.revision,
-      this.width,
-      this.height,
-      indirect,
-    );
-    this.temporal.enabled = temporalEnabled;
-    this.gpuLOD.prepare(this.world, this.gpu.queue);
-    this.gpuDraws.prepare(
-      this.world,
-      this.queue,
-      this.batches,
-      this.meshes,
-      this.materials,
-      this.gpu.queue,
-    );
-    this.geometryOptimization.prepare(
-      this.batches,
-      this.queue,
-      this.world,
-      this.meshes,
-      this.camera.viewProjection,
-      this.cullingEnabled,
-      indirect,
-      this.gpu.queue,
-    );
-  }
-
-  /** Report bytes from their owners without changing dirty-range decisions or upload ordering. */
-  private recordUploadStats(clustered: boolean): void {
-    this.stats.geometryClusterCandidates = this.geometryOptimization.count;
-    this.stats.geometryFallbackBatches =
-      this.geometryOptimization.fallbackBatches;
-    this.stats.geometryUploadBytes = this.geometryOptimization.uploadBytes;
-    this.stats.indirectUploadBytes = this.gpuDraws.uploadBytes;
-    this.stats.gpuCandidates = this.gpuFrustum.enabled
-      ? this.gpuFrustum.count
-      : 0;
-    this.stats.gpuObjectUploadBytes = this.gpuFrustum.uploadBytes;
-    this.stats.lights = this.world.lightCount;
-    this.stats.lightUploadBytes = this.lights.uploadBytes;
-    this.stats.morphUploadBytes = this.morphWeights.uploadBytes;
-    this.stats.activeMorphStates = this.world.activeMorphStates;
-    this.stats.activeMorphTargets = this.world.activeMorphTargets;
-    this.stats.morphTargets = this.world.morphTargets;
-    this.stats.activeSkeletons = this.world.activeSkeletons;
-    this.stats.jointCount = this.world.activeJoints;
-    this.stats.updatedJoints = this.joints.updatedJoints;
-    this.stats.jointUploadBytes = this.joints.uploadBytes;
-    this.stats.bufferUploadBytes =
-      this.dynamic.uploadBytes +
-      this.materials.uploadBytes +
-      this.materials.shaderUploadBytes +
-      this.joints.uploadBytes +
-      this.morphWeights.uploadBytes +
-      this.lights.uploadBytes +
-      this.stats.shadowUploadBytes +
-      this.gpuFrustum.uploadBytes +
-      this.gpuDraws.uploadBytes +
-      this.gpuLOD.uploadBytes +
-      this.geometryOptimization.uploadBytes;
-
-    this.stats.clusters = clustered
-      ? this.clusters.tilesX * this.clusters.tilesY * this.clusters.slices
-      : 0;
   }
 
   /** Registers a surface shader on the cold path; publication waits for GPU validation. */

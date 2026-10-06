@@ -1,3 +1,4 @@
+import { createAnimationBindings } from "./createAnimationBindings";
 import {
   createAnimationLayer,
   type MorphState,
@@ -12,7 +13,6 @@ import {
   AnimationEventListener,
 } from "./AnimationEvents";
 import { World } from "../ecs/World";
-import { AnimationPose } from "./AnimationPose";
 import { AnimationClip } from "./AnimationClip";
 import {
   AnimationLayerOptions,
@@ -90,52 +90,19 @@ export class Animator {
     entities: Int32Array,
     morphs: Map<number, MorphState>,
   ) {
-    const slots = new Map<string, AnimationSlot>();
-    this.bindings = clips.map((clip) =>
-      /** Builds an output entry for each input item. */ clip.channels.map(
-        (channel) => {
-          // Builds a record containing channel, key index, slot, output.
-
-          const entity = entities[channel.node] ?? -1,
-            morph = morphs.get(entity),
-            key = `${channel.node}:${channel.path}`;
-          if (
-            channel.path === "weights" &&
-            entity >= 0 &&
-            (!morph || morph.weights.length !== channel.sampler.size)
-          )
-            throw new Error("Animation morph weight count mismatch");
-          let slot = slots.get(key);
-          if (!slot) {
-            /** Creates AnimationPose storage for this operation. */
-            const pose = () =>
-              new AnimationPose(channel.path, channel.sampler.size);
-            slot = {
-              entity,
-              node: channel.node,
-              generation: world.generation[entity] ?? -1,
-              morph,
-              path: channel.path,
-              base: pose(),
-              source: pose(),
-              target: pose(),
-              result: pose(),
-            };
-            this.readRest(slot, slot.base.values);
-            slots.set(key, slot);
-            this.slots.push(slot);
-          } else if (slot.base.values.length !== channel.sampler.size)
-            throw new Error("Animation clip target size mismatch");
-          return {
-            channel,
-            keyIndex: 0,
-            slot,
-            output: new Float32Array(channel.sampler.size),
-          };
-        },
-      ),
+    this.bindings = createAnimationBindings(
+      clips,
+      world,
+      entities,
+      morphs,
+      this.slots,
+      (slot) => {
+        // Capture the current ECS rest pose once before playback mutates this slot.
+        this.readRest(slot, slot.base.values);
+      },
     );
   }
+
   /** Events belong to this controller; source clips in a crossfade do not emit duplicates. */
   setEvents(clip: number, markers: readonly AnimationMarker[]): void {
     (this.events ??= new AnimationEvents(this.clips)).set(clip, markers);

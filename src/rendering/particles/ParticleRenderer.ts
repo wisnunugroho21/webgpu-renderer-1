@@ -1,6 +1,6 @@
 import { ParticleVisibility } from "./ParticleVisibility";
-import { particleAtlasMipLevels } from "../../particles/ParticleAtlas";
-import { MipGenerator } from "../materials/MipGenerator";
+import { createParticleAtlas } from "./createParticleAtlas";
+import type { MipGenerator } from "../materials/MipGenerator";
 import { UnifiedTransparency } from "../UnifiedTransparency";
 import { RenderQueue } from "../RenderQueue";
 import { BatchBuilder } from "../BatchBuilder";
@@ -156,28 +156,15 @@ export class ParticleRenderer {
   private refreshAtlas(): void {
     if (!this.prepared || this.atlasRevision === this.system.atlasRevision)
       return;
-    const atlas = this.system.atlas;
-    this.atlasLevels = particleAtlasMipLevels(atlas);
-    const texture = this.resources.textures.create({
-      label: "Particle atlas",
-      mipLevelCount: this.atlasLevels,
-      size: [atlas?.width ?? 1, atlas?.height ?? 1],
-      format: atlas?.colorSpace === "linear" ? "rgba8unorm" : "rgba8unorm-srgb",
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        (this.atlasLevels > 1 ? GPUTextureUsage.RENDER_ATTACHMENT : 0),
-    });
-    this.gpu.queue.writeTexture(
-      { texture },
-      atlas?.pixels ?? new Uint8Array([255, 255, 255, 255]),
-      { bytesPerRow: (atlas?.width ?? 1) * 4 },
-      [atlas?.width ?? 1, atlas?.height ?? 1],
+    const prepared = createParticleAtlas(
+      this.gpu,
+      this.resources,
+      this.system.atlas,
+      this.mipmaps,
     );
-    if (this.atlasLevels > 1) {
-      this.mipmaps ??= new MipGenerator(this.gpu.device, this.resources);
-      this.mipmaps.generate(texture, true);
-    }
+    const { texture } = prepared;
+    this.atlasLevels = prepared.levels;
+    this.mipmaps = prepared.mipmaps;
     if (this.atlasTexture) this.resources.textures.destroy(this.atlasTexture);
     this.atlasTexture = texture;
     this.atlasRevision = this.system.atlasRevision;

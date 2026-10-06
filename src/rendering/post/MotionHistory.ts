@@ -1,5 +1,8 @@
+import * as temporalLayout from "./TemporalLayout";
 import type { RenderWorld } from "../RenderWorld";
 import type { MaterialManager } from "../materials/MaterialManager";
+// Resolve immutable ABI widths once, outside object packing/upload loops.
+const { MOTION_OBJECT_WORDS } = temporalLayout;
 /** Fixed identity table and packed previous pose, independent of compact extraction order. */
 export class MotionHistory {
   readonly current: Float32Array;
@@ -24,15 +27,15 @@ export class MotionHistory {
     jointCapacity: number,
     morphCapacity: number,
   ) {
-    this.jointWord = capacity * 28;
+    this.jointWord = capacity * MOTION_OBJECT_WORDS;
     this.morphWord = this.jointWord + jointCapacity * 16;
-    this.current = new Float32Array(capacity * 28);
+    this.current = new Float32Array(capacity * MOTION_OBJECT_WORDS);
     this.previous = new Float32Array(
       this.morphWord + Math.max(4, morphCapacity),
     );
     this.currentWords = new Uint32Array(this.current.buffer);
     this.previousWords = new Uint32Array(this.previous.buffer);
-    this.saved = new Float32Array(capacity * 28);
+    this.saved = new Float32Array(capacity * MOTION_OBJECT_WORDS);
     this.ids = new Uint32Array(capacity);
     this.generations = new Float64Array(capacity);
     this.materialGenerations = new Float64Array(capacity);
@@ -52,7 +55,7 @@ export class MotionHistory {
   /** Pack current draws and remap compatible previous identities into current object slots. */
   prepare(world: RenderWorld, materials: MaterialManager): void {
     for (let i = 0; i < world.count; i++) {
-      const o = i * 28;
+      const o = i * MOTION_OBJECT_WORDS;
       this.current.set(world.matrices.subarray(i * 16, i * 16 + 16), o);
       const w = this.currentWords;
       w[o + 16] = i;
@@ -83,11 +86,14 @@ export class MotionHistory {
           materials.generations[world.materialId[i]!] &&
         this.skins[prior] === world.skinInstanceId[i] &&
         this.morphs[prior] === world.morphStateId[i] &&
-        this.saved[prior * 28 + 17] === this.current[o + 17];
+        this.saved[prior * MOTION_OBJECT_WORDS + 17] === this.current[o + 17];
       this.previous.set(
         compatible
-          ? this.saved.subarray(prior * 28, prior * 28 + 28)
-          : this.current.subarray(o, o + 28),
+          ? this.saved.subarray(
+              prior * MOTION_OBJECT_WORDS,
+              prior * MOTION_OBJECT_WORDS + MOTION_OBJECT_WORDS,
+            )
+          : this.current.subarray(o, o + MOTION_OBJECT_WORDS),
         o,
       );
       this.previousWords[o + 27] = 0;
@@ -96,7 +102,7 @@ export class MotionHistory {
   }
   /** Save CPU identities and object poses after encoding; shared palettes are snapshotted by GPU copies. */
   capture(world: RenderWorld, materials: MaterialManager): void {
-    this.saved.set(this.current.subarray(0, world.count * 28));
+    this.saved.set(this.current.subarray(0, world.count * MOTION_OBJECT_WORDS));
     this.table.fill(-1);
     for (let i = 0; i < world.count; i++) {
       const id = world.entityId[i]!;

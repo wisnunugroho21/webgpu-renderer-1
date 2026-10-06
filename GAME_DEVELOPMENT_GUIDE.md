@@ -583,3 +583,9 @@ Two optical maps use separate layers of one linear RGBA8 array, normalized to th
 ## Reproducible validation
 
 Use the shared software/hardware profiles in [GPU_VALIDATION.md](GPU_VALIDATION.md) to run the same production scenarios against an identified backend. The CI workflow uses frozen dependencies and bundled Chromium; the optional hardware job requires an explicitly provisioned runner. See [the improvements report](benchmarks/REMAINING_IMPROVEMENTS_REPORT.md) for feature costs, benchmarks and approximation limits.
+
+## Finding the implementation for a game feature
+
+Start with [ARCHITECTURE.md](ARCHITECTURE.md) for ownership and frame order. Gameplay hooks and browser lifecycle are in `app/Application.ts`; scene preparation and submission are in `app/ApplicationScene.ts`. Visibility/LOD/batching are in `rendering/RendererVisibility.ts`, while shared frame uploads are in `rendering/RendererUploads.ts`. Public Renderer and Application APIs keep the same import paths.
+
+For authored material changes, inspect `rendering/materials/MaterialFactors.ts` and `MaterialTextureLayout.ts`; MaterialManager owns publication and dirty uploads. Texture-quality policy is separate from the async streaming controller. Temporal GPU setup and resize bindings live beside `TemporalAntialiasing`, which owns history/encoding. Animation binding construction and particle atlas preparation have dedicated setup modules. These boundaries help keep setup/loading work out of ordinary gameplay callbacks.

@@ -1,3 +1,8 @@
+import {
+  prepareApplicationScene,
+  submitApplicationFrame,
+  refreshApplicationSnapshot,
+} from "./ApplicationScene";
 import type { RendererOptions } from "../rendering/Renderer";
 import type { StreamBudget } from "../assets/StreamingBudget";
 import { retainedMemory } from "../assets/retainedMemory";
@@ -128,7 +133,7 @@ export class Application {
       /** Checks that the current device can accept asset publication. */
       checkDevice: () => this.checkLoadingDevice(),
       /** Refreshes render membership after asset instantiation or removal. */
-      refreshSnapshot: () => this.refreshAssetSnapshot(),
+      refreshSnapshot: () => refreshApplicationSnapshot(this),
     });
     const defaults = createDefaultScene(this.world, this.materials);
     this.sceneEntity = defaults.sceneEntity;
@@ -331,57 +336,6 @@ export class Application {
     }
   }
 
-  /** Gameplay hooks have completed; deformation → transforms → palettes → bounds → extraction is fixed. */
-  private prepareScene(delta: number): void {
-    // Bounds and extraction must follow deformation and world-transform updates.
-    this.profiler.start(CPUStage.animation);
-    this.particles.update(delta);
-    this.animations.update(delta);
-    if (this.renderer.hdr.autoExposure)
-      this.renderer.hdr.frameDeltaSeconds = delta;
-    this.profiler.end(CPUStage.animation);
-    this.profiler.start(CPUStage.transforms);
-    this.transformSystem.update(this.world.transforms);
-    this.profiler.end(CPUStage.transforms);
-    this.cameraSystem.update(this.world, this.renderer.camera);
-    this.profiler.start(CPUStage.skeletons);
-    this.skeletonSystem.update(this.world, this.skeletons);
-    this.profiler.end(CPUStage.skeletons);
-    this.profiler.start(CPUStage.animatedBounds);
-    if (this.renderer)
-      this.animatedBounds.update(
-        this.world,
-        this.renderer.meshes,
-        this.skeletons,
-        this.animations.morphPool,
-      );
-    this.profiler.end(CPUStage.animatedBounds);
-    this.profiler.start(CPUStage.extraction);
-    this.extractor.extract(
-      this.world,
-      this.renderWorld,
-      this.skeletons,
-      this.animations.morphPool,
-    );
-    this.profiler.end(CPUStage.extraction);
-    this.renderer.stats.activeAnimators = this.animations.activeAnimators;
-  }
-
-  /** One command buffer carries every graph pass. Completion waits belong only to diagnostics/lifecycle work. */
-  private submitFrame(): void {
-    const encoder = this.gpu.device.createCommandEncoder({
-      label: "Frame encoder",
-    });
-    this.renderer.encode(
-      encoder,
-      this.gpu.context
-        .getCurrentTexture()
-        .createView({ format: this.gpu.renderFormat }),
-    );
-    // Submit once after every graph pass has encoded into the same command buffer.
-    this.gpu.queue.submit([encoder.finish()]);
-  }
-
   /** Advances bounded gameplay, prepares the current pose, submits one frame and schedules the next RAF callback. */
   private readonly frame = (timestamp: number): void => {
     if (this.stopped || this.gpu.lost) return;
@@ -399,8 +353,8 @@ export class Application {
       this.profiler.start(CPUStage.simulation);
       const delta = this.simulation.advance(rawDelta);
       this.profiler.end(CPUStage.simulation);
-      this.prepareScene(delta);
-      this.submitFrame();
+      prepareApplicationScene(this, delta);
+      submitApplicationFrame(this);
       this.renderer.stats.frameTimeMs = rawDelta * 1000;
       this.renderer.stats.fps = rawDelta > 0 ? 1 / rawDelta : 0;
       this.renderer.stats.cpuFrameMs = performance.now() - start;
@@ -492,19 +446,6 @@ export class Application {
         ),
       );
     return this.assetLoader.unload(url);
-  }
-
-  /** Refreshes transforms, camera selection and extracted records after asset membership changes. */
-  private refreshAssetSnapshot(): void {
-    this.transformSystem.update(this.world.transforms);
-    if (this.renderer)
-      this.cameraSystem.update(this.world, this.renderer.camera);
-    this.extractor.extract(
-      this.world,
-      this.renderWorld,
-      this.skeletons,
-      this.animations.morphPool,
-    );
   }
 
   /** Stops callbacks and loading, awaits pending recovery, then releases environment, asset, renderer and device owners. */
